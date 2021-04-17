@@ -5,7 +5,10 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
-// compile me with g++ two-hit.cpp -lgsl
+#include <thread>
+#include <algorithm>
+
+// compile me with g++ two-hit.cpp -lgsl -pthread
 
 std::vector<int> event(double x, const std::vector<int> &n, 
                         const double &Gamma, const double &mu0, 
@@ -75,20 +78,41 @@ void simulate_runs(int seed, int runs, std::vector<double> &results) {
 }
 
 int main() {
+    int num_thr = std::thread::hardware_concurrency();
+    std::vector<std::thread> vThreads(num_thr);
+
     int seed = 1;
 
     // I hypothesise that the timescale for the late anomaly should be around
-    // ~50 years.
+    // ~50 years. Beyond this point, the distribution should be dominated by
+    // mu0, as this is the rate limiting process.
 
-    std::vector<double> times;
+    std::vector<std::vector<double>> times(num_thr);
 
     // Run some simulations:
     int runs = 20;
-    simulate_runs(seed, runs, times);
+    for (int i = 0; i < num_thr; ++i) {
+        vThreads.at(i) = std::thread(simulate_runs, seed + i, runs,
+                            std::ref(times[i]));
+    }
+
+    for (int i = 0; i < num_thr; ++i) {
+        vThreads.at(i).join();
+    }
 
     // Print results:
-    for (auto t2 : times)
-        std::cout << t2 << std::endl;
+    std::vector<double> all_times;
+    for (auto time : times) {
+        for (auto t2 : time) {
+            all_times.push_back(t2);
+        }
+    }
+
+    std::sort(all_times.begin(), all_times.end());
+
+    for (auto t : all_times) {
+        std::cout << t << std::endl;
+    }
 
     std::cout << std::endl;
 
