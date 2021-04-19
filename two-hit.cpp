@@ -79,7 +79,7 @@ void simulate_runs(int seed, int runs, std::vector<double> &results) {
 
 int main() {
     int num_thr = std::thread::hardware_concurrency();
-    std::vector<std::thread> vThreads(num_thr);
+    std::vector<std::thread> simulations(num_thr);
 
     int seed = 1;
 
@@ -92,12 +92,12 @@ int main() {
     // Run some simulations:
     int runs = 20;
     for (int i = 0; i < num_thr; ++i) {
-        vThreads.at(i) = std::thread(simulate_runs, seed + i, runs,
+        simulations.at(i) = std::thread(simulate_runs, seed + i, runs,
                             std::ref(times[i]));
     }
 
     for (int i = 0; i < num_thr; ++i) {
-        vThreads.at(i).join();
+        simulations.at(i).join();
     }
 
     // Print results:
@@ -110,6 +110,7 @@ int main() {
 
     std::sort(all_times.begin(), all_times.end());
 
+    // build histogram
     for (auto t : all_times) {
         std::cout << t << std::endl;
     }
