@@ -8,6 +8,13 @@
 #include <thread>
 #include <algorithm>
 
+// A Gillespie algorithm simulation of a birth-death-mutation process
+// Also a two-hit model of cancer initiation
+// The model:
+//
+//           (s)
+// A -(mu0)-> B -(mu1)-> C
+//
 // compile me with g++ two-hit.cpp -lgsl -pthread
 
 std::vector<int> event(double x, const std::vector<int> &n, 
@@ -15,11 +22,11 @@ std::vector<int> event(double x, const std::vector<int> &n,
                         const double &s, const double &mu1) {
     // return a set of population changes
     if (x <= mu0 * n[0])
-        return {-1, +1, 0};
+        return {0, +1, 0};
     if ((mu0 * n[0] < x) && (x <= (mu0 * n[0] + s * n[1])))
         return {0, +1, 0};
     if ((mu0 * n[0] + s * n[1]) < x)
-        return {0, -1, +1};
+        return {0, 0, +1};
 
     return {0,0,0};
 }
@@ -110,10 +117,10 @@ int main() {
 
     std::sort(all_times.begin(), all_times.end());
 
-    // build histogram
     for (auto t : all_times) {
         std::cout << t << std::endl;
     }
+    // TODO make a histogram
 
     std::cout << std::endl;
 
