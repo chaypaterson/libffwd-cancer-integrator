@@ -26,10 +26,15 @@ std::vector<double> flow(const std::vector<double> &gammas,
 
 void step(std::vector<double> &gammas, double &time, double &dt,
         const double &mu0, const double &s, const double &mu1) {
-
+    // time step using improved Euler
     std::vector<double> flux = flow(gammas, mu0, s, mu1);
-    for (int i=0; i<3; ++i) {
-        gammas[i] += flux[i] * dt;
+    std::vector<double> gammas2 = gammas;
+    for (int i = 0; i < gammas.size(); ++i) {
+        gammas2[i] += flux[i] * dt;
+    }
+    std::vector<double> flux2 = flow(gammas2, mu0, s, mu1);
+    for (int i = 0; i < gammas.size(); ++i) {
+        gammas[i] += 0.5 * (flux[i] + flux2[i]) * dt;
     }
 
     time += dt;

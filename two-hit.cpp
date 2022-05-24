@@ -97,7 +97,7 @@ int main() {
     std::vector<std::vector<double>> times(num_thr);
 
     // Run some simulations:
-    int runs = 20;
+    int runs = 1000;
     for (int i = 0; i < num_thr; ++i) {
         simulations.at(i) = std::thread(simulate_runs, seed + i, runs,
                             std::ref(times[i]));
