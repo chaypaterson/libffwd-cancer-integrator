@@ -1,24 +1,27 @@
 two-hit
 
-Simulates first passage times in a simple two-hit model. The idea is to refute
-an idea about cancer incidence in old age: the mean field approximation should
-be valid for thousands of years, and deviations from Armitage-Doll and
-Moolgavkar-Lubeck forms represent observational artifacts or new biology.
+Simulates first passage times in a simple two-hit model of
+Moolgavkar-Vernon-Knudsen type. 
 
-Source: (I think) R. Meza PNAS 2008
+Sources: R. Meza PNAS 2008; 
+         K.S. Crump Risk Analysis, Vol. 25, No. 4, 2005
+         E.G. Luebeck et al 2012, doi: 10.1158/0008-5472.CAN-12-2198
 
-What I really think is going on is the mean-field approximation breaks down
-much earlier, so cancer incidence in old age becomes selection-limited rather
-than mutation-limited. This has the effect that the cumulative incidence
-should deviate very strongly from the mean-field prediction back to something
-like O(e^{- s t}).
+We should see an initial Armitage-Doll type curve with p ~ t^2, and then after a
+sojourn time
 
-When I think it should break down:
+T_s ~ ln(s / mu) / s
 
-t ~ ln(s / mu) / s
+we should see a transition region, followed by an exponential tail (source:
+Georg Luebeck)
 
-Ideally this should all tie in with my ongoing project to find a useful "exact
-solution" to a birth-death process that proves the above limit more rigorously.
+Integration methods
+-------------------
+
+This tests different numerical approximations to the chemical master
+equation/Kolmogorov forward equation. So far I implement the Gillespie
+algorithm, tau leaping (unless this was removed), and an experimental suggestion
+of S. Moolgavkar's from the 1980s based on the method of characteristics.
 
 What the simulations should be of:
 ----------------------------------
