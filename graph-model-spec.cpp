@@ -25,6 +25,30 @@ class Model {
         }
 };
 
+Model product(const Model& graph_a, const Model& graph_b) {
+    // compute and return the Kronecker product of the two models
+    size_t n_vertices = graph_a.m_n_vertices * graph_b.m_n_vertices;
+    Model graph_c(n_vertices);
+
+    for (size_t vertex_a = 0; vertex_a < graph_a.m_n_vertices; 
+         ++vertex_a) {
+        for (size_t vertex_b = 0; vertex_b < graph_b.m_n_vertices; 
+             ++vertex_b) {
+            size_t vertex_c = vertex_a * graph_b.m_n_vertices + vertex_b;
+            // by default, assume no epistasis:
+            graph_c.m_birth_rates[vertex_c] = graph_a.m_birth_rates[vertex_a]
+                                            + graph_b.m_birth_rates[vertex_b];
+            graph_c.m_death_rates[vertex_c] = graph_a.m_death_rates[vertex_a]
+                                            + graph_b.m_death_rates[vertex_b];
+            // FIXME I think this might be incorrect:
+            graph_c.m_immig_rates[vertex_c] = graph_a.m_immig_rates[vertex_a]
+                                            + graph_b.m_immig_rates[vertex_b];
+        }
+    }
+
+    return graph_c;
+}
+
 #include <iostream>
 int main() {
     Model graph(3);
