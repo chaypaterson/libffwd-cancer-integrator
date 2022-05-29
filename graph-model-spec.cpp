@@ -11,6 +11,7 @@ class Model {
         std::vector<double> m_death_rates;
         std::vector<double> m_immig_rates;
         std::vector<std::map<int, double>> m_mutations;
+        std::vector<int> m_initial_popns;
 
         // constructor:
         Model(size_t n_vertices) {
@@ -22,6 +23,8 @@ class Model {
             std::map<int, double> neighbours;
             std::vector<std::map<int, double>> edges(m_n_vertices, neighbours);
             m_mutations = edges;
+            std::vector<int> metapopulation(m_n_vertices, 0);
+            m_initial_popns = metapopulation;
         }
 };
 
@@ -43,6 +46,8 @@ Model product(const Model& graph_a, const Model& graph_b) {
             // FIXME I think this might be incorrect:
             graph_c.m_immig_rates[vertex_c] = graph_a.m_immig_rates[vertex_a]
                                             + graph_b.m_immig_rates[vertex_b];
+            // TODO mutation rates here:
+            // ... 
         }
     }
 
