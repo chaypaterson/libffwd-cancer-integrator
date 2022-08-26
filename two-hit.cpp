@@ -61,7 +61,7 @@ double first_passage_time(gsl_rng *rng, const double &mu0, const double &s,
     return t;
 }
 
-void simulate_runs(int seed, int runs, std::vector<double> &results) {
+void simulate_runs(int seed, int runs_per_thr, std::vector<double> &results) {
     const gsl_rng_type *T;
     gsl_rng *r;
 
@@ -77,50 +77,77 @@ void simulate_runs(int seed, int runs, std::vector<double> &results) {
     double mu1 = 0.001;
     double s = 0.1;
 
-    for (int i = 0; i < runs; ++i) {
+    for (int i = 0; i < runs_per_thr; ++i) {
         results.push_back(first_passage_time(r, mu0, s, mu1));
     }
 
     gsl_rng_free(r);
 }
 
+void print_results(std::vector<double> &all_times) {
+    for (auto t : all_times) {
+        std::cout << t << std::endl;
+    }
+}
+
+void print_kaplan_meier(double time_max, std::vector<double> &all_times) {
+    size_t num_survivors = all_times.size();
+    double dt = time_max / 100;
+    double time = 0;
+    double survival = 1.0;
+    auto time_datum = all_times.begin();
+    while (time < time_max) {
+        while (*time_datum < time) {
+            survival *= (1 - 1.0 / num_survivors);
+            --num_survivors;
+            ++time_datum;
+        }
+        std::cout << time << ", " << survival << ", ";
+        std::cout << 1.0 - survival << "," << std::endl;
+        time += dt;
+    }
+}
+
 int main() {
     int num_thr = std::thread::hardware_concurrency();
-    std::vector<std::thread> simulations(num_thr);
-
+    int runs_per_thr = 1000;
     int seed = 1;
 
     // I hypothesise that the timescale for the late anomaly should be around
     // ~50 years. Beyond this point, the distribution should be dominated by
     // mu0, as this is the rate limiting process.
-
-    std::vector<std::vector<double>> times(num_thr);
-
-    // Run some simulations:
-    int runs = 1000;
-    for (int i = 0; i < num_thr; ++i) {
-        simulations.at(i) = std::thread(simulate_runs, seed + i, runs,
-                            std::ref(times[i]));
-    }
-
-    for (int i = 0; i < num_thr; ++i) {
-        simulations.at(i).join();
-    }
-
-    // Print results:
     std::vector<double> all_times;
-    for (auto time : times) {
-        for (auto t2 : time) {
-            all_times.push_back(t2);
+
+    // run (num_thr * runs_per_thr) simulations and store the times in
+    // all_times:
+    {
+        std::vector<std::vector<double>> times(num_thr);
+        {
+            std::vector<std::thread> simulations(num_thr);
+
+            // Run some simulations:
+            for (int i = 0; i < num_thr; ++i) {
+                simulations.at(i) = std::thread(simulate_runs, seed + i,
+                                    runs_per_thr, std::ref(times[i]));
+            }
+
+            for (int i = 0; i < num_thr; ++i) {
+                simulations.at(i).join();
+            }
+        }
+
+        // Flatten and store results:
+        for (auto time : times) {
+            for (auto t2 : time) {
+                all_times.push_back(t2);
+            }
         }
     }
 
     std::sort(all_times.begin(), all_times.end());
 
-    for (auto t : all_times) {
-        std::cout << t << std::endl;
-    }
-    // TODO make a histogram
+    // Kaplan-Meier plot:
+    print_kaplan_meier(100, all_times);
 
     std::cout << std::endl;
 

@@ -63,7 +63,7 @@ int main() {
     // we want the probability that site 2 is unoccupied: hence
     std::vector<double> qvalues = {1, 1, 0};
     double time = 0.0;
-    const double tmax = 80.0;
+    const double tmax = 100.0;
     double dt = 1.0;
 
     // System coefficients:
@@ -72,6 +72,9 @@ int main() {
     double s = 0.1;
     
     std::vector<int> initial_pops = {1, 0, 0}; 
+
+    std::cout << time << ", " << 1.0 << ", ";
+    std::cout << 0.0 << "," << std::endl;
 
     while (time < tmax) {
         // advance the system by smaller, finer steps:
