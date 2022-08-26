@@ -18,13 +18,16 @@ Georg Luebeck)
 Integration methods
 -------------------
 
-This tests different numerical approximations to the chemical master
-equation/Kolmogorov forward equation. So far I implement the Gillespie
-algorithm, tau leaping (unless this was removed), and an experimental suggestion
-of S. Moolgavkar's from the 1980s based on the method of characteristics.
+This compares different numerical simulation methods for birth-death-mutation
+processes: the classic Gillespie
+algorithm, and an experimental algorithm based on the method of
+characteristics. This was inspired by prior work from
+Suresh Moolgavkar in the 1980s and Dennis Quinn 1989, and performs a direct
+numerical integration of a transformed version of the chemical master
+equation/Kolmogorov forward equation. This algorithm is deterministic and fast.
 
-What the simulations should be of:
-----------------------------------
+What the test cases should be of:
+---------------------------------
 
         /\
         |V
@@ -34,19 +37,31 @@ O ----> O ----> O
 
 Two steps, 3 populations (n0, n1, n2). n1 has an advantage/growth rate s.
 
-Use the Gillespie algorithm for an exact sample of the master equation:
-
-Gamma = mu0 * n0 + (mu1 + s) * n1
-
-x = Unif(0,Gamma)
-
-Pr mut0 = (mu0 * n0) / Gamma
-Pr birth = (s * n1) / Gamma
-Pr mut1 = (mu1 * n1) / Gamma
-
-t += Exp(0, 1/Gamma)
-
 How long does it take for an n2 to appear?
+
+1. Use the Gillespie algorithm for many stochastic, "exact" samples of the master equation:
+
+    Gamma = mu0 * n0 + (mu1 + s) * n1
+
+    x = Unif(0,Gamma)
+
+    Pr mut0 = (mu0 * n0) / Gamma
+    Pr birth = (s * n1) / Gamma
+    Pr mut1 = (mu1 * n1) / Gamma
+
+    t += Exp(0, 1/Gamma)
+
+2. Use the method of characteristics for a direct integration:
+  * Generating function = some function of the variables q_j
+  * The q_j are conjugate variables to the populations n_j
+  * Evolve q_j along the flow in Fourier space implied by the reaction kinetics
+    using a time-stepping procedure
+
+Outputs:
+
+  * Survival curves for Gillespie algorithm. Generate these using Kaplan-Meier
+    plots
+  * Corresponding survival curves from the generating function
 
 Language they should be in:
 ---------------------------
