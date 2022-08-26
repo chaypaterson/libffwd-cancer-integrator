@@ -110,7 +110,7 @@ void print_kaplan_meier(double time_max, std::vector<double> &all_times) {
 
 int main() {
     int num_thr = std::thread::hardware_concurrency();
-    int runs_per_thr = 1000;
+    int runs_per_thr = 1e6;
     int seed = 1;
 
     // I hypothesise that the timescale for the late anomaly should be around
