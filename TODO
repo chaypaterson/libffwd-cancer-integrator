@@ -5,7 +5,5 @@ makefile for test projects two-hit.cpp and two-hit-characteristic.cpp
 two-hit-characteristic.cpp compiles with
     g++ $file -o characteristic
 
-two-hit.cpp needs
+two-hit-gillespie.cpp needs
     g++ $file -lgsl -pthread -o two-hit
-
-better naming convention would also be good
