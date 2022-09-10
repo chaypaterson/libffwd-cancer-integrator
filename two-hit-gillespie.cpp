@@ -33,6 +33,8 @@ std::vector<int> event(double x, const std::vector<int> &n,
 
 double first_passage_time(gsl_rng *rng, const double &mu0, const double &s,
     const double &mu1) {
+    // TODO: new prototype first_passage_time(rng, params)
+    // use .Gamma() method on params
     // initialise time
     double t = 0.;
     // populations
@@ -73,9 +75,11 @@ void simulate_runs(int seed, int runs_per_thr, std::vector<double> &results) {
     gsl_rng_set(r,seed);
 
     // System coefficients:
+    // TODO these should not be set here but packaged in params or Model or
+    // something similar.
     double mu0 = 0.001;
     double mu1 = 0.001;
-    double s = 0.1;
+    double s = 0.2;
 
     for (int i = 0; i < runs_per_thr; ++i) {
         results.push_back(first_passage_time(r, mu0, s, mu1));

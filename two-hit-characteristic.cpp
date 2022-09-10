@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <iostream>
 #include <vector>
-
 #include <cmath>
 
 // A numerical integrator based on the generating function representation of an
@@ -60,19 +59,19 @@ double generating_function(std::vector<double> gammas,
 }
 
 int main() {
+    // System coefficients:
+    const double mu0 = 0.001;
+    const double mu1 = 0.001;
+    const double s = 0.2;
+    
     // we want the probability that site 2 is unoccupied: hence
     std::vector<double> qvalues = {1, 1, 0};
+
+    std::vector<int> initial_pops = {1, 0, 0}; 
+
     double time = 0.0;
     const double tmax = 100.0;
     double dt = 1.0;
-
-    // System coefficients:
-    double mu0 = 0.001;
-    double mu1 = 0.001;
-    double s = 0.1;
-    
-    std::vector<int> initial_pops = {1, 0, 0}; 
-
     std::cout << time << ", " << 1.0 << ", ";
     std::cout << 0.0 << "," << std::endl;
 
