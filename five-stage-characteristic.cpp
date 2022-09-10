@@ -46,8 +46,7 @@ void step(std::vector<double> &gammas, double &time, double &dt,
     for (int vertex = 0; vertex < gammas.size(); ++vertex) {
         gammas[vertex] += 0.5 * (flux[vertex] + flux2[vertex]) * dt;
     }
-
-    time += dt;
+    //time += dt;
 }
 
 double generating_function(std::vector<double> gammas, 
@@ -63,6 +62,8 @@ double generating_function(std::vector<double> gammas,
     for (auto& nzero : initial_pops) {
         if (*q > 0)
             logpsi += nzero * log(*q);
+        else if (nzero > 0)
+            return 0;
         ++q;
     }
 
@@ -92,7 +93,14 @@ int main() {
     parameters.m_initial_pops = {1e8, 0, 0, 0, 0, 0}; 
     
     // we want the probability that site 5 is unoccupied: hence
-    std::vector<double> qvalues = {1, 1, 1, 1, 1, 0};
+    std::vector<double> default_qvalues = {1, 1, 1, 1, 1, 1};
+    std::vector<std::vector<double>> qvalues;
+    for (size_t vertex = 0; vertex < parameters.m_stages; ++vertex) {
+        qvalues.push_back(default_qvalues);
+        // set this vertices q to zero to get the prob. that this vertex is
+        // unoccupied:
+        qvalues[vertex][vertex] = 0;
+    }
     // TODO we might want to iterate over different sites later
     // list of vectors?
 
@@ -105,13 +113,20 @@ int main() {
         // advance the system by smaller, finer steps:
         int subdivision = 20;
         double dt2 = dt / subdivision;
-        for (int i = 0; i < subdivision; ++i)
-            step(qvalues, time, dt2, parameters);
+        for (size_t vertex = 0; vertex < parameters.m_stages; ++vertex) {
+            for (int i = 0; i < subdivision; ++i) {
+                step(qvalues[vertex], time, dt2, parameters);
+            } 
+        }
+        time += dt;
 
         // TODO iterate over different sites to get the probability
-        double prob = generating_function(qvalues, parameters.m_initial_pops);
-        std::cout << time << ", " << prob << ", ";
-        std::cout << 1.0 - prob << "," << std::endl;
+        std::cout << time << ", " ;
+        for (size_t vertex = 0; vertex < parameters.m_stages; ++vertex) {
+            double prob = generating_function(qvalues[vertex], parameters.m_initial_pops);
+            std::cout << 1.0 - prob << ", ";
+        }
+        std::cout << std::endl;
     }
 
     //debug_print(time, qvalues, parameters);
