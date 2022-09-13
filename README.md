@@ -50,9 +50,9 @@ O ----> O ----> O
 
    mu0  s  mu1
 
-Two steps model: 3 populations $(n0, n1, n2)$. $n1$ has an advantage/growth rate $s1$.
+Two steps model: 3 populations $(N_0, N_1, N_2)$. $N_1$ has an advantage/growth rate $s$.
 
-How long does it take for an $n2$ to appear?
+How long does it take for an $N_2$ to appear?
 
 Five-hit should be similar but use Ruibo and Ivana's parameters.
 
