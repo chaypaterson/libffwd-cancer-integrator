@@ -15,7 +15,7 @@ We should see an initial Armitage-Doll type curve with $p \sim t^n$, then a
 mean-field regime like $p \sim t^k e^{s t}$ (source: Ivana and me 2020, also Armitage
 and Doll 1958, the less famous one), and then after a sojourn time
 
-$$T_s ~ \frac{\ln(s / \mu)}{s}$$
+$$T_s \sim \frac{\ln(s / \mu)}{s}$$
 
 we should see a transition region, followed by an exponential tail (source:
 Georg Luebeck 2008).
@@ -58,24 +58,25 @@ Five-hit should be similar but use Ruibo and Ivana's parameters.
 
 The two methods:
 
-1. Use the Gillespie algorithm for many stochastic, "exact" samples of the master equation:
+1. Use the Gillespie algorithm for many stochastic, "exact" samples of the
+master equation. e.g. for the two-hit model:
 
-$$Gamma = mu0 * n0 + (mu1 + s) * n1$$
+$$\Gamma = \mu_0 * N_0 + (\mu_1 + s) * N_1$$
 
-$$x = Unif(0,Gamma)$$
+$$x = Unif(0,\Gamma)$$
 
-$$Pr mut0 = (mu0 * n0) / Gamma$$
-$$Pr birth = (s * n1) / Gamma$$
-$$Pr mut1 = (mu1 * n1) / Gamma $$
+$$Pr(mut0) = (\mu_0 * N_0) / \Gamma$$
+$$Pr(birth) = (s * N_1) / \Gamma$$
+$$Pr(mut1) = (\mu_1 * N_1) / \Gamma $$
 
-$$t += Exp(0, 1/Gamma)$$
+$$t += Exp(0, 1/\Gamma)$$
 
 2. Use the method of characteristics for a direct integration:
   * Generating function $\Psi =$ a function of the variables $q_j$
   * The $q_j$ are conjugate variables to the populations $N_j$
   * The Kolmogorov forward equation is of the form
 
-$$\frac{\partial\Psi}{\partial t} = \sum X_j(q_0,q_1,\dots) \frac{\partial\Psi}{\partial q_j}$$
+$$\frac{\partial\Psi}{\partial t} = \sum_j X_j(q_0,q_1,\dots) \frac{\partial\Psi}{\partial q_j}$$
 
     with $X_j(q)$ determined by the reaction rates and stoichiometry
 
