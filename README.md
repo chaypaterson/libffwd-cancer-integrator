@@ -51,7 +51,7 @@ Later, models on graphs. Need a convenient way to implement Kronecker products
 
             /\
             |V
-    O ----> O ----> O
+    0 ----> 1 ----> 2
 
        mu0  s  mu1
 
