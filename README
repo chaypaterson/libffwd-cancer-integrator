@@ -1,34 +1,48 @@
 two-hit
 =======
 
-Simulates first passage times in a simple two-hit model of
-Moolgavkar-Vernon-Knudsen type. 
+Simulates first passage times in multi-stage clonal expansion models of
+Moolgavkar-Vernon-Knudsen type. This project should eventually allow us to
+define a birth-death-mutation process on an arbitrary directed graph
+(representing mutations), and generate both Gillespie algorithm simulations and
+fast direct integration of the characteristics.
 
 Sources: R. Meza PNAS 2008; 
          K.S. Crump Risk Analysis, Vol. 25, No. 4, 2005
          E.G. Luebeck et al 2012, doi: 10.1158/0008-5472.CAN-12-2198
 
-We should see an initial Armitage-Doll type curve with p ~ t^2, and then after a
-sojourn time
+We should see an initial Armitage-Doll type curve with $p ~ t^n$, then a
+mean-field regime like $p ~ t^k e^{s t}$ (source: Ivana and me 2020, also Armitage
+and Doll 1958, the less famous one), and then after a sojourn time
 
-T_s ~ ln(s / mu) / s
+$$T_s ~ ln(s / mu) / s$$
 
 we should see a transition region, followed by an exponential tail (source:
-Georg Luebeck)
+Georg Luebeck 2008).
 
 Integration methods
 -------------------
 
 This compares different numerical simulation methods for birth-death-mutation
-processes: the classic Gillespie
-algorithm, and an experimental algorithm based on the method of
-characteristics. This was inspired by prior work from
+processes: the classic Gillespie algorithm, and an experimental algorithm based on the method of
+characteristics. 
+
+This latter algorithm was inspired by prior work from
 Suresh Moolgavkar in the 1980s and Dennis Quinn 1989, and performs a direct
 numerical integration of a transformed version of the chemical master
 equation/Kolmogorov forward equation. This algorithm is deterministic and fast.
 
+Georg Luebeck and Suresh Moolgavkar previously developed a numerical integration
+approach based on Gaussian quadrature of Kolmogorov backward equations. I do not
+know if this can be extended to arbitrary directed graphs.
+
 What the test cases should be of:
 ---------------------------------
+
+Two-hit and five-hit linear models.
+
+Later, models on graphs. Need a convenient way to implement Kronecker products
+(TODO).
 
         /\
         |V
@@ -36,38 +50,47 @@ O ----> O ----> O
 
    mu0  s  mu1
 
-Two steps, 3 populations (n0, n1, n2). n1 has an advantage/growth rate s.
+Two steps model: 3 populations $(n0, n1, n2)$. $n1$ has an advantage/growth rate $s1$.
 
-How long does it take for an n2 to appear?
+How long does it take for an $n2$ to appear?
+
+Five-hit should be similar but use Ruibo and Ivana's parameters.
+
+The two methods:
 
 1. Use the Gillespie algorithm for many stochastic, "exact" samples of the master equation:
 
-    Gamma = mu0 * n0 + (mu1 + s) * n1
+$$    Gamma = mu0 * n0 + (mu1 + s) * n1$$
 
-    x = Unif(0,Gamma)
+$$    x = Unif(0,Gamma)$$
 
-    Pr mut0 = (mu0 * n0) / Gamma
-    Pr birth = (s * n1) / Gamma
-    Pr mut1 = (mu1 * n1) / Gamma
+$$    Pr mut0 = (mu0 * n0) / Gamma$$
+$$    Pr birth = (s * n1) / Gamma$$
+$$    Pr mut1 = (mu1 * n1) / Gamma $$
 
-    t += Exp(0, 1/Gamma)
+$$ t += Exp(0, 1/Gamma) $$
 
 2. Use the method of characteristics for a direct integration:
-  * Generating function = some function of the variables q_j
-  * The q_j are conjugate variables to the populations n_j
-  * Evolve q_j along the flow in Fourier space implied by the reaction kinetics
+  * Generating function $\Psi =$ a function of the variables $q_j$
+  * The $q_j$ are conjugate variables to the populations $N_j$
+  * The Kolmogorov forward equation is of the form
+
+$$ \frac{\partial\Psi}{\partial t} = \sum X_j(q_0,q_1,\dots) \frac{\partial\Psi}{\partial q_j} $$
+
+    with $X_j(q)$ determined by the reaction rates and stoichiometry
+
+  * Evolve $q_j$ along the flow in Fourier space implied by the reaction kinetics
     using a time-stepping procedure
 
 Outputs:
 
-  * Survival curves for Gillespie algorithm. Generate these using Kaplan-Meier
-    plots
-  * Corresponding survival curves from the generating function
+  * Survival probabilities for Gillespie algorithm. Generate these using Kaplan-Meier
+    plots DONE
+  * Corresponding survival curves from the generating function MOSTLY DONE
+
+These should both be in CSV format.
 
 Language they should be in:
 ---------------------------
 
-C/++
-
-Plots should be automatically generated using Python/Matplotlib.
-
+C++ (stay as close to C as possible)
