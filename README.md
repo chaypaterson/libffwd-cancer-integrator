@@ -7,9 +7,10 @@ define a birth-death-mutation process on an arbitrary directed graph
 (representing mutations), and generate both Gillespie algorithm simulations and
 fast direct integration of the characteristics.
 
-Sources: R. Meza PNAS 2008; 
-         K.S. Crump Risk Analysis, Vol. 25, No. 4, 2005
-         E.G. Luebeck et al 2012, doi: 10.1158/0008-5472.CAN-12-2198
+Sources: 
+       * R. Meza PNAS 2008; 
+       * K.S. Crump Risk Analysis, Vol. 25, No. 4, 2005
+       * E.G. Luebeck et al 2012, doi: 10.1158/0008-5472.CAN-12-2198
 
 We should see an initial Armitage-Doll type curve with $p \sim t^n$, then a
 mean-field regime like $p \sim t^k e^{s t}$ (source: Ivana and me 2020, also Armitage
@@ -44,11 +45,11 @@ Two-hit and five-hit linear models.
 Later, models on graphs. Need a convenient way to implement Kronecker products
 (TODO).
 
-        /\
-        |V
-O ----> O ----> O
+            /\
+            |V
+    O ----> O ----> O
 
-   mu0  s  mu1
+       mu0  s  mu1
 
 Two steps model: 3 populations $(N_0, N_1, N_2)$. $N_1$ has an advantage/growth rate $s$.
 
@@ -78,7 +79,7 @@ $$t += Exp(0, 1/\Gamma)$$
 
 $$\frac{\partial\Psi}{\partial t} = \sum_j X_j(q_0,q_1,\dots) \frac{\partial\Psi}{\partial q_j}$$
 
-    with $X_j(q)$ determined by the reaction rates and stoichiometry
+with $X_j(q)$ determined by the reaction rates and stoichiometry
 
   * Evolve $q_j$ along the flow in Fourier space implied by the reaction kinetics
     using a time-stepping procedure
