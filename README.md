@@ -1,5 +1,5 @@
-two-hit
-=======
+cancer integrator
+=================
 
 Simulates first passage times in multi-stage clonal expansion models of
 Moolgavkar-Vernon-Knudsen type. This project should eventually allow us to
