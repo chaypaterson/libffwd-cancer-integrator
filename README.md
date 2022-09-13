@@ -8,9 +8,10 @@ define a birth-death-mutation process on an arbitrary directed graph
 fast direct integration of the characteristics.
 
 Sources: 
-       * R. Meza PNAS 2008; 
-       * K.S. Crump Risk Analysis, Vol. 25, No. 4, 2005
-       * E.G. Luebeck et al 2012, doi: 10.1158/0008-5472.CAN-12-2198
+
+ * R. Meza PNAS 2008; 
+ * K.S. Crump Risk Analysis, Vol. 25, No. 4, 2005
+ * E.G. Luebeck et al 2012, doi: 10.1158/0008-5472.CAN-12-2198
 
 We should see an initial Armitage-Doll type curve with $p \sim t^n$, then a
 mean-field regime like $p \sim t^k e^{s t}$ (source: Ivana and me 2020, also Armitage
