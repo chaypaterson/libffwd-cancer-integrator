@@ -10,8 +10,9 @@ fast direct integration of the characteristics.
 Sources: 
 
  * R. Meza PNAS 2008; 
- * K.S. Crump Risk Analysis, Vol. 25, No. 4, 2005
+ * K.S. Crump, Risk Analysis, Vol. 25, No. 4, 2005
  * E.G. Luebeck et al 2012, doi: 10.1158/0008-5472.CAN-12-2198
+ * D. Quinn, Risk Analysis, Vol. 9, Issue 3, 1989, doi: 10.1111/j.1539-6924.1989.tb01006.x
 
 We should see an initial Armitage-Doll type curve with $p \sim t^n$, then a
 mean-field regime like $p \sim t^k e^{s t}$ (source: Ivana and me 2020, also Armitage
@@ -36,7 +37,9 @@ equation/Kolmogorov forward equation. This algorithm is deterministic and fast.
 
 Georg Luebeck and Suresh Moolgavkar previously developed a numerical integration
 approach based on Gaussian quadrature of Kolmogorov backward equations. I do not
-know if this can be extended to arbitrary directed graphs.
+know if this can be extended to arbitrary directed graphs. Dennis Quinn's
+algorithm is much more closely related to the experimental algorithm here, but
+there are several additional improvements.
 
 What the test cases should be of:
 ---------------------------------
