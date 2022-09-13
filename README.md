@@ -71,7 +71,9 @@ $$\Gamma = \mu_0 * N_0 + (\mu_1 + s) * N_1$$
 $$x = Unif(0,\Gamma)$$
 
 $$Pr(mut0) = (\mu_0 * N_0) / \Gamma$$
+
 $$Pr(birth) = (s * N_1) / \Gamma$$
+
 $$Pr(mut1) = (\mu_1 * N_1) / \Gamma $$
 
 $$t += Exp(0, 1/\Gamma)$$
