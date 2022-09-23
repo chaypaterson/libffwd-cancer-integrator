@@ -79,7 +79,8 @@ $$Pr(mut1) = (\mu_1 * N_1) / \Gamma $$
 $$t += Exp(0, 1/\Gamma)$$
 
 2. Use the method of characteristics for a direct integration:
-  * Generating function $\Psi =$ a function of the variables $q_j$
+  * Generating function $\Psi =$ the Fourier transform of the probability
+    distribution $P$, a function of the conjugate variables $q_j$
   * The $q_j$ are conjugate variables to the populations $N_j$
   * The Kolmogorov forward equation is of the form
 
