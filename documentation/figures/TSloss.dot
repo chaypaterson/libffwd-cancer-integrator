@@ -1,0 +1,7 @@
+graph "TSLoss" {
+    0 -- 1 [label="SNV"];
+    1 -- 2 [label="SNV"];
+    0 -- 3 [label="CNL"];
+    3 -- 4 [label="SNV"];
+    1 -- 4 [label="CNL"];
+}

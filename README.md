@@ -83,9 +83,9 @@ $$t += Exp(0, 1/\Gamma)$$
   * The $q_j$ are conjugate variables to the populations $N_j$
   * The Kolmogorov forward equation is of the form
 
-$$\frac{\partial\Psi}{\partial t} = \sum_j X_j(q_0,q_1,\dots) \frac{\partial\Psi}{\partial q_j}$$
-
-with $X_j(q)$ determined by the reaction rates and stoichiometry
+$$\frac{\partial\Psi}{\partial t} = \sum_j X_j(q_0,q_1,\dots) \frac{\partial\Psi}{\partial q_j} + Y(q_0,q_1,\dots) \Psi$$
+with $X_j(q)$ determined by the reaction rates and stoichiometry. (The absorption
+term $Y(q)$ due to immigration is not currently implemented.)
 
   * Evolve $q_j$ along the flow in Fourier space implied by the reaction kinetics
     using a time-stepping procedure
@@ -94,9 +94,9 @@ Outputs:
 
   * Survival probabilities for Gillespie algorithm. Generate these using Kaplan-Meier
     plots DONE
-  * Corresponding survival curves from the generating function MOSTLY DONE
+  * Corresponding survival curves from the generating function DONE
 
-These should both be in CSV format.
+These are both in CSV format, with a layout mirroring Ruibo Zhang et al. 2022.
 
 Language they should be in:
 ---------------------------
