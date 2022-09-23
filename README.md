@@ -30,10 +30,49 @@ This compares different numerical simulation methods for birth-death-mutation
 processes: the classic Gillespie algorithm, and an experimental algorithm based on the method of
 characteristics. 
 
-This latter algorithm was inspired by prior work from
+The two methods:
+
+1. Use the Gillespie algorithm for many stochastic, "exact" samples of the
+master equation. e.g. for the two-hit model:
+
+$$\Gamma = \mu_0 * N_0 + (\mu_1 + s) * N_1$$
+
+$$x = Unif(0,\Gamma)$$
+
+$$Pr(mut0) = (\mu_0 * N_0) / \Gamma$$
+
+$$Pr(birth) = (s * N_1) / \Gamma$$
+
+$$Pr(mut1) = (\mu_1 * N_1) / \Gamma $$
+
+$$t += Exp(0, 1/\Gamma)$$
+
+Repeat while $t < $ maximum time.
+
+2. Use the method of characteristics to numerically integrate the generating function:
+  * Generating function $\Psi =$ the Fourier transform of the probability
+    distribution $P$, a function of the conjugate variables $q_j$
+  * The $q_j$ are conjugate variables to the populations $N_j$
+  * The Kolmogorov forward equation is of the form
+
+$$\frac{\partial\Psi}{\partial t} = \sum_j X_j(q_0,q_1,\dots) \frac{\partial\Psi}{\partial q_j} + Y(q_0,q_1,\dots) \Psi$$
+with $X_j(q)$ determined by the reaction rates and stoichiometry. (The absorption
+term $Y(q)$ due to immigration is not currently implemented.)
+
+  * Evolve the conjugate coordinates $q_j$ along the flow $X_j$ in Fourier space
+    implied by the reaction kinetics using Heun's method, a numerical
+    time-stepping procedure.
+
+
+This latter algorithm was inspired by prior work by
 Suresh Moolgavkar in the 1980s and Dennis Quinn 1989, and performs a direct
 numerical integration of a transformed version of the chemical master
 equation/Kolmogorov forward equation. This algorithm is deterministic and fast.
+It shares the same basic approach to Quinn's method, by integrating characteristic
+curves in the conjugate coordinates using a time-stepping procedure.
+As it differs from Quinn's method in being optimised for time-invariant
+parameters, and is noticeably faster than Gillespie, I have named it the "flying
+conjugate" method.
 
 Georg Luebeck and Suresh Moolgavkar previously developed a numerical integration
 approach based on Gaussian quadrature of Kolmogorov backward equations. I do not
@@ -60,36 +99,6 @@ Two steps model: 3 populations $(N_0, N_1, N_2)$. $N_1$ has an advantage/growth 
 How long does it take for an $N_2$ to appear?
 
 Five-hit should be similar but use Ruibo and Ivana's parameters.
-
-The two methods:
-
-1. Use the Gillespie algorithm for many stochastic, "exact" samples of the
-master equation. e.g. for the two-hit model:
-
-$$\Gamma = \mu_0 * N_0 + (\mu_1 + s) * N_1$$
-
-$$x = Unif(0,\Gamma)$$
-
-$$Pr(mut0) = (\mu_0 * N_0) / \Gamma$$
-
-$$Pr(birth) = (s * N_1) / \Gamma$$
-
-$$Pr(mut1) = (\mu_1 * N_1) / \Gamma $$
-
-$$t += Exp(0, 1/\Gamma)$$
-
-2. Use the method of characteristics for a direct integration:
-  * Generating function $\Psi =$ the Fourier transform of the probability
-    distribution $P$, a function of the conjugate variables $q_j$
-  * The $q_j$ are conjugate variables to the populations $N_j$
-  * The Kolmogorov forward equation is of the form
-
-$$\frac{\partial\Psi}{\partial t} = \sum_j X_j(q_0,q_1,\dots) \frac{\partial\Psi}{\partial q_j} + Y(q_0,q_1,\dots) \Psi$$
-with $X_j(q)$ determined by the reaction rates and stoichiometry. (The absorption
-term $Y(q)$ due to immigration is not currently implemented.)
-
-  * Evolve $q_j$ along the flow in Fourier space implied by the reaction kinetics
-    using a time-stepping procedure
 
 Outputs:
 
