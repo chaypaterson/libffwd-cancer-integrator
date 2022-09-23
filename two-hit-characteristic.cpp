@@ -4,75 +4,21 @@
 #include <cmath>
 
 #include "graph-model-spec.hpp"
+#include "flying-conjugates.hpp"
 
-// A numerical integrator based on the generating function representation of an
-// MVK-type birth-death-mutation process
-// The model:
-//
-//           (s)
-// A -(mu0)-> B -(mu1)-> C
-
-// TODO separate out the relevant functions into their own .cpp library!
-
-std::vector<double> flow(const std::vector<double> &gammas,
-                         Model &parameters) {
-    // return a vector of flows
-    std::vector<double> flux;
-
-    for (size_t vertex = 0; vertex < parameters.m_stages; ++vertex) {
-        double rate_of_change = 0;
-        rate_of_change += parameters.m_birth[vertex] * (gammas[vertex] - 1) * 
-                            gammas[vertex];
-        if (parameters.m_death[vertex] > 0) {
-            rate_of_change += parameters.m_death[vertex] * 
-                                (1.0 / gammas[vertex] - 1) *
-                                gammas[vertex];
-        }
-        for (size_t out_vertex = 0; out_vertex < parameters.m_stages; ++out_vertex) {
-            rate_of_change += parameters.m_migr[vertex][out_vertex] * 
-                                (gammas[out_vertex] - 1) * gammas[vertex];
-        }
-        flux.push_back(rate_of_change);
-    }
-
-    return flux;
-}
-
-void step(std::vector<double> &gammas, double &time, double &dt, 
-            Model &parameters) {
-    // time step using improved Euler
-    std::vector<double> flux = flow(gammas, parameters);
-    std::vector<double> gammas2 = gammas;
-    for (int vertex = 0; vertex < gammas.size(); ++vertex) {
-        gammas2[vertex] += flux[vertex] * dt;
-    }
-    std::vector<double> flux2 = flow(gammas2, parameters);
-    for (int vertex = 0; vertex < gammas.size(); ++vertex) {
-        gammas[vertex] += 0.5 * (flux[vertex] + flux2[vertex]) * dt;
-    }
-    time += dt;
-}
-
-double generating_function(std::vector<double> gammas, 
-                           std::vector<double> initial_pops) {
-    // compute the value of the generating function at given q values (==gammas)
-    // given the initial conditions
-    double logpsi = 0;
-
-    if (gammas.size() != initial_pops.size())
-        return -1; // an error
-
-    auto q = gammas.begin();
-    for (auto& nzero : initial_pops) {
-        if (*q > 0)
-            logpsi += nzero * log(*q);
-        else if (nzero > 0)
-            return 0;
-        ++q;
-    }
-
-    return exp(logpsi);
-}
+/* A numerical integrator based on the generating function representation of an
+ * MVK-type birth-death-mutation process.
+ * The model:
+ *
+ *           (s)
+ * 0 -(mu0)-> 1 -(mu1)-> 2
+ * i.e.: there are 3 nodes, {0,1,2}. Cells start on node 0 at time t=0, and can
+ * migrate from 0 to 1, or 1 to 2, at prescribed rates. Cells on node 1 divide
+ * at a rate s.
+ *
+ * This program calculates the probability that node 2 has been visited using an
+ * experimental method based on the method of characteristics.
+ */
 
 int main() {
     Model two_hit(3);
@@ -83,7 +29,8 @@ int main() {
     two_hit.m_death = {0, 0, 0};
     two_hit.m_initial_pops = {1, 0, 0}; 
     
-    // we want the probability that site 2 is unoccupied: hence
+    // We want the probability that site 2 is unoccupied: the corresponding set
+    // of q-coordinates is (1,1,0) (see documentation):
     std::vector<double> qvalues = {1, 1, 0};
 
     double time = 0.0;
@@ -93,12 +40,13 @@ int main() {
     std::cout << 0.0 << "," << std::endl;
 
     while (time < tmax) {
-        // advance the system by smaller, finer steps:
+        // Subdivide the time step dt into smaller, finer time steps:
         int subdivision = 20;
         double dt2 = dt / subdivision;
         for (int i = 0; i < subdivision; ++i)
-            step(qvalues, time, dt2, two_hit);
-        // beautiful
+            heun_q_step(qvalues, time, dt2, two_hit);
+        // Increment time:
+        time += dt;
 
         double prob = generating_function(qvalues, two_hit.m_initial_pops);
         std::cout << time << ", " << prob << ", ";
