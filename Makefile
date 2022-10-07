@@ -1,24 +1,30 @@
 CC = g++
-SRC = five-stage-characteristic.cpp
+CHARSRC = five-stage-characteristic.cpp
 BUILDDIR = bin
+LIBDIR = libs
 BIN = five-step-characteristic
 FLAGS = -lm
 OPT1 = -O3
 OPT2 = $(OPT1) -march=znver3 -flto
-LIB = libflying.so
+LIBCHAR = $(LIBDIR)/libflying.so
+LIBGILL = $(LIBDIR)/libgillespie.so
 
 BIN2HIT = two-hit-characteristic
 
 libflying.so:
-	$(CC) flying-conjugates.cpp $(FLAGS) $(OPT1) -c -o $(LIB)
+	mkdir -p $(LIBDIR)
+	$(CC) flying-conjugates.cpp $(FLAGS) $(OPT1) -c -o $(LIBCHAR)
 
-fivestage : $(SRC) libflying.so
+libgillespie.so:
+	mkdir -p $(LIBDIR)
+	$(CC) gillespie-algorithm.cpp $(FLAGS) $(OPT1) -c -o $(LIBGILL)
+
+fivestage : $(CHARSRC) libflying.so
 	mkdir -p $(BUILDDIR)
-	$(CC) $(LIB) $(SRC) $(FLAGS) -o $(BUILDDIR)/$(BIN)
-	$(CC) $(LIB) $(SRC) $(FLAGS) $(OPT1) -o $(BUILDDIR)/$(BIN)-opt1
-	$(CC) $(LIB) $(SRC) $(FLAGS) $(OPT2) -o $(BUILDDIR)/$(BIN)-opt2
+	$(CC) $(LIBCHAR) $(CHARSRC) $(FLAGS) -o $(BUILDDIR)/$(BIN)
+	$(CC) $(LIBCHAR) $(CHARSRC) $(FLAGS) $(OPT1) -o $(BUILDDIR)/$(BIN)-opt1
+	$(CC) $(LIBCHAR) $(CHARSRC) $(FLAGS) $(OPT2) -o $(BUILDDIR)/$(BIN)-opt2
 
-twostage : $(SRC) libflying.so
+twostage : $(CHARSRC) libflying.so
 	mkdir -p $(BUILDDIR)
-	$(CC) $(LIB) $(BIN2HIT).cpp $(FLAGS) $(OPT2) -o $(BUILDDIR)/$(BIN2HIT)
-
+	$(CC) $(LIBCHAR) $(BIN2HIT).cpp $(FLAGS) $(OPT2) -o $(BUILDDIR)/$(BIN2HIT)

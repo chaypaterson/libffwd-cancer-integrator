@@ -1,9 +1,8 @@
 TODO:
 
-makefile for test projects two-hit.cpp and two-hit-characteristic.cpp
+New implementation of Gillespie algorithm methods
 
-two-hit-characteristic.cpp compiles with
-    g++ $file -o characteristic
+Tumour suppressor loss comparison
 
-two-hit-gillespie.cpp needs
-    g++ $file -lgsl -pthread -o two-hit
+SIMULATED ANNEALING on this comparison: show that parameters can be inferred
+with ~1000x samples.

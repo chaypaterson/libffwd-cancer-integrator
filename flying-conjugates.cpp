@@ -16,12 +16,8 @@
  * 
  * This source file contains the function implementations. It has no entry
  * point, and should be compiled to a library with
- *      g++ flying-conjugates.cpp -c -o libflying.o
+ *      g++ flying-conjugates.cpp -c -o libflying.so
  */
-
-// TODO more detailed comments!
-// TODO maybe too much functionality in each function?
-// TODO locate constants centrally
 
 std::vector<double> rhs_flow(const std::vector<double> &qcoords,
                              Model &parameters) {
