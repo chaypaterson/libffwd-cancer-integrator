@@ -41,7 +41,7 @@ int main() {
 
     while (time < tmax) {
         // Subdivide the time step dt into smaller, finer time steps:
-        int subdivision = 128;
+        int subdivision = 16;
         double dt2 = dt / subdivision;
         for (int i = 0; i < subdivision; ++i)
             heun_q_step(qvalues, time, dt2, two_hit);
