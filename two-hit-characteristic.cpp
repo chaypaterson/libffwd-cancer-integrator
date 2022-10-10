@@ -25,8 +25,8 @@ int main() {
     // System coefficients:
     two_hit.m_migr[0][1] = 0.001;
     two_hit.m_migr[1][2] = 0.001;
-    two_hit.m_birth = {0, 0.2, 0};
-    two_hit.m_death = {0, 0, 0};
+    two_hit.m_birth = {1.0, 1.2, 1.0};
+    two_hit.m_death = {1.0, 1.0, 1.0};
     two_hit.m_initial_pops = {1, 0, 0}; 
     
     // We want the probability that site 2 is unoccupied: the corresponding set
@@ -41,7 +41,7 @@ int main() {
 
     while (time < tmax) {
         // Subdivide the time step dt into smaller, finer time steps:
-        int subdivision = 20;
+        int subdivision = 128;
         double dt2 = dt / subdivision;
         for (int i = 0; i < subdivision; ++i)
             heun_q_step(qvalues, time, dt2, two_hit);

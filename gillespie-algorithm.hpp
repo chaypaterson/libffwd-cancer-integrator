@@ -27,7 +27,7 @@ public:
         m_parameters{parameters} {
         for (size_t vertex = 0; vertex < m_vertices; ++vertex) {
             // set initial pops:
-            m_pops[vertex] = (int)parameters.m_initial_pops[vertex];
+            m_pops.push_back((int)(parameters.m_initial_pops[vertex]));
         }
     }
     
@@ -42,5 +42,8 @@ private:
     std::vector<int> x_to_event(double x); // convert a random variable x to an
     // event (change in populations)
 };
+
+double first_passage_time(gsl_rng *rng, const Model &params, 
+        const int final_vertex);
 
 #endif

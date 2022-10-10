@@ -8,6 +8,8 @@
 #include <thread>
 #include <algorithm>
 
+#include "gillespie-algorithm.hpp"
+
 // A Gillespie algorithm simulation of a birth-death-mutation process
 // Also a two-hit model of cancer initiation
 // The model:
@@ -17,53 +19,9 @@
 //
 // compile me with g++ two-hit.cpp -lgsl -pthread
 
-std::vector<int> event(double x, const std::vector<int> &n, 
-                        const double &Gamma, const double &mu0, 
-                        const double &s, const double &mu1) {
-    // return a set of population changes
-    if (x <= mu0 * n[0])
-        return {0, +1, 0};
-    if ((mu0 * n[0] < x) && (x <= (mu0 * n[0] + s * n[1])))
-        return {0, +1, 0};
-    if ((mu0 * n[0] + s * n[1]) < x)
-        return {0, 0, +1};
-
-    return {0,0,0};
-}
-
-double first_passage_time(gsl_rng *rng, const double &mu0, const double &s,
-    const double &mu1) {
-    // TODO: new prototype first_passage_time(rng, params)
-    // use .Gamma() method on params
-    // initialise time
-    double t = 0.;
-    // populations
-    std::vector<int> n = {1, 0, 0};
-
-    // etc.
-    double Gamma = 1.0;
-    double x = 0.0;
-    double Deltat = 0.0;
-
-    // main loop
-    while (n[2] == 0) {
-        Gamma = mu0 * n[0] + (mu1 + s) * n[1];
-        x = gsl_ran_flat(rng, 0., Gamma);
-
-        // get event
-        auto dn = event(x, n, Gamma, mu0, s, mu1);
-        for (int i = 0; i < n.size(); ++i)
-            n[i] += dn[i];
-
-        Deltat = gsl_ran_exponential(rng, 1.0 / Gamma);
-        t += Deltat;
-    }
-
-    // give us this passage time
-    return t;
-}
-
-void simulate_runs(int seed, int runs_per_thr, std::vector<double> &results) {
+void simulate_runs(const Model &model, int seed, 
+            int runs_per_thr, int final_vertex,
+            std::vector<double> &results) {
     const gsl_rng_type *T;
     gsl_rng *r;
 
@@ -74,15 +32,8 @@ void simulate_runs(int seed, int runs_per_thr, std::vector<double> &results) {
     // Seed RNG:
     gsl_rng_set(r,seed);
 
-    // System coefficients:
-    // TODO these should not be set here but packaged in params or Model or
-    // something similar.
-    double mu0 = 0.001;
-    double mu1 = 0.001;
-    double s = 0.2;
-
     for (int i = 0; i < runs_per_thr; ++i) {
-        results.push_back(first_passage_time(r, mu0, s, mu1));
+        results.push_back(first_passage_time(r, model, final_vertex));
     }
 
     gsl_rng_free(r);
@@ -114,8 +65,22 @@ void print_kaplan_meier(double time_max, std::vector<double> &all_times) {
 
 int main() {
     int num_thr = std::thread::hardware_concurrency();
-    int runs_per_thr = 1e6;
+    int runs_per_thr = 1e7;
+    num_thr = 1;
     int seed = 1;
+
+    // System coefficients:
+    // these should be packaged in params or Model or
+    // something similar.
+    double mu0 = 0.001;
+    double mu1 = 0.001;
+
+    Model model(3);
+    model.m_migr[0][1] = mu0;
+    model.m_migr[1][2] = mu1;
+    model.m_birth = {1, 1.2, 1};
+    model.m_death = {1, 1.0, 1};
+    model.m_initial_pops = {1, 0, 0};
 
     // I hypothesise that the timescale for the late anomaly should be around
     // ~50 years. Beyond this point, the distribution should be dominated by
@@ -131,8 +96,9 @@ int main() {
 
             // Run some simulations:
             for (int i = 0; i < num_thr; ++i) {
-                simulations.at(i) = std::thread(simulate_runs, seed + i,
-                                    runs_per_thr, std::ref(times[i]));
+                simulations.at(i) = std::thread(simulate_runs, 
+                                    model, seed + i, runs_per_thr, 2,
+                                    std::ref(times[i]));
             }
 
             for (int i = 0; i < num_thr; ++i) {

@@ -72,13 +72,18 @@ std::vector<int> gillespie_instance::x_to_event(double x) {
 }
 
 double first_passage_time(gsl_rng *rng, const Model &params, 
-        const int &final_vertex) {
+        const int final_vertex) {
     // create an instance of a simulation state:
     gillespie_instance this_run(params);
 
-    while (this_run.m_pops[final_vertex] == 0) {
+    // guard against global extinction:
+    int total_pop = 0;
+    do {
+        total_pop = 0;
+        for (auto& vertex_pop : this_run.m_pops)
+            total_pop += vertex_pop;
         this_run.gillespie_step(rng);
-    }
+    } while ((this_run.m_pops[final_vertex] == 0) && (total_pop > 0));
 
     return this_run.m_time;
 }

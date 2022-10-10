@@ -11,13 +11,16 @@ LIBGILL = $(LIBDIR)/libgillespie.so
 
 BIN2HIT = two-hit-characteristic
 
+libs : libflying.so libgillespie.so
+	mkdir -p $(LIBDIR)
+
 libflying.so:
 	mkdir -p $(LIBDIR)
-	$(CC) flying-conjugates.cpp $(FLAGS) $(OPT1) -c -o $(LIBCHAR)
+	$(CC) flying-conjugates.cpp $(FLAGS) $(OPT2) -c -o $(LIBCHAR)
 
 libgillespie.so:
 	mkdir -p $(LIBDIR)
-	$(CC) gillespie-algorithm.cpp $(FLAGS) $(OPT1) -c -o $(LIBGILL)
+	$(CC) gillespie-algorithm.cpp $(FLAGS) $(OPT2) -c -o $(LIBGILL)
 
 fivestage : $(CHARSRC) libflying.so
 	mkdir -p $(BUILDDIR)
@@ -25,6 +28,7 @@ fivestage : $(CHARSRC) libflying.so
 	$(CC) $(LIBCHAR) $(CHARSRC) $(FLAGS) $(OPT1) -o $(BUILDDIR)/$(BIN)-opt1
 	$(CC) $(LIBCHAR) $(CHARSRC) $(FLAGS) $(OPT2) -o $(BUILDDIR)/$(BIN)-opt2
 
-twostage : $(CHARSRC) libflying.so
+twostage : $(CHARSRC) libflying.so libgillespie.so
 	mkdir -p $(BUILDDIR)
 	$(CC) $(LIBCHAR) $(BIN2HIT).cpp $(FLAGS) $(OPT2) -o $(BUILDDIR)/$(BIN2HIT)
+	$(CC) $(LIBGILL) two-hit-gillespie.cpp -lgsl $(OPT2) -o $(BUILDDIR)/two-hit-gillespie-2

@@ -35,8 +35,7 @@ class Model {
             // Initialise the graph of mutation rates:
             std::map<int, double> neighbours;
             std::vector<std::map<int, double>> edges(m_stages, neighbours);
-            m_migr = edges; // TODO is it efficient to initialise the migration
-                            // rate graph this way?
+            m_migr = edges;
             std::vector<double> metapopulation(m_stages, 0);
             m_initial_pops = metapopulation;
         }
