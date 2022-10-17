@@ -23,7 +23,7 @@ probability distributions in the context of linear multi-stage clonal expansion
 (MSCE) models \cite{meza2008age}. These schemes have not been generalised to
 models to arbitrary graphs, forcing the use of full stochastic simulations or
 mean-field approximations, which can become inaccurate at late times or old ages
-\cite{cpaterson2020,Paterson2021vs}.
+\cite{patersonbozic2020colorectal,Paterson2021vs}.
 Here, we present a numerical integration scheme for directly computing survival
 probabilities of a first-order birth-death process on an arbitrary
 directed graph, without the use of stochastic
@@ -69,7 +69,7 @@ and $k$ represent stages in a linear progression, and are indexed with
 integers \cite{moolgavkar1992multistage,luebeck2013impact}. In more recent work,
 the types $j$ are considered as nodes on a directed graph, to distinguish
 between different mutational mechanisms, such as point mutations and copy number
-alterations \cite{patersonbozic2020colorectal,Paterson2022}.
+alterations \cite{patersonbozic2020colorectal,Paterson2021vs}.
 
 % \vec{N} for short?
 
@@ -159,7 +159,7 @@ unoccupied by time $t$: $P(t, N_f = 0)$.
     demonstrating how two different mechanisms of tumour suppressor loss can be
     incorporated in a graphical model. The two mechanisms in question are
     single-nucleotide variants on different alleles, and copy number loss on the
-    locus. Adapted from \cite{Paterson2022}.}
+    locus. Adapted from \cite{Paterson2021vs}.}
 \end{figure}
 
 There are four processes through each cell population $N_j$ can change: birth
@@ -730,25 +730,59 @@ Compare to Gillespie for the CRC model
 
 \subsection{Comparison of methods}
 
-TODO Ruibo's data?
+\begin{figure}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+Algorithm & Model and parameter values & Compiler flags & Runtime & Standard deviation \\
+\hline
+Gillespie & Two-hit process, all $\beta_j = 0$, all $\mu_j = 10^{-3}$, $\alpha_1 = 0.2$, $\alpha_0 = \alpha_2 = 0$.  & \texttt{-O3 -march=znver3 -flto} & 20.08s & 0.73s \\
+Conjugates & Two-hit process, all $\beta_j = 0$, all $\mu_j = 10^{-3}$, $\alpha_1 = 0.2$, $\alpha_0 = \alpha_2 = 0$.  & \texttt{-O3 -march=znver3 -flto} & 1.01ms & 0.12ms \\
+Gillespie & Two-hit process, all $\beta_j = 1.0$, all $\mu_j = 10^{-3}$, $\alpha_1 = 1.2$, $\alpha_0 = \alpha_2 = 1.0$.  & \texttt{-O3 -march=znver3 -flto} & 20.08s & 0.73s \\
+Conjugates & Two-hit process, all $\beta_j = 1.0$, all $\mu_j = 10^{-3}$, $\alpha_1 = 1.2$, $\alpha_0 = \alpha_2 = 1.0$.  & \texttt{-O3 -march=znver3 -flto} & 1.03ms & 0.21ms \\
+\end{tabular}
+\caption{Table showing performance of the Gillespie algorithm and our novel
+one-pass adaptation of Quinn's algorithm detailed in section \ref{sec:flying}. A
+range of models and coefficient values are explored. All computations were carried out on
+12 AMD Ryzen 5 3600XT CPU cores, and compiled with GCC 12.2.0. $N=1024$ replicates
+were carried out to compute the mean and s.d. of the runtime. 
+%Note that there is no additional computation overhead for increasing the death rates $\beta_j$ for the one-pass method from section \ref{sec:flying}, but heavy overhead for the same computation with the Gillespie algorithm.
+% TODO not true?
+}
+\end{figure}
+% original gillespie: 17s
+% extensible rewrite: 30s
+
+\subsection*{Error analysis}
+
+@Josh: this is an annoying amount of work but should be straightforward in
+theory.
+
+TODO: What number of replicates for Gillespie is equivalent to a chosen
+time step for the new method? i.e. we want the error in both methods to be the
+same. Then we measure how fast they are. This is a fair test.
+
+max. error in Gillespie $= 1 / 2 \sqrt{N}$ (is this correct?)
+
+max. error in new method $= \mathcal{O}((dt)^3)$ (Check against a source:
+maybe numerical recipes?)
+
+For a fair test we should choose $N$ and $dt$ so that
+\begin{equation}
+    \frac{1}{2\sqrt{N}} \approx K (dt)^3
+\end{equation}
+for some constant $K$.
+
+e.g. for $t_{max} = 100$, $max(\gamma''') = 0.2$, $dt = 0.05$, max error $ = ...$
+
 
 \subsection{Inverse problem: performance of maximum likelihood optimisation}
 
 TODO retinoblastoma data?
 
-Maybe leave this for future work?
+TODO Gareth says he definitely has retinoblastoma data with $N\approx1,000$.
+Exciting if true
 
-\begin{figure}
-\begin{tabular}{|c|c|c|c|c|}
-\hline
-Algorithm & Parameter values & Compiler flags & Runtime & Standard deviation \\
-\hline
-\end{tabular}
-\caption{Table showing performance of the Gillespie algorithm and our novel
-one-pass adaptation of Quinn's algorithm detailed in section \ref{sec:flying}. A
-range of coefficient values are explored. All computations were carried out on
-an AMD Ryzen 5 3600XT CPU, and compiled with GCC 12.2.0.}
-\end{figure}
+Maybe leave this for future work?
 
 \section{Discussion}
 
@@ -760,27 +794,26 @@ an AMD Ryzen 5 3600XT CPU, and compiled with GCC 12.2.0.}
 %   Better estimates of parameters of biological mechanisms
 %   Personalised medicine
 
-The fast algorithm presented here should enable more efficient numerical
+The fast algorithm presented in section \ref{sec:flying} should enable more efficient numerical
 estimates regarding biological mechanisms relevant to carcinogenesis, and faster
 inference and fitting procedures for network models of cancer. This in turn
-should allow risk models based on detailed molecular data to be used in
-combination with epidemiological data, such as locus-specific copy number
-alterations and a variety of genomic rearrangements. These risk models should
-capture more individualised risk factors, showing how predispositions interact
-with patient age, which may have applications in personalised medicine.
+should allow risk models to combine epidemiological with molecular data, such as locus-specific copy number
+alterations and a variety of genomic rearrangements. These models could
+capture more individualised risk factors, showing how genetic predispositions interact
+with patient age, with applications in personalised medicine.
 
 Continued work is necessary to find a numerical integration algorithm for
-evolution of graphs that is suitable for time-varying coefficients $\{\alpha_j,
+evolution of graphs that is suitable for time-varying rate coefficients $\{\alpha_j,
 \beta_j, \mu_{jk}, \kappa_j\}$, which are necessary for studying carcinogenesis
 associated with inflammatory conditions and smoking. Quinn's algorithm of 1988
-is one candidate, but there may be optimisations that have not yet been
-explored, especially with regards to convergence speed and the amount of
-necessary caching.
+is a possible candidate, but our work shows there may be unexplored
+optimisations, especially regarding convergence speed and the amount of
+caching.
 
 \section{Acknowledgements}
 
 We would like to thank Clare Gratrex for productive discussions regarding the
-method and related literature.
+method and related literature. % Co-author?
 
 % Author contributions:
 % G Luebeck referencing and background literature
