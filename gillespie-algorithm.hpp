@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <vector>
+#include <iostream>
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -45,5 +46,20 @@ private:
 
 double first_passage_time(gsl_rng *rng, const Model &params, 
         const int final_vertex);
+
+std::pair<double,int> first_passage_time(gsl_rng *rng, const Model &params, 
+        const std::vector<int> final_vertices);
+
+void times_to_final_vertex(const Model &model, int seed, 
+            int runs_per_thr, int final_vertex,
+            std::vector<double> &results);
+
+void times_to_final_vertices(const Model &model, int seed, 
+            int runs_per_thr, std::vector<int> final_vertices,
+            std::vector<std::pair<double,int>> &results);
+
+void print_results(std::vector<double> &all_times);
+
+void print_kaplan_meier(double time_max, std::vector<double> &all_times);
 
 #endif

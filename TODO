@@ -6,3 +6,8 @@ Tumour suppressor loss comparison
 
 SIMULATED ANNEALING on this comparison: show that parameters can be inferred
 with ~1000x samples.
+
+Tue 18 Oct 11:22:53 BST 2022
+
+Can fold the all_times --> print_kaplan_meier routine from two-hit-model and
+ts-loss-gillespie into its own function inside gillespie-algorithm.cpp.

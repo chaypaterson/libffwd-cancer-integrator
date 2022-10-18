@@ -85,5 +85,104 @@ double first_passage_time(gsl_rng *rng, const Model &params,
         this_run.gillespie_step(rng);
     } while ((this_run.m_pops[final_vertex] == 0) && (total_pop > 0));
 
+    if (total_pop <= 0)
+        return -1;
+
     return this_run.m_time;
+}
+
+std::pair<double,int> first_passage_time(gsl_rng *rng, const Model &params, 
+        const std::vector<int> final_vertices) {
+    // create an instance of a simulation state:
+    gillespie_instance this_run(params);
+
+    // guard against global extinction:
+    int total_pop = 0;
+    int ending_type = 0;
+    bool repeat = true;
+    do {
+        total_pop = 0;
+        for (auto& vertex_pop : this_run.m_pops)
+            total_pop += vertex_pop;
+        this_run.gillespie_step(rng);
+        for (auto& final_vertex : final_vertices) {
+            if (this_run.m_pops[final_vertex] > 0) {
+                repeat = false;
+                ending_type = final_vertex;
+            }
+        }
+    } while (repeat && (total_pop > 0));
+
+    if (total_pop <= 0)
+        return std::make_pair(-1,-1);
+
+    return std::make_pair(this_run.m_time, ending_type);
+}
+
+void times_to_final_vertex(const Model &model, int seed, 
+            int runs_per_thr, int final_vertex,
+            std::vector<double> &results) {
+    const gsl_rng_type *T;
+    gsl_rng *r;
+
+    gsl_rng_env_setup();
+    T = gsl_rng_default;
+    r = gsl_rng_alloc(T);
+
+    // Seed RNG:
+    gsl_rng_set(r,seed);
+
+    for (int i = 0; i < runs_per_thr; ++i) {
+        double time = first_passage_time(r, model, final_vertex);
+        if (time >= 0)
+            results.push_back(time);
+    }
+
+    gsl_rng_free(r);
+}
+
+void times_to_final_vertices(const Model &model, int seed,
+            int runs_per_thr, std::vector<int> final_vertices,
+            std::vector<std::pair<double,int>> &results) {
+    const gsl_rng_type *T;
+    gsl_rng *r;
+
+    gsl_rng_env_setup();
+    T = gsl_rng_default;
+    r = gsl_rng_alloc(T);
+
+    // Seed RNG:
+    gsl_rng_set(r,seed);
+
+    for (int i = 0; i < runs_per_thr; ++i) {
+        std::pair<double,int> result = 
+                first_passage_time(r, model, final_vertices);
+        if (result.first >= 0)
+            results.push_back(result);
+    }
+    gsl_rng_free(r);
+}
+
+void print_results(std::vector<double> &all_times) {
+    for (auto t : all_times) {
+        std::cout << t << std::endl;
+    }
+}
+
+void print_kaplan_meier(double time_max, std::vector<double> &all_times) {
+    size_t num_survivors = all_times.size();
+    double dt = time_max / 100;
+    double time = 0;
+    double survival = 1.0;
+    auto time_datum = all_times.begin();
+    while (time < time_max) {
+        while (*time_datum < time) {
+            survival *= (1 - 1.0 / num_survivors);
+            --num_survivors;
+            ++time_datum;
+        }
+        std::cout << time << ", " << survival << ", ";
+        std::cout << 1.0 - survival << "," << std::endl;
+        time += dt;
+    }
 }

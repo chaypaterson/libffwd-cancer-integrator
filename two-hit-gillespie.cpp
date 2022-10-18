@@ -19,50 +19,6 @@
 //
 // compile me with g++ two-hit.cpp -lgsl -pthread
 
-void simulate_runs(const Model &model, int seed, 
-            int runs_per_thr, int final_vertex,
-            std::vector<double> &results) {
-    const gsl_rng_type *T;
-    gsl_rng *r;
-
-    gsl_rng_env_setup();
-    T = gsl_rng_default;
-    r = gsl_rng_alloc(T);
-
-    // Seed RNG:
-    gsl_rng_set(r,seed);
-
-    for (int i = 0; i < runs_per_thr; ++i) {
-        results.push_back(first_passage_time(r, model, final_vertex));
-    }
-
-    gsl_rng_free(r);
-}
-
-void print_results(std::vector<double> &all_times) {
-    for (auto t : all_times) {
-        std::cout << t << std::endl;
-    }
-}
-
-void print_kaplan_meier(double time_max, std::vector<double> &all_times) {
-    size_t num_survivors = all_times.size();
-    double dt = time_max / 100;
-    double time = 0;
-    double survival = 1.0;
-    auto time_datum = all_times.begin();
-    while (time < time_max) {
-        while (*time_datum < time) {
-            survival *= (1 - 1.0 / num_survivors);
-            --num_survivors;
-            ++time_datum;
-        }
-        std::cout << time << ", " << survival << ", ";
-        std::cout << 1.0 - survival << "," << std::endl;
-        time += dt;
-    }
-}
-
 int main() {
     int num_thr = std::thread::hardware_concurrency();
     int runs_per_thr = 1e7;
@@ -85,6 +41,8 @@ int main() {
     // I hypothesise that the timescale for the late anomaly should be around
     // ~50 years. Beyond this point, the distribution should be dominated by
     // mu0, as this is the rate limiting process.
+    // TODO can stash this in a function as it's agnostic to the structure of
+    // model:
     std::vector<double> all_times;
 
     // run (num_thr * runs_per_thr) simulations and store the times in
@@ -96,7 +54,8 @@ int main() {
 
             // Run some simulations:
             for (int i = 0; i < num_thr; ++i) {
-                simulations.at(i) = std::thread(simulate_runs, 
+                // Use a different seed for each simulation:
+                simulations.at(i) = std::thread(times_to_final_vertex, 
                                     model, seed + i, runs_per_thr, 2,
                                     std::ref(times[i]));
             }
