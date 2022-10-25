@@ -11,3 +11,10 @@ Tue 18 Oct 11:22:53 BST 2022
 
 Can fold the all_times --> print_kaplan_meier routine from two-hit-model and
 ts-loss-gillespie into its own function inside gillespie-algorithm.cpp.
+
+Tue 25 Oct 18:39:23 BST 2022
+
+IB: Graphs and plots: how close is the comparison?
+    What parameter set/graph was it computed on?
+
+    ^ Nicer plot + visualisation of TS loss graph TODO
