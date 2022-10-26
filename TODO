@@ -18,3 +18,8 @@ IB: Graphs and plots: how close is the comparison?
     What parameter set/graph was it computed on?
 
     ^ Nicer plot + visualisation of TS loss graph TODO
+
+
+Wed 26 Oct 15:17:14 BST 2022
+
+Arb precision arithmetic? Eliminate round-off error?
