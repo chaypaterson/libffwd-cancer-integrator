@@ -70,7 +70,7 @@ void heun_q_step(std::vector<double> &qcoords, const double &time, double &dt,
     std::vector<double> flux2 = rhs_flow(qcoords2, parameters);
     // Combine the initial guess and improved guess using the trapezoid rule:
     for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
-        qcoords[vertex] += 0.5 * (flux[vertex] + flux2[vertex]) * dt;
+        qcoords[vertex] += 0.25 * (0 * flux[vertex] + 4 * flux2[vertex]) * dt;
     }
 
     // Do not increment time within this function.

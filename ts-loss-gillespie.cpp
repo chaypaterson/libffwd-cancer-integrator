@@ -13,13 +13,13 @@
 // A Gillespie algorithm simulation of tumour suppressor loss
 
 int main() {
-    int num_thr = std::thread::hardware_concurrency();
+    int num_thr = std::thread::hardware_concurrency() - 2;
     int runs_per_thr = 1e7;
-    int seed = 19;
+    int seed = 1;
 
     // System coefficients:
-    double rloh = 1e-4;
-    double mu = 1e-6;
+    double rloh = 0.5e-2;
+    double mu = 0.5e-3;
 
     Model model(5);
     model.m_migr[0][1] = mu;
@@ -28,9 +28,9 @@ int main() {
     model.m_migr[1][4] = 0.5 * rloh;
     model.m_migr[2][4] = 0.5 * mu;
     // birth and death rates:
-    model.m_birth = {0, 0, 0, 0, 0};
+    model.m_birth = {0, 0.2, 0.2, 0, 0};
     model.m_death = {0, 0, 0, 0, 0};
-    model.m_initial_pops = {1e3, 0, 0, 0, 0};
+    model.m_initial_pops = {1e2, 0, 0, 0, 0};
 
     std::vector<int> final_vertices = {3, 4};
 
