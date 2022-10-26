@@ -29,7 +29,7 @@ int main() {
 
     double time = 0.0;
     const double tmax = 100.0;
-    double dt = 1.0;
+    double dt = 0.5;
     std::cout << "age, p1, p2," << std::endl;
     std::cout << time << ", " << 1.0 << ", ";
     std::cout << 0.0 << "," << std::endl;
@@ -39,7 +39,7 @@ int main() {
         int subdivision = 16;
         double dt2 = dt / subdivision;
         for (int i = 0; i < subdivision; ++i)
-            heun_q_step(qvalues, time, dt2, model);
+            implicit_q_step(qvalues, time, dt2, model);
         // Increment time:
         time += dt;
 

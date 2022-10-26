@@ -29,6 +29,16 @@ std::vector<double> rhs_flow(const std::vector<double> &qcoords,
 void heun_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
                  Model &parameters);
 
+// Other integration methods:
+void improvedeuler_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+                 Model &parameters);
+void rungekutta_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+                 Model &parameters);
+void ralston_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+                 Model &parameters);
+void implicit_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+                 Model &parameters);
+
 // This function computes the value of the generating function at given
 // q-coordinates:
 double generating_function(std::vector<double> qcoords, 

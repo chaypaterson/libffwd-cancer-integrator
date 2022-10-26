@@ -57,8 +57,7 @@ std::vector<double> rhs_flow(const std::vector<double> &qcoords,
 
 void heun_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
                  Model &parameters) {
-    // Time step the q-coordinates (qcoords) using improved Euler integration
-    // (also known as Heun's method).
+    // Time step the q-coordinates (qcoords) using Heun's method
     // Compute an initial guess, qcoords2:
     std::vector<double> flux = rhs_flow(qcoords, parameters);
     std::vector<double> qcoords2 = qcoords;
@@ -70,7 +69,103 @@ void heun_q_step(std::vector<double> &qcoords, const double &time, double &dt,
     std::vector<double> flux2 = rhs_flow(qcoords2, parameters);
     // Combine the initial guess and improved guess using the trapezoid rule:
     for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
-        qcoords[vertex] += 0.25 * (0 * flux[vertex] + 4 * flux2[vertex]) * dt;
+        qcoords[vertex] += 0.5 * (flux[vertex] + flux2[vertex]) * dt;
+    }
+
+    // Do not increment time within this function.
+}
+
+void implicit_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+                 Model &parameters) {
+    // Time step the q-coordinates (qcoords) using implicit Euler method
+    // Compute an initial guess, qcoords2:
+    std::vector<double> qcoords2 = qcoords;
+    int trials = 16;
+    // iterate on this guess multiple times:
+    for (int trial = 0; trial < trials; ++trial) {
+        std::vector<double> flux2 = rhs_flow(qcoords2, parameters);
+        for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
+            qcoords2[vertex] = qcoords[vertex];
+            qcoords2[vertex] += flux2[vertex] * dt;
+        }
+    }
+
+    qcoords = qcoords2;
+
+    // Do not increment time within this function.
+}
+
+void ralston_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+                 Model &parameters) {
+    // Time step the q-coordinates (qcoords) using a second order RK method
+    // Compute an initial guess, qcoords2:
+    std::vector<double> flux = rhs_flow(qcoords, parameters);
+    std::vector<double> qcoords2 = qcoords;
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
+        qcoords2[vertex] += flux[vertex] * dt;
+    }
+
+    // Use the initial guess qcoords2 to compute an improved guess:
+    std::vector<double> flux2 = rhs_flow(qcoords2, parameters);
+    // Combine the initial guess and improved guess using the trapezoid rule:
+    double alpha = 1.400;
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
+        qcoords[vertex] += ((1 - alpha) * flux[vertex] + alpha * flux2[vertex]) * dt;
+    }
+
+    // Do not increment time within this function.
+}
+
+void improvedeuler_q_step(std::vector<double> &qcoords, const double &time, 
+                 double &dt, Model &parameters) {
+    // Time step the q-coordinates (qcoords) using improved Euler integration
+    // Compute an initial guess, qcoords2:
+    std::vector<double> flux = rhs_flow(qcoords, parameters);
+    std::vector<double> qcoords2 = qcoords;
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
+        qcoords2[vertex] += 0.5 * flux[vertex] * dt;
+    }
+
+    // Use the initial guess qcoords2 to compute an improved guess:
+    std::vector<double> flux2 = rhs_flow(qcoords2, parameters);
+    // Combine the initial guess and improved guess using the trapezoid rule:
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
+        qcoords[vertex] += flux2[vertex] * dt;
+    }
+
+    // Do not increment time within this function.
+}
+
+void rungekutta_q_step(std::vector<double> &qcoords, const double &time, 
+                 double &dt, Model &parameters) {
+    // Time step the q-coordinates (qcoords) using classical Runge-Kutta integration
+    // Compute initial midpoint guesses, qcoords2 and qcoords3:
+    std::vector<double> flux = rhs_flow(qcoords, parameters);
+    std::vector<double> qcoords2 = qcoords;
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
+        qcoords2[vertex] += 0.5 * flux[vertex] * dt;
+    }
+    std::vector<double> flux2 = rhs_flow(qcoords2, parameters);
+
+    std::vector<double> qcoords3 = qcoords;
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
+        qcoords3[vertex] += 0.5 * flux2[vertex] * dt;
+    }
+    std::vector<double> flux3 = rhs_flow(qcoords3, parameters);
+
+    // Compute an endpoint guess, qcoords4:
+    std::vector<double> qcoords4 = qcoords;
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
+        qcoords4[vertex] += flux3[vertex] * dt;
+    }
+    std::vector<double> flux4 = rhs_flow(qcoords2, parameters);
+
+    // Combine the guesses:
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
+        qcoords[vertex] += flux[vertex] * dt / 6;
+        qcoords[vertex] += 2 * flux2[vertex] * dt / 6;
+        qcoords[vertex] += 2 * flux3[vertex] * dt / 6;
+        qcoords[vertex] += flux4[vertex] * dt / 6;
     }
 
     // Do not increment time within this function.
