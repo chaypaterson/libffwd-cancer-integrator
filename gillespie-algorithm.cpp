@@ -180,9 +180,32 @@ void print_kaplan_meier(double time_max, std::vector<double> &all_times) {
             survival *= (1 - 1.0 / num_survivors);
             --num_survivors;
             ++time_datum;
+            // avoid unguarded access:
+            if (time_datum == all_times.end()) return;
         }
         std::cout << time << ", " << survival << ", ";
         std::cout << 1.0 - survival << "," << std::endl;
         time += dt;
     }
+}
+
+void print_naive_estimator(double time_max, std::vector<double> &all_times) {
+    size_t num_survivors = all_times.size();
+    const size_t total_survivors = num_survivors;
+    double dt = time_max / 200;
+    double time = 0;
+    double survival = 1.0;
+    auto time_datum = all_times.begin();
+    while (time < time_max) {
+        while (*time_datum < time) {
+            survival = (double)num_survivors / (double)total_survivors;
+            --num_survivors;
+            ++time_datum;
+            // avoid unguarded access:
+            if (time_datum == all_times.end()) return;
+        }
+        std::cout << time << ", " << survival << ", ";
+        std::cout << 1.0 - survival << "," << std::endl;
+        time += dt;
+    } 
 }

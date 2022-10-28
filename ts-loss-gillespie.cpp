@@ -14,7 +14,7 @@
 
 int main() {
     int num_thr = std::thread::hardware_concurrency() - 2;
-    int runs_per_thr = 1e7;
+    int runs_per_thr = 1e5;
     int seed = 1;
 
     // System coefficients:
@@ -74,7 +74,7 @@ int main() {
             mutant_times.push_back(result.first);
     // Kaplan-Meier plot:
     std::cout << "age, p1, p2," << std::endl;
-    print_kaplan_meier(100, mutant_times);
+    print_naive_estimator(100, mutant_times);
 
     std::cout << std::endl;
 

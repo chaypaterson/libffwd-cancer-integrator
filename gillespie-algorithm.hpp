@@ -62,4 +62,6 @@ void print_results(std::vector<double> &all_times);
 
 void print_kaplan_meier(double time_max, std::vector<double> &all_times);
 
+void print_naive_estimator(double time_max, std::vector<double> &all_times);
+
 #endif

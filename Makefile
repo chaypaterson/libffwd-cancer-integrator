@@ -12,13 +12,13 @@ GILLFLAGS = -lgsl -pthread
 
 BIN2HIT = two-hit-characteristic
 
-libs : libflying.so libgillespie.so
+libs :
 	mkdir -p $(LIBDIR)
 
-libflying.so:
+libflying.so: libs
 	$(CC) flying-conjugates.cpp $(FLAGS) $(OPT1) -c -o $(LIBCHAR)
 
-libgillespie.so:
+libgillespie.so: libs
 	$(CC) gillespie-algorithm.cpp $(FLAGS) $(OPT1) -c -o $(LIBGILL)
 
 fivestage : $(CHARSRC) libflying.so
