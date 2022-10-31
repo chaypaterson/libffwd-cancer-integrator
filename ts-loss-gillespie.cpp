@@ -32,7 +32,7 @@ int main() {
     model.m_death = {0, 0, 0, 0, 0};
     model.m_initial_pops = {1e2, 0, 0, 0, 0};
 
-    std::vector<int> final_vertices = {3, 4}; // TODO RUIBO IS THIS WRONG? CHAY
+    std::vector<int> final_vertices = {4}; // TODO RUIBO IS THIS WRONG? CHAY
 
     // Run many simulations and store the results:
     std::vector<std::pair<double,int>> all_times;
