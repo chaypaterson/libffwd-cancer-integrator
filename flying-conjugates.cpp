@@ -19,17 +19,17 @@
  *      g++ flying-conjugates.cpp -c -o libflying.so
  */
 
-std::vector<double> rhs_flow(const std::vector<double> &qcoords,
+std::vector<real_t> rhs_flow(const std::vector<real_t> &qcoords,
                              Model &parameters) {
     // Compute and return a vector containing the rates of change of
     // the characteristic curves (qcoords). This is the right-hand-side of the
     // system of differential equations that govern the characteristics.
-    std::vector<double> flux;
+    std::vector<real_t> flux;
 
     // Sum the different contributions to the total rate of change at each
     // vertex:
     for (size_t vertex = 0; vertex < parameters.m_stages; ++vertex) {
-        double rate_of_change = 0;
+        real_t rate_of_change = 0;
         // Rate of change of gamma due to birth process:
         rate_of_change += parameters.m_birth[vertex] * 
                             (qcoords[vertex] - 1) * 
@@ -55,18 +55,18 @@ std::vector<double> rhs_flow(const std::vector<double> &qcoords,
     return flux;
 }
 
-void heun_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+void heun_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt, 
                  Model &parameters) {
     // Time step the q-coordinates (qcoords) using Heun's method
     // Compute an initial guess, qcoords2:
-    std::vector<double> flux = rhs_flow(qcoords, parameters);
-    std::vector<double> qcoords2 = qcoords;
+    std::vector<real_t> flux = rhs_flow(qcoords, parameters);
+    std::vector<real_t> qcoords2 = qcoords;
     for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords2[vertex] += flux[vertex] * dt;
     }
 
     // Use the initial guess qcoords2 to compute an improved guess:
-    std::vector<double> flux2 = rhs_flow(qcoords2, parameters);
+    std::vector<real_t> flux2 = rhs_flow(qcoords2, parameters);
     // Combine the initial guess and improved guess using the trapezoid rule:
     for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords[vertex] += 0.5 * (flux[vertex] + flux2[vertex]) * dt;
@@ -75,15 +75,15 @@ void heun_q_step(std::vector<double> &qcoords, const double &time, double &dt,
     // Do not increment time within this function.
 }
 
-void implicit_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+void implicit_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt, 
                  Model &parameters) {
     // Time step the q-coordinates (qcoords) using implicit Euler method
     // Compute an initial guess, qcoords2:
-    std::vector<double> qcoords2 = qcoords;
+    std::vector<real_t> qcoords2 = qcoords;
     int trials = 16;
     // iterate on this guess multiple times:
     for (int trial = 0; trial < trials; ++trial) {
-        std::vector<double> flux2 = rhs_flow(qcoords2, parameters);
+        std::vector<real_t> flux2 = rhs_flow(qcoords2, parameters);
         for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
             qcoords2[vertex] = qcoords[vertex];
             qcoords2[vertex] += flux2[vertex] * dt;
@@ -95,20 +95,20 @@ void implicit_q_step(std::vector<double> &qcoords, const double &time, double &d
     // Do not increment time within this function.
 }
 
-void ralston_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+void ralston_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt, 
                  Model &parameters) {
     // Time step the q-coordinates (qcoords) using a second order RK method
     // Compute an initial guess, qcoords2:
-    std::vector<double> flux = rhs_flow(qcoords, parameters);
-    std::vector<double> qcoords2 = qcoords;
+    std::vector<real_t> flux = rhs_flow(qcoords, parameters);
+    std::vector<real_t> qcoords2 = qcoords;
     for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords2[vertex] += flux[vertex] * dt;
     }
 
     // Use the initial guess qcoords2 to compute an improved guess:
-    std::vector<double> flux2 = rhs_flow(qcoords2, parameters);
+    std::vector<real_t> flux2 = rhs_flow(qcoords2, parameters);
     // Combine the initial guess and improved guess using the trapezoid rule:
-    double alpha = 1.400;
+    real_t alpha = 1.400;
     for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords[vertex] += ((1 - alpha) * flux[vertex] + alpha * flux2[vertex]) * dt;
     }
@@ -116,18 +116,18 @@ void ralston_q_step(std::vector<double> &qcoords, const double &time, double &dt
     // Do not increment time within this function.
 }
 
-void improvedeuler_q_step(std::vector<double> &qcoords, const double &time, 
-                 double &dt, Model &parameters) {
+void improvedeuler_q_step(std::vector<real_t> &qcoords, const real_t &time, 
+                 real_t &dt, Model &parameters) {
     // Time step the q-coordinates (qcoords) using improved Euler integration
     // Compute an initial guess, qcoords2:
-    std::vector<double> flux = rhs_flow(qcoords, parameters);
-    std::vector<double> qcoords2 = qcoords;
+    std::vector<real_t> flux = rhs_flow(qcoords, parameters);
+    std::vector<real_t> qcoords2 = qcoords;
     for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords2[vertex] += 0.5 * flux[vertex] * dt;
     }
 
     // Use the initial guess qcoords2 to compute an improved guess:
-    std::vector<double> flux2 = rhs_flow(qcoords2, parameters);
+    std::vector<real_t> flux2 = rhs_flow(qcoords2, parameters);
     // Combine the initial guess and improved guess using the trapezoid rule:
     for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords[vertex] += flux2[vertex] * dt;
@@ -136,29 +136,29 @@ void improvedeuler_q_step(std::vector<double> &qcoords, const double &time,
     // Do not increment time within this function.
 }
 
-void rungekutta_q_step(std::vector<double> &qcoords, const double &time, 
-                 double &dt, Model &parameters) {
+void rungekutta_q_step(std::vector<real_t> &qcoords, const real_t &time, 
+                 real_t &dt, Model &parameters) {
     // Time step the q-coordinates (qcoords) using classical Runge-Kutta integration
     // Compute initial midpoint guesses, qcoords2 and qcoords3:
-    std::vector<double> flux = rhs_flow(qcoords, parameters);
-    std::vector<double> qcoords2 = qcoords;
+    std::vector<real_t> flux = rhs_flow(qcoords, parameters);
+    std::vector<real_t> qcoords2 = qcoords;
     for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords2[vertex] += 0.5 * flux[vertex] * dt;
     }
-    std::vector<double> flux2 = rhs_flow(qcoords2, parameters);
+    std::vector<real_t> flux2 = rhs_flow(qcoords2, parameters);
 
-    std::vector<double> qcoords3 = qcoords;
+    std::vector<real_t> qcoords3 = qcoords;
     for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords3[vertex] += 0.5 * flux2[vertex] * dt;
     }
-    std::vector<double> flux3 = rhs_flow(qcoords3, parameters);
+    std::vector<real_t> flux3 = rhs_flow(qcoords3, parameters);
 
     // Compute an endpoint guess, qcoords4:
-    std::vector<double> qcoords4 = qcoords;
+    std::vector<real_t> qcoords4 = qcoords;
     for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords4[vertex] += flux3[vertex] * dt;
     }
-    std::vector<double> flux4 = rhs_flow(qcoords2, parameters);
+    std::vector<real_t> flux4 = rhs_flow(qcoords2, parameters);
 
     // Combine the guesses:
     for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
@@ -171,15 +171,15 @@ void rungekutta_q_step(std::vector<double> &qcoords, const double &time,
     // Do not increment time within this function.
 }
 
-double generating_function(std::vector<double> qcoords, 
-                           std::vector<double> initial_pops) {
+real_t generating_function(std::vector<real_t> qcoords, 
+                           std::vector<real_t> initial_pops) {
     // Compute the value of the generating function (psi) at given 
     // q-coordinates (qcoords) with known initial conditions.
     // The initial conditions are the initial_pops.
 
     // To avoid rounding errors when the generating function psi is close to
     // zero or one, first compute the log of psi:
-    double log_psi = 0;
+    real_t log_psi = 0;
 
     auto q = qcoords.begin();
     for (auto& nzero : initial_pops) {

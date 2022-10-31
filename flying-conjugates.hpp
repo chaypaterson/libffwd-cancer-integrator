@@ -21,28 +21,28 @@
 
 // This function computes the right-hand-side of the system of ordinary
 // differential equations that govern the characteristics:
-std::vector<double> rhs_flow(const std::vector<double> &qcoords,
+std::vector<real_t> rhs_flow(const std::vector<real_t> &qcoords,
                              Model &parameters);
 
 // This function updates the q-coordinates of the characteristic curves using
 // Heun's method:
-void heun_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+void heun_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt, 
                  Model &parameters);
 
 // Other integration methods:
-void improvedeuler_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+void improvedeuler_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt, 
                  Model &parameters);
-void rungekutta_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+void rungekutta_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt, 
                  Model &parameters);
-void ralston_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+void ralston_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt, 
                  Model &parameters);
-void implicit_q_step(std::vector<double> &qcoords, const double &time, double &dt, 
+void implicit_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt, 
                  Model &parameters);
 
 // This function computes the value of the generating function at given
 // q-coordinates:
-double generating_function(std::vector<double> qcoords, 
-                           std::vector<double> initial_pops);
+real_t generating_function(std::vector<real_t> qcoords, 
+                           std::vector<real_t> initial_pops);
 
 // End of header guard:
 #endif

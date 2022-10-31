@@ -14,7 +14,7 @@
 
 int main() {
     int num_thr = std::thread::hardware_concurrency() - 2;
-    int runs_per_thr = 1e5;
+    int runs_per_thr = 1e7;
     int seed = 1;
 
     // System coefficients:

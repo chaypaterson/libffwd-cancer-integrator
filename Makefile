@@ -32,6 +32,6 @@ twostage : $(CHARSRC) libflying.so libgillespie.so
 	$(CC) $(LIBCHAR) $(BIN2HIT).cpp $(FLAGS) $(OPT2) -o $(BUILDDIR)/$(BIN2HIT)
 	$(CC) $(LIBGILL) two-hit-gillespie.cpp $(GILLFLAGS) $(OPT2) -o $(BUILDDIR)/two-hit-gillespie-2
 
-tsloss : libflying.so libgillespie.so
+tsloss :
 	$(CC) $(LIBCHAR) ts-loss-characteristic.cpp $(FLAGS) $(OPT1) -o $(BUILDDIR)/tsconj
 	$(CC) $(LIBGILL) ts-loss-gillespie.cpp $(GILLFLAGS) $(OPT1) -o $(BUILDDIR)/tsgillespie
