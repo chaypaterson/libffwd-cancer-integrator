@@ -12,13 +12,14 @@ GILLFLAGS = -lgsl -pthread
 
 BIN2HIT = two-hit-characteristic
 
-libs :
-	mkdir -p $(LIBDIR)
+libs : libflying.so libgillespie.so
 
-libflying.so: libs
+libflying.so:
+	mkdir -p $(LIBDIR)
 	$(CC) flying-conjugates.cpp $(FLAGS) $(OPT1) -c -o $(LIBCHAR)
 
-libgillespie.so: libs
+libgillespie.so:
+	mkdir -p $(LIBDIR)
 	$(CC) gillespie-algorithm.cpp $(FLAGS) $(OPT1) -c -o $(LIBGILL)
 
 fivestage : $(CHARSRC) libflying.so
@@ -32,6 +33,6 @@ twostage : $(CHARSRC) libflying.so libgillespie.so
 	$(CC) $(LIBCHAR) $(BIN2HIT).cpp $(FLAGS) $(OPT2) -o $(BUILDDIR)/$(BIN2HIT)
 	$(CC) $(LIBGILL) two-hit-gillespie.cpp $(GILLFLAGS) $(OPT2) -o $(BUILDDIR)/two-hit-gillespie-2
 
-tsloss :
+tsloss : libs
 	$(CC) $(LIBCHAR) ts-loss-characteristic.cpp $(FLAGS) $(OPT1) -o $(BUILDDIR)/tsconj
 	$(CC) $(LIBGILL) ts-loss-gillespie.cpp $(GILLFLAGS) $(OPT1) -o $(BUILDDIR)/tsgillespie

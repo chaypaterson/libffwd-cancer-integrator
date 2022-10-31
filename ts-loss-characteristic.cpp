@@ -49,6 +49,9 @@ real_t energy_guess(std::vector<real_t> qvalues, const Model& model) {
 }
 
 real_t energy_update(real_t& energy, std::vector<real_t> qvalues, real_t dt, Model& model) {
+    // updates an "energy" checksum. In theory this function should evaluate to
+    // zero, so the accumulated value in energy gives an indicator of the
+    // accumulated numerical errors.
     std::vector<real_t> coefficients = energy_coeffs(model);
     // compute the correction:
     real_t correction = 0;
@@ -94,7 +97,8 @@ int main() {
     real_t time = 0.0;
     const real_t tmax = 100.0;
     real_t dt = 0.5;
-    real_t energy = energy_guess(qvalues, model);
+    // initialize energy to zero (arbitrary value):
+    real_t energy = 0.0;
     // print key:
     std::cout << "age, p1, p2, energy, delta," << std::endl;
     // print first line:
