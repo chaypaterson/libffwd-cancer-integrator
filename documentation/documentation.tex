@@ -5,8 +5,8 @@
 \usepackage[a4paper,inner=30mm,outer=30mm,top=20mm,bottom=40mm]{geometry}
 \usepackage{graphicx}
 
-\title{An efficient numerical integration scheme for clonal expansion processes on graphs}
-\author{Chay Paterson${}^\star$, Miaomiao Gao(?), Joshua Hellier(?), Ruibo Zhang(?), Georg Luebeck, David Wedge${}^\star$, Ivana Bo\v{z}i\'{c}}
+\title{A fast numerical integration scheme for clonal expansion processes on graphs}
+\author{Chay Paterson${}^\star$, Miaomiao Gao, Joshua Hellier(?), Ruibo Zhang, Georg Luebeck, David Wedge${}^\star$, Ivana Bo\v{z}i\'{c}}
 % NB: order of authors subject to change but David and Ivana should be senior
 % Affiliations: Manchester, DTSL, UW, The Hutch
 % Limit: 10kw including figure captions
@@ -110,14 +110,12 @@ statistical fitting.
 In fact, $n$-step MSCE models have well-studied methods
 for reducing the computation of $P(t,N_f = 0)$ to numerical quadrature
 \cite{moolgavkar1992multistage,crump2005numerical,meza2008age,luebeck2013impact}.
-These methods represent $P(t,N_f = 0)$ (or $S_n(t)$,
-conventionally) as a particular value of a generating function, conventionally 
+These methods represent $P(t,N_f = 0)$ as a particular value of one of several generating functions, conventionally 
 denoted $\Psi$ or $\Phi$, and making use of Kolmogorov backward equations to derive
-recursive formulae for the probabilities $S_n(t)$
-\cite{crump2005numerical,moolgavkar1979two}. The probabilities $S_n(t)$ may then
+recursive formulae for the probabilities $P(t,N_f = 0)$
+\cite{crump2005numerical,moolgavkar1979two}. The probabilities $P(t,N_f = 0)$ may then
 be evaluated using an numerical integration scheme such as Gaussian quadrature
-\cite{luebeck2013impact}. Kolmogorov forward equations have been less
-well-investigated for this purpose compared to Kolmogorov backward equations.
+\cite{luebeck2013impact}. In contrast to Kolmogorov backward equations, Kolmogorov \emph{forward} equations have been far less well-investigated for the purpose of numerical solutions.
 
 % But these models can't distinguish between different mechanisms
 % A robust generalisation to graphs/networks is desirable, but most existing
@@ -126,11 +124,16 @@ well-investigated for this purpose compared to Kolmogorov backward equations.
 % Citations: R. Grima and Winkelmann/Schutte
 
 One common shortcoming of existing methods is that the mutational transitions are 
-limited to linear graphs, or path graphs. More general models involving
-birth-death-mutation processes on arbitrary directed graphs have previously only
-been studied using stochastic simulations, or approximate solutions derived
+commonly limited to linear graphs, or path graphs
+\cite{luebeck2013impact,zhang2022waiting,zhang2022branching}. More general models involving
+birth-death-mutation processes on arbitrary directed graphs are commonly
+studied using stochastic simulations, or approximate solutions derived
 from mean-field or moment closure approximations
-\cite{patersonbozic2020colorectal,grima2010effective}.
+\cite{patersonbozic2020colorectal,grima2010effective}. There have been some
+recent attempts along classical lines to find fast and accurate numerical
+methods for specific graphs
+using Kolmogorov backward equations, but their suitability
+for arbitrary directed graphs is unclear \cite{donotcite}.
 Here, we define a numerical scheme based on Kolmogorov \emph{forward} equations
 and the method of characteristics that is suitable for studying clonal expansion
 models with constant coefficients on
@@ -524,7 +527,7 @@ In general, with multiple independent initial populations $Z_j$, we have
     \lim_{t\rightarrow \infty} \Psi(t,1,1,\dots,q_f=0) =
     \prod_{j \in V} \left(q^\star_j\right)^{Z_j}
 \end{equation}
-Each equilibrium conjugate coordinate $q^\star_j$ therefore corresponds to the
+Each equilibrium coordinate $q^\star_j$ therefore corresponds to the
 probability that the lineage of a single cell on node $j$ goes extinct. The
 conjugate coordinates can therefore be thought of as ``survival probabilities''.
 It is easily verified that each $q^\star_j \rightarrow 0$ as 
@@ -584,11 +587,13 @@ paper \cite{crump2005numerical,quinn1989calculating}.
 \subsection{Constant coefficients: a one-pass method}
 \label{sec:flying}
 % Flying conjugates
+% Fast forward method
 % ask what happens as we advance t -> t + \Delta t
 % to advance \Psi by \Delta t, we just have to update the characteristics and
 % \theta = \int Y d\sigma
 
-Inspecting the formal solution \eqref{eq:formalsln} immediately
+Inspecting the formal solution \eqref{eq:formalsln} of the Kolmogorov forward
+equations immediately
 suggests other numerical schemes along the lines of Quinn's. We will describe a simple
 implementation based on \emph{improved} Euler integration and the rectangle rule: more
 sophisticated schemes are obviously possible.
@@ -659,15 +664,22 @@ $\Psi$. This scheme will terminate after $N = \lceil t_{max} / \Delta t \rceil$
 iterations. This is much faster than Quinn's method -- requiring
 $\mathcal{O}(N)$ operations instead of $\mathcal{O}(N^2)$.
 
-More sophisticated schemes are easy to imagine. For example, Euler integration
-of the characteristics $\gamma_j$ could be replaced by improved Euler
-integration or Runge-Kutta methods. The rectangle method for computing $w(t)$
+Because this numerical method is fast compared to stochastic sampling with
+Gillespie's algorithm, and based on Kolmogorov forward equations instead of the
+more common Kolmogorov backward equation, we will refer to it as a ``fast
+forward'' method.
+
+This can be seen as a prototypical example of a more general class of such
+methods, because more sophisticated schemes are easy to imagine. For example, improved Euler integration
+of the characteristics $\gamma_j$ could be replaced by an adaptive time step or
+one of a family of Runge-Kutta methods. The rectangle method for computing $w(t)$
 could be replaced by the trapezoid rule, knowing $\gamma_j(t)$ and $\gamma_j(t +
-\Delta t)$. And so on.
+\Delta t)$. Other alternatives and optimisations may be possible, but we will
+leave these to future research in order to focus on applications.
 
 \section{Application to statistical inference: maximum likelihood parameter estimation}
 
-Problem: given a set of observations of the times $t_i$ at which a cancer
+Problem: given a set of observations of the ages $t_i$ at which a cancer
 appeared of type $f_i$, what are the best possible estimates of the underlying
 parameters $\theta = \{\alpha_j, \beta_j, \kappa_j, \mu_{jk}\}$ ?
 
@@ -797,18 +809,25 @@ Maybe leave this for future work?
 The fast algorithm presented in section \ref{sec:flying} should enable more efficient numerical
 estimates regarding biological mechanisms relevant to carcinogenesis, and faster
 inference and fitting procedures for network models of cancer. This in turn
-should allow risk models to combine epidemiological with molecular data, such as locus-specific copy number
+makes possible risk models that combine epidemiological and molecular data, such as locus-specific copy number
 alterations and a variety of genomic rearrangements. These models could
-capture more individualised risk factors, showing how genetic predispositions interact
-with patient age, with applications in personalised medicine.
+capture more individualised risk factors, showing how rare variants and genetic predispositions interact
+with patient age. This class of model should permit better estimates of
+parameters of biological mechanisms, and may also have applications in
+personalised medicine \cite{patersonbozic2020colorectal}.
 
-Continued work is necessary to find a numerical integration algorithm for
-evolution of graphs that is suitable for time-varying rate coefficients $\{\alpha_j,
-\beta_j, \mu_{jk}, \kappa_j\}$, which are necessary for studying carcinogenesis
-associated with inflammatory conditions and smoking. Quinn's algorithm of 1988
-is a possible candidate, but our work shows there may be unexplored
-optimisations, especially regarding convergence speed and the amount of
-caching.
+However, continued work is necessary to discover an efficient numerical integration algorithm for
+evolution on graphs that is suitable for time-varying rate coefficients $\{\alpha_j,
+\beta_j, \mu_{jk}, \kappa_j\}$. This will be necessary for studying
+carcinogenesic processes associated with chronic inflammatory conditions (such as
+Barrett's oesophagus) and smoking. Quinn's algorithm of 1988 is a possible candidate, but our work has
+shown that there may be unexplored optimisations, especially regarding
+convergence speed and the amount of necessary caching.
+
+It is also interesting to note that the various ``classical'' methods based on
+Kolmogorov backward equations typically have several generating functions $\Phi_k$
+arranged in a hierarchy \cite{luebeck2013impact,zhang2022waiting,donotcite}. 
+In contrast, our ``fast forward'' method from section \ref{sec:flying} relies on only one generating function $\Psi$ with multiple arguments. 
 
 \section{Acknowledgements}
 
@@ -818,6 +837,9 @@ method and related literature. % Co-author?
 % Author contributions:
 % G Luebeck referencing and background literature
 % J Hellier numerics
+
+% Funding: grant that covered my postdoc at UW and the ACED grant here at
+% Manchester
 
 \bibliographystyle{unsrt}
 \bibliography{references}
@@ -845,7 +867,7 @@ $X_j = 0$ simultaneously. Consider any one of the $X_j$:
     X_j = \alpha_j (q_j^2 - q_j) + \beta_j (1 - q_j) 
           + \sum_{k \in V} \mu_{jk} (q_k - 1) q_j = 0
 \end{equation}
-In general, this will define a curve parametrised by the other $q_k$, the
+In general, this will define a surface parametrised by the other $q_k$, the
 $j^{th}$ nullcline.
 This can be thought of as a quadratic equation in $q_j$, and as such will have
 at most two real roots in $q_j$. We know that one of these roots will be at $q_j
@@ -880,7 +902,9 @@ As $\Delta > 0$, $X_j$ has exactly two roots in $q_j$. This argument holds for e
 $j \in V$ independently, and as such there must be a unique second equilibrium on the
 interior of $Q$.
 
-% TODO: boundary equilibrium is not unique b.c. the quadratic is degenerate
+Note that this does \emph{not} imply that the equilibrium on the boundary of $Q$
+is unique: along the boundary of $Q$, the quadratic is degenerate, and there may
+be other equilibria.
 
 Finally, at any point $\vec{q} \in Q$, the Jacobian $J$ of $\vec{X}$ will be
 
@@ -893,6 +917,6 @@ of $J_{jl}$ will be real.
 
 The interior equilibrium point is isolated: positive eigenvalues would be
 inconsistent with this equilibrium being unique, and with $Q$ being a trapping
-region for $\vec{X}$. 
+region for $\vec{X}$ \cite{frame2021mathematical}. 
 
 \end{document}
