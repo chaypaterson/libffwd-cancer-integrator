@@ -6,7 +6,8 @@
 \usepackage{graphicx}
 
 \title{A fast numerical integration scheme for clonal expansion processes on graphs}
-\author{Chay Paterson${}^\star$, Miaomiao Gao, Joshua Hellier(?), Ruibo Zhang, Georg Luebeck, David Wedge${}^\star$, Ivana Bo\v{z}i\'{c}}
+\author{Chay Paterson${}^\star$, Miaomiao Gao, Joshua Hellier(?), Georg Luebeck, David Wedge${}^\star$, Ivana Bo\v{z}i\'{c}}
+% pulled out: Ruibo Zhang, 
 % NB: order of authors subject to change but David and Ivana should be senior
 % Affiliations: Manchester, DTSL, UW, The Hutch
 % Limit: 10kw including figure captions
@@ -139,7 +140,7 @@ and the method of characteristics that is suitable for studying clonal expansion
 models with constant coefficients on
 arbitrary directed graphs \cite{crump2005numerical,quinn1989calculating}.
 
-\section{Method}
+\section{Methods for estimating $P(t,N_f = 0)$}
 
 % Summarise what we want to do
 
@@ -193,7 +194,9 @@ e.g. the graph may be a tree, with different vertices representing different
 ancestral genotypes.
 
 The set of nodes $V$ and edge set $E$ together define a graph $G=(V,E)$
-\cite{intrographs}.
+\cite{intrographs}. In contrast to Luebeck and Moolgavkar, we will not assume a
+specific linear structure for this graph, and will instead study methods
+suitable for arbitrary graphs $G$ \cite{moolgavkar1992multistage}.
 
 These dynamics imply the following general form for the Kolmogorov forward
 equations:
@@ -218,22 +221,32 @@ equations:
     \label{eq:kolmogorov}
 \end{align}
 
+\subsection{Gillespie's stochastic simulation algorithm}
+
+Gillespie's stochastic simulation algorithm provides a ``brute force'' method
+for estimating the distribution $P(t,N_0,\dots)$ in \eqref{eq:kolmogorov}.
+
+TODO Give to Miaomiao
+
+
+\subsection{Formal solution by the method of characteristics}
+
 % Group these into a sum over vertices, annotate the immigration, birth, death,
 % and mutation processes
 % Generating function \Psi: transforms into a PDE, wave equation
 
-We define the generating function $\Psi$ to be the expected value of $\prod_{j \in V}
+First, we define the generating function $\Psi$ to be the expected value of $\prod_{j \in V}
 q_j^{N_j}$ given some tuple of conjugate coordinates $\vec{q} = \{q_0, q_1, \dots\} \in
 \mathbb{C}^n$ \cite{gfology}.
 
 \begin{equation}
     \Psi(t,q_0,q_1,\dots,q_j,\dots) 
     = \mathbb{E}\left[\prod_{j \in V} q_j^{N_j}\right]
-    = \sum_{N_0 = 0,\dots,N_j=0,\dots}^{N_0 = \infty,\dots, N_j = \infty, \dots} \prod_{j \in V} q_j^{N_j} 
+    = \sum_{\vec{N}} \prod_{j \in V} q_j^{N_j} 
         P(t, N_0, \cdots, N_j, \cdots)
 \end{equation}
 where the sum runs over all possible values of the populations $\vec{N} = \{N_0,
-N_1, \cdots, N_j, \cdots\}$.
+N_1, \cdots, N_j, \cdots\}$. That is, $0 \leq N_j < \infty$, for all $j \in V$.
 One can note that this is essentially the Fourier transform of the probability
 distribution $P(t,N_0,\dots)$ with respect to the variables $N_j$. The variables
 $q_j$ are conjugate to the populations $N_j$, forming Fourier duals in the same
@@ -244,7 +257,7 @@ then be expressed in terms of $\Psi$:
 
 \begin{equation}
     \Psi(t,1,1,\dots,q_j = 1,\dots, q_f = 0)
-    = \sum_{N_0 = 0,\dots,N_j=0,\dots}^{N_0 = \infty,\dots, N_j = \infty, \dots}
+    = \sum_{\vec{N}}
         P(t, N_0, \cdots, N_j, \cdots, N_f = 0)
     = P(t,N_f = 0)
     \label{eq:corner}
@@ -297,9 +310,8 @@ or
 \end{equation}
 where $\delta_{ij}$ is the Kronecker delta symbol.
 
-\subsection{Formal solution by the method of characteristics}
-
 \subsection*{Theorem:}
+% TODO: leave out immigration? or move immigration version to appendix?
 
 %(t, \vec{q})
 
@@ -318,7 +330,7 @@ where the characteristics ${\gamma}_j$ are solutions of the initial value proble
     {\gamma}_j(\sigma = 0) &= {q}_j
     \label{eq:ivp}
 \end{align}
-where the vector field $\vec{X}$ and scalar field $Y$ are defined to be
+and the vector field $\vec{X}$ and scalar field $Y$ are defined to be
 
 \begin{equation*}
     X_j(\vec{\gamma}) :=
@@ -334,9 +346,14 @@ and $\vec{\gamma}$ is shorthand for $(\gamma_0, \gamma_1, \cdots, \gamma_j,
 \cdots)$.
 
 Values of $\Psi$ can thus be computed for any given set of initial conditions
-$\vec{q}$. As an immediate corollary, this allows $P(N_f = 0)$ to be calculated:
+$\vec{q}$. As an immediate corollary, this allows $P(t,N_f = 0)$ to be calculated:
 the relevant initial conditions are given by \eqref{eq:corner}, with $q_j = 1$
-for all $j\neq f$, and $q_f = 0$.
+for all $j\neq f$, and $q_f = 0$. Hence,
+
+
+\begin{equation}
+    P(t,N_f=0) = \Psi(t,q_0 = 1, q_1 = 1, \dots, q_f = 0)
+\end{equation}
 
 \subsection*{Proof}
 
@@ -395,6 +412,7 @@ Substituting this results in the formal solution \eqref{eq:formalsln}.
 % This gets us a formal solution for \Psi
 
 \subsection{Geometrical interpretation}
+% TODO appendix?
 
 The flow $\vec{X}$ has an elegant geometrical interpretation: although we
 assumed that each $q_j$ coordinate was in general, a complex variable of
@@ -529,15 +547,23 @@ In general, with multiple independent initial populations $Z_j$, we have
 \end{equation}
 Each equilibrium coordinate $q^\star_j$ therefore corresponds to the
 probability that the lineage of a single cell on node $j$ goes extinct. The
-conjugate coordinates can therefore be thought of as ``survival probabilities''.
+conjugate coordinates can therefore be thought of as ``extinction probabilities''.
 It is easily verified that each $q^\star_j \rightarrow 0$ as 
 $\beta_j \rightarrow 0$, as would be expected.
 
-\subsection{Numerical integration schemes}
+\subsection{A new class of numerical integration schemes}
 
+The formal solution \eqref{eq:formalsln} via the method of characteristics
+opens up many possibilities for numerical methods. Any numerical integration
+scheme that is appropriate for systems of ODEs can be used, in principle, to
+solve \eqref{eq:formalsln}, and thus give a numerical approximation for $P(t,N_f
+= 0)$. As these methods can be expected to be ``fast'' in comparison to sampling
+with Gillespie's algorithm, and are based on Kolmogorov forward equations instead
+of Kolmogorov backward equations (like the classical methods from
+\cite{moolgavkar1979two,moolgavkar1992multistage,luebeck2013impact}), we will
+refer to these as ``fast forward'' methods.
 
-
-\subsection*{Non-constant coefficients: Quinn's method}
+\subsection*{Non-constant parameters: Quinn's method}
 % Need to treat t as a constant
 % Quinn's method: two-pass procedure
 % Cache new characteristics for each value of t
@@ -575,7 +601,6 @@ corresponding values for $P(N_j = 0)$ computed.
     Y(\vec{\gamma}(\sigma)) d\sigma$ and hence $\Psi(t, \vec{q})$.
     % indent }
 \end{enumerate}
-
 
 For any explicit time-stepping procedure with step size $\Delta t$, the number
 of operations to compute one of these characteristic curves will be $N = \lceil
@@ -702,30 +727,20 @@ the parameters $\theta$, is thus
 Maximising this likelihood with respect to the parameters
 $\theta = \{\alpha_j, \beta_j, \kappa_j, \mu_{jk}\}$ will produce best estimates
 for those parameters.
-This can be done by a number of methods, now that we have an efficient scheme
-for computing $P$: e.g. gradient descent/ascent, which can be simplified by
-using analytical expressions for the scores $\nabla_\theta \gamma_j$ (basically
-backpropagation). Or simulated annealing
-% Basically, use \nabla_\theta X_j and \gamma_j to evolve the auxiliary
-% variables \nabla_theta \gamma_j along the characteristics.
-% The characteristic curves \gamma_j and auxiliary terms form a "fiber bundle"
-% which is nice geometrical flavour.
-
-\begin{equation}
-    \frac{d \nabla_\theta \gamma_j}{d \sigma} = \nabla_\theta X_j
-\end{equation}
+This can be done in several different ways, now that we have developed an efficient scheme
+for computing $P$ using ``fast forward'' methods. As a proof-of-concept, we will
+see if coupling our one-pass fast forward method with simulated annealing can be
+used to infer the parameters used to generate a synthetic dataset.
 
 \section{Results}
 
-Compare to Gillespie for 2-hit model.
+\subsection{Scaling of errors with step size $dt$}
+
+TODO:
+
+Compare to Gillespie for the tumour suppressor loss model.
 
   Conclusions: very fast
-
-Compare to Gillespie for the CRC model
-
-  Must agree
-
-  Must be faster
 
 % Maybe: examine correlations on 3 different 2-hit trees
 %   parallel a->b->c
@@ -739,6 +754,30 @@ Compare to Gillespie for the CRC model
 %
 % Hypothesis: if b has a fitness advantage, we should see strong correlations in
 % the last case and low or zero correlations in the previous two cases.
+
+TODO: What number of replicates for Gillespie is equivalent to a chosen
+time step for the new method? i.e. we want the error in both methods to be the
+same. Then we measure how fast they are. This is a fair test.
+
+max. error in Gillespie $= 1 / 2 \sqrt{N}$ (is this correct?)
+
+max. error in new method $= \mathcal{O}((dt)^3)$ (Miaomiao is checking this
+now. Also, cite a source: maybe numerical recipes?)
+
+For a fair test we should choose $N$ and $dt$ so that
+\begin{equation}
+    \frac{1}{2\sqrt{N}} \approx K (dt)^3
+\end{equation}
+for some constant $K$.
+
+e.g. for $t_{max} = 100$, $max(\gamma''') = 0.2$, $dt = 0.05$, max error $ = ...$
+
+
+\subsection{Maximum likelihood optimisation}
+
+
+TODO Gareth says he definitely has retinoblastoma data with $N\approx1,000$.
+Exciting if true
 
 \subsection{Comparison of methods}
 
@@ -764,37 +803,6 @@ were carried out to compute the mean and s.d. of the runtime.
 % original gillespie: 17s
 % extensible rewrite: 30s
 
-\subsection*{Error analysis}
-
-@Josh: this is an annoying amount of work but should be straightforward in
-theory.
-
-TODO: What number of replicates for Gillespie is equivalent to a chosen
-time step for the new method? i.e. we want the error in both methods to be the
-same. Then we measure how fast they are. This is a fair test.
-
-max. error in Gillespie $= 1 / 2 \sqrt{N}$ (is this correct?)
-
-max. error in new method $= \mathcal{O}((dt)^3)$ (Check against a source:
-maybe numerical recipes?)
-
-For a fair test we should choose $N$ and $dt$ so that
-\begin{equation}
-    \frac{1}{2\sqrt{N}} \approx K (dt)^3
-\end{equation}
-for some constant $K$.
-
-e.g. for $t_{max} = 100$, $max(\gamma''') = 0.2$, $dt = 0.05$, max error $ = ...$
-
-
-\subsection{Inverse problem: performance of maximum likelihood optimisation}
-
-TODO retinoblastoma data?
-
-TODO Gareth says he definitely has retinoblastoma data with $N\approx1,000$.
-Exciting if true
-
-Maybe leave this for future work?
 
 \section{Discussion}
 
