@@ -32,25 +32,28 @@ int main() {
 
     real_t time = 0.0;
     const real_t tmax = 100.0;
-    real_t dt = 0.5;
+    real_t dt = 0.5; // integration step
+    real_t t_write_step = 1.0; // write out step
+
     // print key:
     std::cout << "age, p1, p2," << std::endl;
     // print first line:
     std::cout << time << ", " << 1.0 << ", ";
     std::cout << 0.0 << ", " << std::endl;
+    real_t t_write = time + t_write_step;
 
     while (time < tmax) {
-        // Subdivide the time step dt into smaller, finer time steps:
-        int subdivision = 16;
-        real_t dt2 = dt / subdivision;
-        for (int i = 0; i < subdivision; ++i)
-            heun_q_step(qvalues, time, dt2, model);
+        heun_q_step(qvalues, time, dt, model);
         // Increment time:
         time += dt;
 
         real_t prob = generating_function(qvalues, model.m_initial_pops);
-        std::cout << time << ", " << prob << ", ";
-        std::cout << 1.0 - prob << ", " << std::endl;
+        if (time >= t_write) {
+            // Write out probabilities:
+            std::cout << time << ", " << prob << ", ";
+            std::cout << 1.0 - prob << ", " << std::endl;
+            t_write += t_write_step;
+        }
     }
 
     return 0;
