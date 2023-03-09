@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -8,7 +9,7 @@
 
 // A conjugate characteristics simulation of tumour suppressor loss
 
-int main() {
+int main(int argc, char* argv[]) {
     // System coefficients:
     real_t rloh = 0.5e-2;
     real_t mu = 0.5e-3;
@@ -32,14 +33,15 @@ int main() {
 
     real_t time = 0.0;
     const real_t tmax = 100.0;
-    real_t dt = 0.5; // integration step
+    real_t dt = atof(argv[1]); // integration step
     real_t t_write_step = 1.0; // write out step
 
     // print key:
     std::cout << "age, p1, p2," << std::endl;
+    std::cout.precision(17);
     // print first line:
-    std::cout << time << ", " << 1.0 << ", ";
-    std::cout << 0.0 << ", " << std::endl;
+    std::cout << std::fixed << time << ", " << 1.0 << ", ";
+    std::cout << std::fixed << 0.0 << ", " << std::endl;
     real_t t_write = time + t_write_step;
 
     while (time < tmax) {
@@ -49,9 +51,13 @@ int main() {
 
         real_t prob = generating_function(qvalues, model.m_initial_pops);
         if (time >= t_write) {
+            // If we have overshot the write out time, go back a bit:
+            real_t delta = t_write - time;
+            heun_q_step(qvalues, time, delta, model);
+            time = t_write;
             // Write out probabilities:
-            std::cout << time << ", " << prob << ", ";
-            std::cout << 1.0 - prob << ", " << std::endl;
+            std::cout << std::fixed << time << ", " << prob << ", ";
+            std::cout << std::fixed << 1.0 - prob << ", " << std::endl;
             t_write += t_write_step;
         }
     }

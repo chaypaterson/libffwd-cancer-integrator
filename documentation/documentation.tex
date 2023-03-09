@@ -21,15 +21,15 @@ Compound birth-death processes are widely used to model the age-incidence curves
 of many cancers \cite{luebeck2013impact}. There are efficient schemes for
 directly computing the relevant % also cite Armitage and Doll
 probability distributions in the context of linear multi-stage clonal expansion
-(MSCE) models \cite{meza2008age}. These schemes have not been generalised to
-models to arbitrary graphs, forcing the use of full stochastic simulations or
+(MSCE) models \cite{meza2008age}. However, these schemes have not been generalised to
+models on arbitrary graphs, forcing the use of either full stochastic simulations or
 mean-field approximations, which can become inaccurate at late times or old ages
 \cite{patersonbozic2020colorectal,Paterson2021vs}.
 Here, we present a numerical integration scheme for directly computing survival
 probabilities of a first-order birth-death process on an arbitrary
 directed graph, without the use of stochastic
-simulations. As a concrete example, we use this new numerical method to analyse
-historical data on copy number alterations in retinoblastoma. (TODO!)
+simulations. As a concrete application, we show that this new numerical method
+can be  used to infer
 \end{abstract}
 % Key references: K Crump 2005, G Luebeck 2013, Connolly 2003
 
@@ -582,8 +582,6 @@ weights. These
 characteristic curves can then be substituted into \eqref{eq:formalsln}, and
 corresponding values for $P(N_j = 0)$ computed.
 
-(...TODO rewrite in proper pseudocode environment...)
-
 \begin{enumerate}
     \item Choose and fix a time step $\Delta t$.
     \item For each time of interest $t$...
@@ -604,7 +602,7 @@ corresponding values for $P(N_j = 0)$ computed.
 
 For any explicit time-stepping procedure with step size $\Delta t$, the number
 of operations to compute one of these characteristic curves will be $N = \lceil
-t_{max} / \Delta t \rceil$. To compute values of $P(N_j = 0)$ at all $N$ times
+t_{max} / \Delta t \rceil$. To compute values of $P(N_j = 0)$ at all $N$ ages
 in between $t=0$ and $t=t_{max}$ will therefore require $\mathcal{O}(N^2)$
 operations. This is explicitly described in Crump's review and Quinn's original
 paper \cite{crump2005numerical,quinn1989calculating}.
@@ -700,45 +698,19 @@ of the characteristics $\gamma_j$ could be replaced by an adaptive time step or
 one of a family of Runge-Kutta methods. The rectangle method for computing $w(t)$
 could be replaced by the trapezoid rule, knowing $\gamma_j(t)$ and $\gamma_j(t +
 \Delta t)$. Other alternatives and optimisations may be possible, but we will
-leave these to future research in order to focus on applications.
-
-\section{Application to statistical inference: maximum likelihood parameter estimation}
-
-Problem: given a set of observations of the ages $t_i$ at which a cancer
-appeared of type $f_i$, what are the best possible estimates of the underlying
-parameters $\theta = \{\alpha_j, \beta_j, \kappa_j, \mu_{jk}\}$ ?
-
-The exact time at which the first cancerous cell emerged in a patient is
-unobservable. The data we do have access to is censored to the left:
-we know the patient's age when the cancer was detected, $t_i$, which gives us an
-upper bound on the time the cancer appeared. All that this tells us is that at
-the time of detection, the number of cancer $N_{f_i}$ cells was greater than
-zero. The corresponding probability is therefore $P(t_i, N_{f_i})$.
-
-The corresponding likelihood of observing the whole dataset $\{t_i,f_i\}$, given
-the parameters $\theta$, is thus
-
-% Likelihood of a dataset = prod_i P(t_i, N_f_i = 0)
-
-\begin{equation}
-    \mathcal{L}(\theta | \{t_i, f_i\}) = \prod_i 
-    \left. (1 - P(t, N_{f_i} = 0)) \right|_{t=t_i}
-\end{equation}
-Maximising this likelihood with respect to the parameters
-$\theta = \{\alpha_j, \beta_j, \kappa_j, \mu_{jk}\}$ will produce best estimates
-for those parameters.
-This can be done in several different ways, now that we have developed an efficient scheme
-for computing $P$ using ``fast forward'' methods. As a proof-of-concept, we will
-see if coupling our one-pass fast forward method with simulated annealing can be
-used to infer the parameters used to generate a synthetic dataset.
+leave these to future research in order to turn our focus to applications.
 
 \section{Results}
+
+TODO:
+
+Define the tumour suppressor loss graph and include a figure.
 
 \subsection{Scaling of errors with step size $dt$}
 
 TODO:
 
-Compare to Gillespie for the tumour suppressor loss model.
+Compare run-time to Gillespie for the tumour suppressor loss model.
 
   Conclusions: very fast
 
@@ -761,23 +733,119 @@ same. Then we measure how fast they are. This is a fair test.
 
 max. error in Gillespie $= 1 / 2 \sqrt{N}$ (is this correct?)
 
-max. error in new method $= \mathcal{O}((dt)^3)$ (Miaomiao is checking this
+max. error in new method $= \mathcal{O}(dt)$ (Miaomiao is checking this
 now. Also, cite a source: maybe numerical recipes?)
 
-For a fair test we should choose $N$ and $dt$ so that
+Because the local error in Heun's method is $\mathcal{O}(dt^2)$, the global
+error is $\mathcal{O}(dt)$.
+
+For a fair comparison, we should choose $N$ and $dt$ so that the error scale
+$\epsilon$ for the
+fast forward method is the same as that for a set of $N$ Gillespie algorithm
+simulations, so that
 \begin{equation}
-    \frac{1}{2\sqrt{N}} \approx K (dt)^3
+    \epsilon \approx \frac{1}{2\sqrt{N}} \approx K dt
 \end{equation}
 for some constant $K$.
 
+The run time $T_G$ of a set of Gillespie algorithm simulations will scale as
+$T_G = \mathcal{O}(N) \sim \mathcal{O}(\epsilon^{-2})$. On the other hand, the run time $T_F$ of one
+simulation will scale as $T_F = \mathcal{O}(1/dt) \sim \mathcal{O}(\epsilon^{-1})$. So, for a given
+error tolerance $\epsilon$, we can expect
+
+\begin{equation}
+    T_F \sim T_G^{1/2}
+\end{equation}
+that is, the run time of the fast forward method $T_F$ will scale with the
+square root of the run time of the Gillespie algorithm $T_G$. The fast forward
+method will quadratically outperform sampling with the Gillespie algorithm as
+the required error tolerance $\epsilon$ decreases. For example, if we wanted to
+reduce $\epsilon$ by a factor of $1/1000$, $T_F$ would become $1000$ times
+larger, but $T_G$ would become $10^6$ times larger.
+
 e.g. for $t_{max} = 100$, $max(\gamma''') = 0.2$, $dt = 0.05$, max error $ = ...$
 
+To do: 
 
-\subsection{Maximum likelihood optimisation}
+* measure run times at the same precision
+
+* show that the precision is the same
+
+* show that the new method is faster
+
+\section{Application to statistical inference: maximum likelihood optimisation}
+
+To do:
+
+* Generate data using Gillespie algorithm and known parameters $\pi$
+* Define a likelihood function
+* Maximise $\mathcal{L}$ using simulated annealing to estimate parameters
+  $\pi^\star$
+* Compare estimated parameters $\pi$ with ground truth parameters $\pi^\star$
+
+Our one-pass fast forward method is can be embedded in more
+complex workflows in which the Gillespie algorithm would be too slow to be
+impractical. As an example, we will examine a simple procedure for estimating
+the underlying parameters of a dataset.
+
+To generate the dataset, we will assume the simple model of tumour suppressor
+loss from above (TODO where?). Many runs are performed with the Gillespie
+algorithm, with parameters $\pi_{true} = \{\alpha_j, \beta_j, \kappa_j, \mu_{jk}\}$,
+and the initial condition that every cell is initially on node $0$.
+Cells on nodes $3$ or $4$ are neoplastic. The long-run probability that one of
+these cells survives to become an expending population is
 
 
-TODO Gareth says he definitely has retinoblastoma data with $N\approx1,000$.
-Exciting if true
+\begin{equation}
+    P(surv,f) = \frac{\alpha_f}{\alpha_f + \beta_f}
+    \label{eq:psurvival}
+\end{equation}
+
+where $f \in \{3,4\}$.
+(source: known result for supercritical Galton-Watson processes)
+When a cell appears on nodes $3$ or $4$ in each run, a random number $Z \in
+[0,1]$ is generated. If $Z < P(surv,f)$, this cell survives to become a
+macroscopic tumour and is diagnosed. The time at which this cell arrived at the
+final node, $t_f$, and the identity of $f$ are stored, and the simulation run is
+terminated. This model is supposed to approximate the process by which tumours emerge and are detected, with $t_f$ an approximation of patient age upon discovery.
+
+The dataset therefore consists of a set of observations of ages $t_i$ and end
+nodes $f_i$. Once this dataset has been generated, the statistical problem is to
+find the best possible of the underlying
+parameters $\pi = \{\alpha_j, \beta_j, \kappa_j, \mu_{jk}\}$.
+
+% TODO: check, I think it should probably be P(t_i) h(t_i) P(surv)
+
+%The exact time at which the first neoplastic cell emerged in a patient is
+%unobservable. The data we do have access to is censored to the left:
+%we know the patient's age when the cancer was detected, $t_i$, which gives us an
+%upper bound on the time the cancer appeared. All that this tells us is that at
+%the time of detection, the number of cancer $N_{f_i}$ cells was greater than
+%zero, and this population has survived. The corresponding probability is
+%therefore $P(t_i, N_{f_i}) P(surv,f_i)$.
+
+The corresponding likelihood of observing the whole dataset $\{t_i,f_i\}$, given
+the parameters $\pi$, is thus
+
+% Likelihood of a dataset = prod_i P(t_i, N_f_i = 0)
+
+\begin{equation}
+    \mathcal{L}(\pi | \{t_i, f_i\}) = \prod_i 
+    \left. P(t_i, N_{f_i} = 0)) h(t_i, \cdots) P(surv,f_i) \right|_{t=t_i}
+    \label{eq:likelihood}
+\end{equation}
+Maximising this likelihood with respect to the parameters
+$\pi = \{\alpha_j, \beta_j, \kappa_j, \mu_{jk}\}$ will produce a set of
+parameters $\pi^\star$ that is the ``best'' possible estimate given the dataset.
+This can be done in several different ways, now that we have developed an efficient scheme
+for computing $P$ using ``fast forward'' methods. 
+
+As a proof-of-concept, we will see if coupling our one-pass fast forward method
+with simulated annealing can be used to infer the parameters $\pi_{true}$ used to
+generate the synthetic dataset (cite: simulated annealing). Briefly, the parameters $\pi$ are varied
+diffusively, with the cost function for simulated annealing defined to be $E =
+-\log \mathcal{L}$ using the likelihood from \eqref{eq:likelihood}. The best
+possible estimate found using this method will be denoted $\pi^\star$.
 
 \subsection{Comparison of methods}
 
@@ -820,22 +888,33 @@ inference and fitting procedures for network models of cancer. This in turn
 makes possible risk models that combine epidemiological and molecular data, such as locus-specific copy number
 alterations and a variety of genomic rearrangements. These models could
 capture more individualised risk factors, showing how rare variants and genetic predispositions interact
-with patient age. This class of model should permit better estimates of
+with patient age. 
+This class of model should permit better estimates of
 parameters of biological mechanisms, and may also have applications in
 personalised medicine \cite{patersonbozic2020colorectal}.
+
+% Faster integration method can be embedded in an inference workflow and used to
+% infer parameters for simulated data
+% For real data, it will probably be necessary 
 
 However, continued work is necessary to discover an efficient numerical integration algorithm for
 evolution on graphs that is suitable for time-varying rate coefficients $\{\alpha_j,
 \beta_j, \mu_{jk}, \kappa_j\}$. This will be necessary for studying
 carcinogenesic processes associated with chronic inflammatory conditions (such as
-Barrett's oesophagus) and smoking. Quinn's algorithm of 1988 is a possible candidate, but our work has
-shown that there may be unexplored optimisations, especially regarding
-convergence speed and the amount of necessary caching.
+Barrett's oesophagus) and smoking. Quinn's algorithm of 1988 is one candidate, but our work has
+shown that there may be unexplored optimisations, both regarding the rate of
+convergence of the numerical integrator and the amount of necessary caching. In
+short, we have established the existence of a class of ``fast forward'' methods
+for studying first-order stochastic processes on graphs,
+that provide an alternative to ``classical'' methods based on Kolmogorov
+backward equations. This opens a new area of research.
 
 It is also interesting to note that the various ``classical'' methods based on
 Kolmogorov backward equations typically have several generating functions $\Phi_k$
 arranged in a hierarchy \cite{luebeck2013impact,zhang2022waiting,donotcite}. 
-In contrast, our ``fast forward'' method from section \ref{sec:flying} relies on only one generating function $\Psi$ with multiple arguments. 
+In contrast, both our ``fast forward'' method from section \ref{sec:flying} and
+Quinn's earlier fast forward method rely on only one generating function $\Psi$ with multiple arguments. 
+
 
 \section{Acknowledgements}
 
