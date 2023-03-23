@@ -6,18 +6,22 @@
 
 #include "graph-model-spec.hpp"
 #include "flying-conjugates.hpp"
+#include "max-likelihood.hpp"
 
 /* Max. likelihood unit test
  * Test definition of likelihood function
  */
 
-void unit_test(Model& params, std::vector<std::pair<real_t, int>>& all_times) {
+// A higher-order function for mapping "mapme" onto data and keeping track of
+// the total:
+void map_onto_data(Model& params, const EpiData& this_data, 
+                   mappable_t *mapme, real_t *total) {
     // Initial q-values:
     std::vector<real_t> qcorner(params.m_stages, 1); // = {1, 1, 1, 1, 1};
     // integration step
     real_t dt = 0.01;
 
-    for (auto& datum : all_times) {
+    for (auto& datum : this_data) {
         // get age, and node id:
         real_t age = datum.first;
         int node = datum.second;
@@ -39,46 +43,31 @@ void unit_test(Model& params, std::vector<std::pair<real_t, int>>& all_times) {
         real_t dprob = prob - prob2;
         dprob /= dt;
 
-        // print results:
-        std::cout << age << ", " << node << ", ";
-        std::cout << prob << ", " << dprob << ", ";
-        std::cout << -log(dprob) << std::endl;
+        // apply the function to the arguments:
+        *total += mapme(age, node, prob, dprob);
     }
 }
 
-real_t loglikelihood_test(Model& params, 
-                          std::vector<std::pair<real_t, int>>& all_times) {
-    // Initial q-values:
-    std::vector<real_t> qcorner(params.m_stages, 1); // = {1, 1, 1, 1, 1};
-    // integration step
-    real_t dt = 0.01;
+real_t print_test(real_t age, int node, real_t prob, real_t dprob) {
+    // print results:
+    std::cout << age << ", " << node << ", ";
+    std::cout << prob << ", " << dprob << ", ";
+    std::cout << -log(dprob) << std::endl;
+    return 1.0;
+}
+
+void unit_test(Model& params, const EpiData& all_times) {
+    real_t foo = 0;
+    map_onto_data(params, all_times, print_test, &foo);
+}
+
+real_t logdprob(real_t age, int node, real_t prob, real_t dprob) {
+    return -log(dprob);
+}
+
+real_t loglikelihood_test(Model& params, const EpiData& all_times) {
     real_t energy = 0;
-
-    for (auto& datum : all_times) {
-        // get age, and node id:
-        real_t age = datum.first;
-        int node = datum.second;
-        // and set qvalues accordingly:
-        std::vector<real_t> qvals = qcorner;
-        qvals[node] = 0;
-        // integrate to get likelihood:
-        real_t time = 0.0;
-        while (time < age) {
-            heun_q_step(qvals, time, dt, params);
-            time += dt;
-        }
-
-        real_t prob = generating_function(qvals, params.m_initial_pops);
-        // advance one dt step into the future:
-        heun_q_step(qvals, time, dt, params);
-        real_t prob2 = generating_function(qvals, params.m_initial_pops);
-        // capture derivative:
-        real_t dprob = prob - prob2;
-        dprob /= dt;
-
-        energy += -log(dprob);
-    }
-
+    map_onto_data(params, all_times, logdprob, &energy);
     return energy;
 }
 
