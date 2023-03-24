@@ -14,7 +14,7 @@
 
 // A higher-order function for mapping "mapme" onto data and keeping track of
 // the total:
-void map_onto_data(Model& params, const EpiData& this_data, 
+void map_onto_data(Model& params, const epidata_t& this_data, 
                    mappable_t *mapme, real_t *total) {
     // Initial q-values:
     std::vector<real_t> qcorner(params.m_stages, 1); // = {1, 1, 1, 1, 1};
@@ -56,7 +56,7 @@ real_t print_test(real_t age, int node, real_t prob, real_t dprob) {
     return 1.0;
 }
 
-void unit_test(Model& params, const EpiData& all_times) {
+void unit_test(Model& params, const epidata_t& all_times) {
     real_t foo = 0;
     map_onto_data(params, all_times, print_test, &foo);
 }
@@ -65,7 +65,7 @@ real_t logdprob(real_t age, int node, real_t prob, real_t dprob) {
     return -log(dprob);
 }
 
-real_t loglikelihood_test(Model& params, const EpiData& all_times) {
+real_t loglikelihood_test(Model& params, const epidata_t& all_times) {
     real_t energy = 0;
     map_onto_data(params, all_times, logdprob, &energy);
     return energy;
