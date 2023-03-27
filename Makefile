@@ -36,3 +36,7 @@ twostage : $(CHARSRC) libflying.so libgillespie.so
 tsloss : libs
 	$(CC) $(LIBCHAR) ts-loss-characteristic.cpp $(FLAGS) $(OPT1) -o $(BUILDDIR)/tsconj
 	$(CC) $(LIBGILL) ts-loss-gillespie.cpp $(GILLFLAGS) $(OPT1) -o $(BUILDDIR)/tsgillespie
+
+unittests : libs
+	$(CC) $(LIBGILL) gillespie-sampler.cpp $(GILLFLAGS) -std=c++11 $(OPT1) -o bin/gillespie_sampler
+	$(CC) $(LIBCHAR) likelihood-unit-test.cpp $(FLAGS) $(OPT1) -o bin/unittest

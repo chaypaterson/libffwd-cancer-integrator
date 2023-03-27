@@ -21,6 +21,7 @@ public:
     Model m_parameters; // the rate parameters and connectivity of the graph
     // the Model class is defined in the header graph-model-spec.hpp
     size_t m_vertices; // the number of vertices on the graph
+    double m_gamma{0};
 
     // constructor:
     inline gillespie_instance(const Model &parameters) :
@@ -30,6 +31,7 @@ public:
             // set initial pops:
             m_pops.push_back((int)(parameters.m_initial_pops[vertex]));
         }
+        set_gamma();
     }
     
     // methods:
@@ -39,7 +41,8 @@ public:
 private:
     // These are private methods that are only called from within
     // gillespie_step:
-    double get_gamma(void); // compute Gamma
+    double get_gamma(void); // return m_gamma
+    void set_gamma(void); // compute m_gamma
     std::vector<int> x_to_event(double x); // convert a random variable x to an
     // event (change in populations)
 };

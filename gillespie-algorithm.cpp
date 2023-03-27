@@ -19,7 +19,15 @@ void gillespie_instance::gillespie_step(gsl_rng *rng) {
     auto delta_pops = x_to_event(x);
 
     for (int vertex = 0; vertex < m_vertices; ++vertex) {
+        // Update populations:
         m_pops[vertex] += delta_pops[vertex];
+        // Update m_gamma:
+        m_gamma += m_parameters.m_birth[vertex] * delta_pops[vertex];
+        m_gamma += m_parameters.m_death[vertex] * delta_pops[vertex];
+        for (size_t out_vertex = 0; 
+             out_vertex < m_vertices; ++out_vertex) {
+            m_gamma += m_parameters.m_migr[vertex][out_vertex] * delta_pops[vertex];
+        }
     }
 
     double Delta_t = gsl_ran_exponential(rng, 1.0 / Gamma);
@@ -29,18 +37,22 @@ void gillespie_instance::gillespie_step(gsl_rng *rng) {
 
 // a method to compute Gamma
 double gillespie_instance::get_gamma() {
-    double Gamma = 0;
-    // for each possible process, increment Gamma by the event rate = rate
+    return m_gamma;
+}
+
+// set Gamma to an initial value
+void gillespie_instance::set_gamma() {
+    m_gamma = 0;
+    // for each possible process, increment gamma by the event rate = rate
     // parameter * population on this node
     for (size_t vertex = 0; vertex < m_vertices; ++vertex) {
-        Gamma += m_parameters.m_birth[vertex] * m_pops[vertex];
-        Gamma += m_parameters.m_death[vertex] * m_pops[vertex];
+        m_gamma += m_parameters.m_birth[vertex] * m_pops[vertex];
+        m_gamma += m_parameters.m_death[vertex] * m_pops[vertex];
         for (size_t out_vertex = 0; 
              out_vertex < m_vertices; ++out_vertex) {
-            Gamma += m_parameters.m_migr[vertex][out_vertex] * m_pops[vertex];
+            m_gamma += m_parameters.m_migr[vertex][out_vertex] * m_pops[vertex];
         }
     }
-    return Gamma;
 }
 
 // a method to accept a variable x < Gamma and return an event, which
