@@ -1,10 +1,10 @@
 cancer integrator
 =================
 
-Simulates first passage times in multi-stage clonal expansion models of
-Moolgavkar-Vernon-Knudsen type. This project should eventually allow us to
+Simulates first passage times and survival curves in multi-stage clonal expansion models of
+Moolgavkar-Vernon-Knudsen type. This project allows us to
 define a birth-death-mutation process on an arbitrary directed graph
-(representing mutations), and generate both Gillespie algorithm simulations and
+(representing mutations), and generate survival curves using both Gillespie algorithm simulations and
 fast direct integration of the characteristics.
 
 Sources: 
@@ -67,12 +67,20 @@ term $Y(q)$ due to immigration is not currently implemented.)
 This latter algorithm was inspired by prior work by
 Suresh Moolgavkar in the 1980s and Dennis Quinn 1989, and performs a direct
 numerical integration of a transformed version of the chemical master
-equation/Kolmogorov forward equation. This algorithm is deterministic and fast.
-It shares the same basic approach to Quinn's method, by integrating characteristic
-curves in the conjugate coordinates using a time-stepping procedure.
-As it differs from Quinn's method in being optimised for time-invariant
-parameters, and is noticeably faster than Gillespie, I have named it the "flying
-conjugate" method.
+equation/Kolmogorov forward equation. The previous work on characteristics used
+a two-pass approach for non-constant coefficients, and used Euler integration.
+This meant the asymptotic complexity was $O(\Delta t^{-2}) = O(\epsilon^{-2})$
+for error tolerance $\epsilon$. 
+
+This new algorithm is optimised for constant coefficients and uses Heun's
+method, and it has an asymptotic complexity of $O(\Delta t^{-1}) =
+O(\epsilon^{-1/2})$.
+It shares a similar approach to Quinn's algorithm, by integrating characteristic
+curves in the conjugate coordinates using a time-stepping procedure, but does so
+in only one pass. 
+As it is based on Kolmogorov forward equations rather than Kolmogorov backward
+equations, and is noticeably faster than Gillespie, I have named it the ``fast
+forward'' method. Other related ``fast forward'' methods may be possible.
 
 Georg Luebeck and Suresh Moolgavkar previously developed a numerical integration
 approach based on Gaussian quadrature of Kolmogorov backward equations. I do not
