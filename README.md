@@ -73,8 +73,7 @@ This meant the asymptotic complexity was $O(\Delta t^{-2}) = O(\epsilon^{-2})$
 for error tolerance $\epsilon$. 
 
 This new algorithm is optimised for constant coefficients and uses Heun's
-method, and it has an asymptotic complexity of $O(\Delta t^{-1}) =
-O(\epsilon^{-1/2})$.
+method, and it has an asymptotic complexity of $O(\Delta t^{-1}) = O(\epsilon^{-1/2})$.
 It shares a similar approach to Quinn's algorithm, by integrating characteristic
 curves in the conjugate coordinates using a time-stepping procedure, but does so
 in only one pass. 
