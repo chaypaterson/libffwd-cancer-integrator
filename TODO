@@ -6,6 +6,7 @@ Tumour suppressor loss comparison
 
 SIMULATED ANNEALING on this comparison: show that parameters can be inferred
 with ~1000x samples.
+    ALMOST DONE! Sat  6 May 16:28:36 BST 2023
 
 Tue 18 Oct 11:22:53 BST 2022
 
@@ -23,3 +24,8 @@ IB: Graphs and plots: how close is the comparison?
 Wed 26 Oct 15:17:14 BST 2022
 
 Arb precision arithmetic? Eliminate round-off error?
+
+Sat  6 May 16:27:49 BST 2023
+
+Organise code! Identify important "core" stuff for libraries and separate from
+tests and experiments.

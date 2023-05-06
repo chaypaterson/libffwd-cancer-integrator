@@ -159,56 +159,89 @@ double expv(double scale) {
     return scale * -log(rand_num);
 }
 
+double logcauchyv(double mean, double width) {
+    /* return a log-Cauchy distributed random variable centred on "mean" with scale
+     * coefficient "width" */
+    double rand_num = (double)rand() / RAND_MAX;
+    double quantile = width * tan(M_PI * (rand_num - 0.5f));
+    return mean * exp(quantile);
+}
+
+Model get_neighbour(Model& model, double w) {
+    real_t new_mu = logcauchyv(model.m_migr[0][1], w);
+    real_t new_rloh = logcauchyv(model.m_migr[0][2], w);
+    real_t new_fitness1 = logcauchyv(model.m_birth[1], w);
+    real_t new_fitness2 = logcauchyv(model.m_birth[1], w);
+    real_t new_inipop = logcauchyv(model.m_initial_pops[0], w);
+
+    return instantiate_model(new_rloh, new_mu, new_fitness1,
+                            new_fitness2, new_inipop);
+}
+ 
+real_t estimate_error(Model& old_model, Model& new_model) {
+    // compute square % difference in model parameters
+    real_t error = 0;
+    if (old_model.m_stages != new_model.m_stages) return error;
+    for (size_t v_in = 0; v_in < old_model.m_stages; ++v_in) {
+        for (size_t v_out = 0; v_out < old_model.m_stages; ++v_out) {
+            real_t diff = log(old_model.m_migr[v_in][v_out]) -
+                          log(new_model.m_migr[v_in][v_out]);
+            if (std::isfinite(diff)) error += diff * diff;
+        }
+        real_t diff = log(old_model.m_birth[v_in]) -
+                      log(new_model.m_birth[v_in]);
+        if (std::isfinite(diff)) error += diff * diff;
+        diff = log(old_model.m_death[v_in]) -
+               log(new_model.m_death[v_in]);
+        if (std::isfinite(diff)) error += diff * diff;
+        diff = log(old_model.m_initial_pops[v_in]) -
+               log(new_model.m_initial_pops[v_in]);
+        if (std::isfinite(diff)) error += diff * diff;
+    }
+
+    return sqrt(error);
+}
+
 Model annealing_min(double (*objective)(Model& model, const epidata_t& dataset),
                     Model initial_guess, const epidata_t& dataset) {
     // Constants:
     const double Tmin = 1e-8; // Minimal temperature
     const double delta = 0.98; // The rate of temperature drop
-    const double min_width = 1e-8f;
+    const double min_width = 1e-2f; // i.e. 1% of the log-cauchy variate
 
     srand((unsigned)time(NULL));
 
     // Initialise variables:
-    double Temp = 100;             // Initial temperature 
-
     Model model = initial_guess;
     Model best_guess = model;
     double best_y = objective(best_guess, dataset);
     double old_best_y = best_y; // Used for adaptive width size
 
     // Width of neighbourhood:
-    double w = Temp; // initial width
+    double w = log(2); // initial width for log-cauchy variates
 
     real_t mu   = model.m_migr[0][1];
     real_t rloh = model.m_migr[0][2];
     real_t fitness1 = model.m_birth[1];
     real_t fitness2 = model.m_birth[2];
     real_t inipop   = model.m_initial_pops[0];
+    
+    printf("Initial likelihood:\n-log L = %g\n", best_y);
 
     // Simulated annealing process:
-    unsigned int iter = 0;
-    while (Temp > Tmin) {
-        real_t new_mu = expv(mu);
-        real_t new_rloh = expv(rloh);
-        real_t new_fitness1 = expv(fitness1);
-        real_t new_fitness2 = expv(fitness2);
-        real_t new_inipop = expv(inipop);
-        // DEBUG:
-        //std::cout << "Best guesses:" << std::endl;
-        //std::cout << "  new_mu = " << new_mu << std::endl;
-        //std::cout << "  new_rloh = " << new_rloh << std::endl;
-        //std::cout << "  new_fitness1 = " << new_fitness1 << std::endl;
-        //std::cout << "  new_fitness2 = " << new_fitness2 << std::endl;
-        //std::cout << "  new_inipop = " << new_inipop << std::endl;
+    double Temp = 100;      // Initial temperature 
+    unsigned int iter = 0;  // count iterations
+    double err_est = 0;
 
-        Model new_guess = instantiate_model(new_rloh, new_mu, new_fitness1,
-                                new_fitness2, new_inipop);
-        
+    while ((Temp > Tmin)){// || (err_est > min_width)) {
+        Model new_guess = get_neighbour(model, w);
+       
         double y_new = objective(new_guess, dataset);
         if (std::isnan(y_new)) continue;
         double delta_y = y_new - best_y;
 
         if ((delta_y < 0) || ((rand() / (RAND_MAX + 1.0)) < exp(-delta_y / Temp))) {
+            err_est = estimate_error(new_guess, model);
             model = new_guess;
             best_guess = model;
             best_y = y_new;
@@ -219,20 +252,26 @@ Model annealing_min(double (*objective)(Model& model, const epidata_t& dataset),
         if ((old_best_y - best_y) > Temp) {
             w = 0.5 * (min_width + w); // This will smoothly approach min_width
             old_best_y = best_y;
-            printf("Shrinking width\n");
         }
         ++iter;
     }
 
     printf("System fully cooled after %d iterations\n", iter);
     printf("-log L = %.8g\n", best_y);
+    printf("est. err = %g\n", err_est);
     return model;
 }
 
 int main(int argc, char* argv[]) {
-    // some fake data:
+    if (argc < 2) {
+        printf("Call this program with\n ./guesser seed dataset_size\n");
+        return 1;
+    }
+    // make some fake data:
+    size_t seed = std::atoi(argv[1]);
+    size_t dataset_size = std::atoi(argv[2]);
     std::vector<std::pair<double,int>> all_times;
-    all_times = generate_dataset(5, 100);
+    all_times = generate_dataset(seed, dataset_size);
 
     // save the fake data:
     std::ofstream fakedata;
@@ -243,10 +282,10 @@ int main(int argc, char* argv[]) {
     fakedata.close();
 
     // Guess some initial model parameters:
-    real_t rloh = 0.5e-2;
-    real_t mu = 0.5e-3;
-    real_t fitness1 = 0.2;
-    real_t fitness2 = 0.2;
+    real_t rloh = 0.001;
+    real_t mu = 0.001;
+    real_t fitness1 = 0.1;
+    real_t fitness2 = 0.1;
     real_t initialpop = 100;
 
     Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
