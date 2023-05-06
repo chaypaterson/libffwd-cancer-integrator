@@ -27,6 +27,7 @@ void map_onto_data(Model& params, const epidata_t& this_data,
         int node = datum.second;
         // and set qvalues accordingly:
         std::vector<real_t> qvals = qcorner;
+        // the node we are asking about must be zeroed:
         qvals[node] = 0;
         // integrate to get likelihood:
         real_t time = 0.0;
@@ -39,7 +40,7 @@ void map_onto_data(Model& params, const epidata_t& this_data,
         // advance one dt step into the future:
         heun_q_step(qvals, time, dt, params);
         real_t prob2 = generating_function(qvals, params.m_initial_pops);
-        // capture derivative:
+        // capture derivative, this is the hazard:
         real_t dprob = prob - prob2;
         dprob /= dt;
 
@@ -62,12 +63,26 @@ void unit_test(Model& params, const epidata_t& all_times) {
 }
 
 real_t logdprob(real_t age, int node, real_t prob, real_t dprob) {
+    // return -log the hazard:
     return -log(dprob);
+}
+
+real_t logsurvival(Model& params, int node) {
+    // return the survival probability for this node:
+    double psurv;
+    double alpha = params.m_birth[node];
+    double beta = params.m_death[node];
+    psurv = alpha / (alpha + beta);
+    if (std::isnan(psurv)) psurv = 1.0f;
+    return -log(psurv);
 }
 
 real_t loglikelihood_test(Model& params, const epidata_t& all_times) {
     real_t energy = 0;
     map_onto_data(params, all_times, logdprob, &energy);
+    for (auto& datum : all_times) {
+        energy += logsurvival(params, datum.second);
+    }
     return energy;
 }
 
