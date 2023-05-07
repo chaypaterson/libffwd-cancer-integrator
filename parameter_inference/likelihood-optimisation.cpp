@@ -244,8 +244,6 @@ Model annealing_min(double (*objective)(Model& model, const epidata_t& dataset),
     const double delta = 0.98; // The rate of temperature drop
     const double min_width = 1e-2f; // i.e. 1% of the log-cauchy variate
 
-    srand((unsigned)time(NULL));
-
     // Initialise variables:
     Model model = initial_guess;
     Model best_guess = model;
@@ -268,7 +266,7 @@ Model annealing_min(double (*objective)(Model& model, const epidata_t& dataset),
     unsigned int iter = 0;  // count iterations
     double err_est = 0;
 
-    while ((Temp > Tmin)){// || (err_est > min_width)) {
+    while ((Temp > Tmin) || (err_est > min_width)) {
         Model new_guess = get_neighbour(model, w);
        
         double y_new = objective(new_guess, dataset);
@@ -276,29 +274,20 @@ Model annealing_min(double (*objective)(Model& model, const epidata_t& dataset),
         double delta_y = y_new - best_y;
 
         if ((delta_y < 0) || ((rand() / (RAND_MAX + 1.0)) < exp(-delta_y / Temp))) {
-            err_est = estimate_error(new_guess, model);
+            err_est = estimate_error(new_guess, best_guess);
             model = new_guess;
             best_guess = model;
             best_y = y_new;
         }
         Temp *= delta;
-        /* If best_y has improved by more than the current temperature, reheat
-         * the system a bit and shrink the width: */
-        if ((old_best_y - best_y) > Temp) {
+        /* If best_y has improved by more than the current temperature, or the
+         * most recent change was too small, shrink the width: */
+        if (((old_best_y - best_y) > Temp) || (err_est < w / 8)) {
             w = 0.5 * (min_width + w); // This will smoothly approach min_width
-            // reheat the system by how much energy we've "released":
-            Temp += (old_best_y - best_y) * 1.0f; // heat capacity = 1.0
             // reset the record of our old best:
             old_best_y = best_y;
-            printf("Reheating...\n");
-            printf("%g\n", best_y);
         }
-        /* If the error is too small, shrink the width:
-         */
-        if (err_est < w / 8) {
-            w = 0.5 * (min_width + w);
-            printf("Shrinking...\n%g, %g\n", err_est, w);
-        }
+
         ++iter;
     }
 
@@ -314,10 +303,14 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     // make some fake data:
+    std::cout << "Generating synthetic dataset..." << std::endl;
     size_t seed = std::atoi(argv[1]);
     size_t dataset_size = std::atoi(argv[2]);
+    srand(seed);
+
     std::vector<std::pair<double,int>> all_times;
     all_times = generate_dataset(seed, dataset_size);
+    std::cout << "Done. Saving..." << std::endl;
 
     // save the fake data:
     std::ofstream fakedata;
@@ -337,6 +330,7 @@ int main(int argc, char* argv[]) {
     Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
     // Try out simulated annealing:
+    std::cout << "Starting annealing..." << std::endl;
     Model best_guess = annealing_min(loglikelihood, guess, all_times);
     mu   = best_guess.m_migr[0][1];
     rloh = best_guess.m_migr[0][2];
