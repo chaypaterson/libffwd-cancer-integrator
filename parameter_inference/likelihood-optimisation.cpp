@@ -15,6 +15,7 @@
  *      Writes out the fake data to a file
  *      Guesses some parameters
  *      Evaluates a likelihood on these parameters
+ *      Optimises this likelihood with simulated annealing
  * Compiles with
  * g++ likelihood-optimisation.cpp ../libs/libgillespie.so ../libs/libflying.so
  *      -lgsl -lm -o guesser
@@ -85,12 +86,42 @@ real_t logsurvival(Model& params, int node) {
     return -log(psurv);
 }
 
-real_t loglikelihood_test(Model& params, const epidata_t& all_times) {
-    real_t energy = 0;
+real_t endcorrection(Model& params, real_t max_age, size_t population) {
+    // return the end correction to the log likelihood, that is independent of
+    // the data:
+    real_t Lambda = 0;
+    real_t dt = 0.01;
+    
+    size_t endnodes[] = {3, 4}; // TODO generalise
+    for (auto& node : endnodes) {
+        std::vector<real_t> qvals(params.m_stages, 1);
+        qvals[node] = 0;
+        // integrate to get likelihood:
+        real_t time = 0.0;
+        while (time < max_age) {
+            heun_q_step(qvals, time, dt, params);
+            time += dt;
+        }
+
+        real_t prob = generating_function(qvals, params.m_initial_pops);
+        Lambda += -log(prob);
+    }
+    return population * Lambda;
+}
+
+real_t loglikelihood(Model& params, const epidata_t& all_times) {
+    real_t energy = 0, max_age = 0;
+
     map_onto_data(params, all_times, logdprob, &energy);
+
     for (auto& datum : all_times) {
         energy += logsurvival(params, datum.second);
+        max_age = max_age * (max_age > datum.second) + 
+                  datum.second * (max_age < datum.second);
     }
+    size_t population = all_times.size();
+    energy + endcorrection(params, max_age, population);
+
     return energy;
 }
 
@@ -124,11 +155,14 @@ std::vector<std::pair<double,int>> generate_dataset(int seed, int runs) {
     std::vector<std::pair<double,int>> all_times;
     times_to_final_vertices(model, seed, runs, final_vertices, all_times);
 
+    printf("Target likelihood:\n-log L = %g\n", 
+                loglikelihood(model, all_times));
+
     return all_times;
 }
 
-Model instantiate_model(real_t rloh, real_t mu, real_t fitness1, real_t
-fitness2, real_t initialpop) {
+Model instantiate_model(real_t rloh, real_t mu, real_t fitness1, 
+                        real_t fitness2, real_t initialpop) {
     Model params(5);
     params.m_migr[0][1] = mu;
     params.m_migr[0][2] = rloh;
@@ -168,6 +202,7 @@ double logcauchyv(double mean, double width) {
 }
 
 Model get_neighbour(Model& model, double w) {
+    // TODO try pinning some values and fitting others
     real_t new_mu = logcauchyv(model.m_migr[0][1], w);
     real_t new_rloh = logcauchyv(model.m_migr[0][2], w);
     real_t new_fitness1 = logcauchyv(model.m_birth[1], w);
@@ -247,11 +282,22 @@ Model annealing_min(double (*objective)(Model& model, const epidata_t& dataset),
             best_y = y_new;
         }
         Temp *= delta;
-        /* If best_y has improved by more than the current temperature, reduce
-         * the width:*/
+        /* If best_y has improved by more than the current temperature, reheat
+         * the system a bit and shrink the width: */
         if ((old_best_y - best_y) > Temp) {
             w = 0.5 * (min_width + w); // This will smoothly approach min_width
+            // reheat the system by how much energy we've "released":
+            Temp += (old_best_y - best_y) * 1.0f; // heat capacity = 1.0
+            // reset the record of our old best:
             old_best_y = best_y;
+            printf("Reheating...\n");
+            printf("%g\n", best_y);
+        }
+        /* If the error is too small, shrink the width:
+         */
+        if (err_est < w / 8) {
+            w = 0.5 * (min_width + w);
+            printf("Shrinking...\n%g, %g\n", err_est, w);
         }
         ++iter;
     }
@@ -291,7 +337,7 @@ int main(int argc, char* argv[]) {
     Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
     // Try out simulated annealing:
-    Model best_guess = annealing_min(loglikelihood_test, guess, all_times);
+    Model best_guess = annealing_min(loglikelihood, guess, all_times);
     mu   = best_guess.m_migr[0][1];
     rloh = best_guess.m_migr[0][2];
     fitness1 = best_guess.m_birth[1];
