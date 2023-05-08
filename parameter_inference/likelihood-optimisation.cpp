@@ -319,7 +319,7 @@ Model annealing_min(std::function<real_t(Model& model)> objective,
     const double delta = 0.98; // The rate of temperature drop
     const double min_width = 1e-6f; // i.e. 1% of the log-cauchy variate
     const double smoothing_factor = 0.03; // for smoothing of error estimates
-    const unsigned int iter_max = 2e3;
+    const unsigned int iter_max = 2e6;
 
     // Initialise variables:
     Model model = initial_guess;
@@ -337,7 +337,7 @@ Model annealing_min(std::function<real_t(Model& model)> objective,
     unsigned int iter = 0;  // count iterations
     double err_est = 1.0f; // smoothed error estimate
 
-    while (++iter, err_est > 0.1) { //Temp > Tmin) {
+    while (++iter < iter_max && err_est > 0.1) { //Temp > Tmin) {
         Model new_guess = get_neighbour(model, w);
        
         double y_new = objective(new_guess);
