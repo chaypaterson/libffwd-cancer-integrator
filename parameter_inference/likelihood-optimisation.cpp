@@ -114,7 +114,7 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
     // Histogram version of the -log likelihood
     // Recieves a histogram of cancers with a known type (node)
     // Returns a -log Poisson likelihood
-    real_t energy = 0;
+    real_t mlogl = 0;
 
     real_t time = 0;
     std::vector<real_t> qvals(params.m_stages, 1);
@@ -134,15 +134,15 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
         real_t hazard = -(prob2 - prob)/prob;
         real_t Lambda = ref_population * prob * hazard;
         // -log Poisson likelihood:
-        energy += -log(Lambda) * curr_bin;
-        energy += +Lambda;
+        mlogl += -log(Lambda) * curr_bin;
+        mlogl += +Lambda;
         // weight for survival/chance of detection of cancer:
-        energy += logsurvival(params, node) * curr_bin;
+        mlogl += logsurvival(params, node) * curr_bin;
         // update the end time for the next pass:
         end_time += binwidth;
     }
 
-    return energy;
+    return mlogl;
 }
 
 real_t loglikelihood_hist_both(Model& params, real_t binwidth,
@@ -151,14 +151,14 @@ real_t loglikelihood_hist_both(Model& params, real_t binwidth,
     // Histogram version of the -log likelihood
     // Applied to a set of histograms of cancer incidence with given types
     // The data structure maps the type to a histogram that gives age incidence
-    real_t energy = 0;
+    real_t mlogl = 0;
 
     for (const auto& type : histos) {
-        energy += loglikelihood_hist_node(params, type.first, binwidth,
+        mlogl += loglikelihood_hist_node(params, type.first, binwidth,
                                           ref_population, type.second);
     }
 
-    return energy;
+    return mlogl;
 }
 
 std::vector<size_t> convert_to_histogram(const epidata_t& all_times, 
@@ -185,12 +185,12 @@ std::vector<size_t> convert_to_histogram(const epidata_t& all_times,
 
 real_t loglikelihood(Model& params, const epidata_t& all_times) {
     // TODO need a version that acts on histograms instead of a list of ages
-    real_t energy = 0, max_age = 0;
+    real_t mlogl = 0, max_age = 0;
 
-    map_onto_data(params, all_times, logdprob, &energy);
+    map_onto_data(params, all_times, logdprob, &mlogl);
 
     for (auto& datum : all_times) {
-        energy += logsurvival(params, datum.second);
+        mlogl += logsurvival(params, datum.second);
         max_age = max_age * (max_age > datum.second) + 
                   datum.second * (max_age < datum.second);
     }
@@ -198,46 +198,21 @@ real_t loglikelihood(Model& params, const epidata_t& all_times) {
     size_t population = all_times.size();
     size_t endnodes[] = {3, 4}; // TODO generalise
     for (auto& node : endnodes) {
-        energy += endcorrection(params, max_age, node, population);
+        mlogl += endcorrection(params, max_age, node, population);
     }
 
-    return energy;
+    return mlogl;
 }
 
 // Gillespie algorithm functions:
 
-std::vector<std::pair<double,int>> generate_dataset(int seed, int runs) {
-    // System coefficients:
-    double rloh = 0.5e-2;
-    double mu = 0.5e-3;
-
-    Model model(5);
-    model.m_migr[0][1] = mu;
-    model.m_migr[0][2] = rloh;
-    model.m_migr[1][3] = 0.5 * mu;
-    model.m_migr[1][4] = 0.5 * rloh;
-    model.m_migr[2][4] = 0.5 * mu;
-    // birth and death rates:
-    model.m_birth = {0, 0.05, 0.03, 0, 0};
-    model.m_death = {0, 0, 0, 0, 0};
-    model.m_initial_pops = {1e2, 0, 0, 0, 0};
-
+std::vector<std::pair<double,int>> generate_dataset(Model& model, int seed, int runs) {
     std::vector<int> final_vertices = {3, 4};
-
-    printf("Ground truth:\n");
-    printf("  mu = %g\n", mu);
-    printf("  rloh = %g\n", rloh);
-    printf("  fitness1 = %g\n", model.m_birth[1]);
-    printf("  fitness2 = %g\n", model.m_birth[2]);
-    printf("  inipop = %g\n", model.m_initial_pops[0]);
 
     // run some simulations and store the time and final node in
     // all_times:
     std::vector<std::pair<double,int>> all_times;
     times_to_final_vertices(model, seed, runs, final_vertices, all_times);
-
-    printf("Target likelihood:\n-log L = %g\n", 
-                loglikelihood(model, all_times));
 
     return all_times;
 }
@@ -274,21 +249,22 @@ double expv(double scale) {
     return scale * -log(rand_num);
 }
 
-double logcauchyv(double mean, double width) {
-    /* return a log-Cauchy distributed random variable centred on "mean" with scale
+double logcauchyv(double mode, double width) {
+    /* return a log-Cauchy distributed random variable centred on "mode" with scale
      * coefficient "width" */
     double rand_num = (double)rand() / RAND_MAX;
     double quantile = width * tan(M_PI * (rand_num - 0.5f));
-    return mean * exp(quantile);
+    return mode * exp(quantile);
 }
 
 Model get_neighbour(Model& model, double w) {
     // TODO try pinning some values and fitting others
     real_t new_mu = logcauchyv(model.m_migr[0][1], w);
     real_t new_rloh = logcauchyv(model.m_migr[0][2], w);
-    real_t new_fitness1 = logcauchyv(model.m_birth[1], w);
-    real_t new_fitness2 = logcauchyv(model.m_birth[1], w);
-    real_t new_inipop = logcauchyv(model.m_initial_pops[0], w);
+    real_t new_fitness1 = model.m_birth[1];
+    real_t new_fitness2 = model.m_birth[2];
+    //real_t new_inipop = logcauchyv(model.m_initial_pops[0], w);
+    real_t new_inipop = model.m_initial_pops[0];
 
     return instantiate_model(new_rloh, new_mu, new_fitness1,
                             new_fitness2, new_inipop);
@@ -341,8 +317,9 @@ Model annealing_min(std::function<real_t(Model& model)> objective,
     // Constants:
     const double Tmin = 1e-16; // Minimal temperature
     const double delta = 0.98; // The rate of temperature drop
-    const double min_width = 1e-2f; // i.e. 1% of the log-cauchy variate
+    const double min_width = 1e-6f; // i.e. 1% of the log-cauchy variate
     const double smoothing_factor = 0.03; // for smoothing of error estimates
+    const unsigned int iter_max = 2e3;
 
     // Initialise variables:
     Model model = initial_guess;
@@ -353,20 +330,14 @@ Model annealing_min(std::function<real_t(Model& model)> objective,
     // Width of neighbourhood:
     double w = log(2); // initial width for log-cauchy variates
 
-    real_t mu   = model.m_migr[0][1];
-    real_t rloh = model.m_migr[0][2];
-    real_t fitness1 = model.m_birth[1];
-    real_t fitness2 = model.m_birth[2];
-    real_t inipop   = model.m_initial_pops[0];
-    
     printf("Initial likelihood:\n-log L = %g\n", best_y);
 
     // Simulated annealing process:
-    double Temp = 100;      // Initial temperature 
+    double Temp = best_y;      // Initial temperature 
     unsigned int iter = 0;  // count iterations
-    double err_est = 0;
+    double err_est = 1.0f; // smoothed error estimate
 
-    while ((Temp > Tmin)){// || (err_est > min_width)) {
+    while (++iter, err_est > 0.1) { //Temp > Tmin) {
         Model new_guess = get_neighbour(model, w);
        
         double y_new = objective(new_guess);
@@ -376,8 +347,11 @@ Model annealing_min(std::function<real_t(Model& model)> objective,
         double delta_y = y_new - best_y;
 
         if ((delta_y < 0) || ((rand() / (RAND_MAX + 1.0)) < exp(-delta_y / Temp))) {
+            // Compute smoothed error estimate:
             err_est *= 1.0 - smoothing_factor;
             err_est += smoothing_factor * estimate_error(new_guess, best_guess);
+            printf("%g %g\n", err_est, w);
+            // Update best guess:
             model = new_guess;
             best_guess = model;
             best_y = y_new;
@@ -387,13 +361,13 @@ Model annealing_min(std::function<real_t(Model& model)> objective,
 
         /* If best_y has improved by more than the current temperature, or the
          * most recent change was too small, shrink the width: */
-        if (((old_best_y - best_y) > Temp) || (err_est < w / 8)) {
-            w = 0.5 * (min_width + w); // This will smoothly approach min_width
+        if (((old_best_y - best_y) > Temp) || (err_est < w)) {
+            //w = 0.5 * (min_width + w); // This will smoothly approach min_width
+            //w = 0.5 * (err_est + w); // This will decrease only when err_est decreases
+            w = (1.0 - smoothing_factor) * w + smoothing_factor * min_width;// This will smoothly approach min_width
             // reset the record of our old best:
             old_best_y = best_y;
         }
-
-        ++iter;
     }
 
     printf("System fully cooled after %d iterations\n", iter);
@@ -414,7 +388,16 @@ int main(int argc, char* argv[]) {
     srand(seed);
 
     std::vector<std::pair<double,int>> all_times;
-    all_times = generate_dataset(seed, dataset_size);
+    Model ground_truth = instantiate_model(0.5e-2, 0.5e-3, 0.05, 0.03, 100);
+
+    printf("Ground truth:\n");
+    printf("  mu = %g\n", ground_truth.m_migr[0][1]);
+    printf("  rloh = %g\n", ground_truth.m_migr[0][2]);
+    printf("  fitness1 = %g\n", ground_truth.m_birth[1]);
+    printf("  fitness2 = %g\n", ground_truth.m_birth[2]);
+    printf("  inipop = %g\n", ground_truth.m_initial_pops[0]);
+
+    all_times = generate_dataset(ground_truth, seed, dataset_size);
     std::cout << "Done. Saving..." << std::endl;
 
     // save the fake data:
@@ -433,6 +416,9 @@ int main(int argc, char* argv[]) {
     incidence[3] = convert_to_histogram(all_times, binwidth, 3);
     incidence[4] = convert_to_histogram(all_times, binwidth, 4);
     size_t reference_pop = all_times.size();
+    printf("Target likelihood:\n-log L = %g\n", 
+            loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
+                                    incidence));
 
     // Save the histogram:
     {
@@ -454,38 +440,35 @@ int main(int argc, char* argv[]) {
         fakedata.close();
     }
 
-    // Guess some initial model parameters:
-    real_t rloh = 0.1;
-    real_t mu = 0.1;
-    real_t fitness1 = 0.1;
-    real_t fitness2 = 0.1;
-    real_t initialpop = 10;
+    unsigned tries = 0, maxtries = 1;
+    do {
+        // Guess some initial model parameters:
+        real_t rloh = 0.01;
+        real_t mu = 0.01;
+        real_t fitness1 = 0.05;
+        real_t fitness2 = 0.03;
+        real_t initialpop = 100;
 
-    Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
+        Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
-    // Try out simulated annealing:
-    std::cout << "Starting annealing..." << std::endl;
-    std::function<real_t(Model&)> objective = [&](Model& model) {
-        //return loglikelihood(model, all_times); // non-histogram version
-        return loglikelihood_hist_both(model, binwidth, 
-                                       reference_pop, incidence);
-        // the histogram version
-    };
+        // Try out simulated annealing:
+        std::cout << "Starting annealing..." << std::endl;
+        std::function<real_t(Model&)> objective = [&](Model& model) {
+            //return loglikelihood(model, all_times); // non-histogram version
+            return loglikelihood_hist_both(model, binwidth, 
+                                           reference_pop, incidence);
+            // the histogram version
+        };
 
-    Model best_guess = annealing_min(objective, guess);
-    // Annealing now complete. Store parameters and print:
-    mu   = best_guess.m_migr[0][1];
-    rloh = best_guess.m_migr[0][2];
-    fitness1 = best_guess.m_birth[1];
-    fitness2 = best_guess.m_birth[2];
-    initialpop   = best_guess.m_initial_pops[0];
-
-    std::cout << "Best guesses:" << std::endl;
-    std::cout << "  mu = " << mu << std::endl;
-    std::cout << "  rloh = " << rloh << std::endl;
-    std::cout << "  fitness1 = " << fitness1 << std::endl;
-    std::cout << "  fitness2 = " << fitness2 << std::endl;
-    std::cout << "  initialpop = " << initialpop << std::endl;
+        Model best_guess = annealing_min(objective, guess);
+        // Annealing now complete. Print guess:
+        std::cout << "Best guesses:" << std::endl;
+        std::cout << "  mu = " << best_guess.m_migr[0][1] << std::endl;
+        std::cout << "  rloh = " << best_guess.m_migr[0][2] << std::endl;
+        std::cout << "  fitness1 = " << best_guess.m_birth[1] << std::endl;
+        std::cout << "  fitness2 = " << best_guess.m_birth[2] << std::endl;
+        std::cout << "  initialpop = " << best_guess.m_initial_pops[0] << std::endl;
+    } while (++tries < maxtries);
 
     return 0;
 }
