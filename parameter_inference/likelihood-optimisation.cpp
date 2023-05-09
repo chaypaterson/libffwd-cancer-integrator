@@ -22,61 +22,6 @@
  *      -lgsl -lm -o guesser
  */
 
-// A higher-order function for mapping a function "mapme" onto data and keeping track of
-// the total:
-void map_onto_data(Model& params, const epidata_t& this_data, 
-                   mappable_t *mapme, real_t *total) {
-    // Initial q-values:
-    std::vector<real_t> qcorner(params.m_stages, 1); // = {1, 1, 1, 1, 1};
-    // integration step
-    real_t dt = 0.01;
-
-    for (auto& datum : this_data) {
-        // get age, and node id:
-        real_t age = datum.first;
-        int node = datum.second;
-        // and set qvalues accordingly:
-        std::vector<real_t> qvals = qcorner;
-        // the node we are asking about must be zeroed:
-        qvals[node] = 0;
-        // integrate to get likelihood:
-        real_t time = 0.0;
-        while (time < age) {
-            heun_q_step(qvals, time, dt, params);
-            time += dt;
-        }
-
-        real_t prob = generating_function(qvals, params.m_initial_pops);
-        // advance one dt step into the future:
-        heun_q_step(qvals, time, dt, params);
-        real_t prob2 = generating_function(qvals, params.m_initial_pops);
-        // capture derivative of probabilities, this will give the hazard:
-        real_t dprob = -(prob2 - prob);
-        dprob /= dt;
-
-        // apply the function to the arguments:
-        *total += mapme(age, node, prob, dprob);
-    }
-}
-
-real_t print_test(real_t age, int node, real_t prob, real_t dprob) {
-    // print results:
-    std::cout << age << ", " << node << ", ";
-    std::cout << prob << ", " << dprob << ", ";
-    std::cout << -log(dprob) << std::endl;
-    return 1.0;
-}
-
-void unit_test(Model& params, const epidata_t& all_times) {
-    real_t foo = 0;
-    map_onto_data(params, all_times, print_test, &foo);
-}
-
-real_t logdprob(real_t age, int node, real_t prob, real_t dprob) {
-    // return -log the hazard:
-    return -log(dprob);
-}
-
 real_t logsurvival(Model& params, int node) {
     // return the survival probability for this node:
     double psurv;
@@ -85,27 +30,6 @@ real_t logsurvival(Model& params, int node) {
     psurv = alpha / (alpha + beta);
     if (std::isnan(psurv)) psurv = 1.0f;
     return -log(psurv);
-}
-
-real_t endcorrection(Model& params, real_t max_age, size_t node, size_t population) {
-    // return the end correction to the -log likelihood, that is independent of
-    // the data:
-    real_t Lambda = 0;
-    real_t dt = 0.01;
-    
-    std::vector<real_t> qvals(params.m_stages, 1);
-    qvals[node] = 0;
-    // integrate to get likelihood:
-    real_t time = 0.0;
-    while (time < max_age) {
-        heun_q_step(qvals, time, dt, params);
-        time += dt;
-    }
-
-    real_t prob = generating_function(qvals, params.m_initial_pops);
-    Lambda += -log(prob);
-
-    return population * Lambda;
 }
 
 real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
@@ -133,9 +57,11 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
         // Compute the expected number of cases in this bin:
         real_t hazard = -(prob2 - prob)/prob;
         real_t Lambda = ref_population * prob * hazard;
+
         // -log Poisson likelihood:
         mlogl += -log(Lambda) * curr_bin;
         mlogl += +Lambda;
+
         // weight for survival/chance of detection of cancer:
         mlogl += logsurvival(params, node) * curr_bin;
         // update the end time for the next pass:
@@ -183,27 +109,6 @@ std::vector<size_t> convert_to_histogram(const epidata_t& all_times,
     return histogram;
 }
 
-real_t loglikelihood(Model& params, const epidata_t& all_times) {
-    // TODO need a version that acts on histograms instead of a list of ages
-    real_t mlogl = 0, max_age = 0;
-
-    map_onto_data(params, all_times, logdprob, &mlogl);
-
-    for (auto& datum : all_times) {
-        mlogl += logsurvival(params, datum.second);
-        max_age = max_age * (max_age > datum.second) + 
-                  datum.second * (max_age < datum.second);
-    }
-    // apply the end correction for the finite reference population:
-    size_t population = all_times.size();
-    size_t endnodes[] = {3, 4}; // TODO generalise
-    for (auto& node : endnodes) {
-        mlogl += endcorrection(params, max_age, node, population);
-    }
-
-    return mlogl;
-}
-
 // Gillespie algorithm functions:
 
 std::vector<std::pair<double,int>> generate_dataset(Model& model, int seed, int runs) {
@@ -212,6 +117,7 @@ std::vector<std::pair<double,int>> generate_dataset(Model& model, int seed, int 
     // run some simulations and store the time and final node in
     // all_times:
     std::vector<std::pair<double,int>> all_times;
+    // TODO namespaces
     times_to_final_vertices(model, seed, runs, final_vertices, all_times);
 
     return all_times;
@@ -234,20 +140,6 @@ Model instantiate_model(real_t rloh, real_t mu, real_t fitness1,
 }
 
 // SIMULATED ANNEALING STUFF:
-
-double cauchyv(double mean, double width) {
-    /* return a Cauchy distributed random variable centred on "mean" with scale
-     * coefficient "width" */
-    double rand_num = (double)rand() / RAND_MAX;
-    double quantile = width * tan(M_PI * (rand_num - 0.5f));
-    return mean + quantile;
-}
-
-double expv(double scale) {
-    /* return an exponentially distributed random variable with mean scale */
-    double rand_num = (double)rand() / RAND_MAX;
-    return scale * -log(rand_num);
-}
 
 double logcauchyv(double mode, double width) {
     /* return a log-Cauchy distributed random variable centred on "mode" with scale
@@ -317,15 +209,13 @@ Model annealing_min(std::function<real_t(Model& model)> objective,
     // Constants:
     const double Tmin = 1e-16; // Minimal temperature
     const double delta = 0.98; // The rate of temperature drop
-    const double min_width = 1e-6f; // i.e. 1% of the log-cauchy variate
-    const double smoothing_factor = 0.03; // for smoothing of error estimates
-    const unsigned int iter_max = 2e6;
+    const double min_width = 1e-2; // min scale of the log-cauchy step
+    const double smoothing_factor = 0.82; // for smoothing of width
+    const unsigned int iter_max = 2e4;
 
     // Initialise variables:
-    Model model = initial_guess;
-    Model best_guess = model;
+    Model best_guess = initial_guess;
     double best_y = objective(best_guess);
-    double old_best_y = best_y; // Used for adaptive width size
 
     // Width of neighbourhood:
     double w = log(2); // initial width for log-cauchy variates
@@ -335,10 +225,9 @@ Model annealing_min(std::function<real_t(Model& model)> objective,
     // Simulated annealing process:
     double Temp = best_y;      // Initial temperature 
     unsigned int iter = 0;  // count iterations
-    double err_est = 1.0f; // smoothed error estimate
 
-    while (++iter < iter_max && err_est > 0.1) { //Temp > Tmin) {
-        Model new_guess = get_neighbour(model, w);
+    while ((++iter < iter_max) && (Temp > Tmin)) {
+        Model new_guess = get_neighbour(best_guess, w);
        
         double y_new = objective(new_guess);
 
@@ -347,33 +236,21 @@ Model annealing_min(std::function<real_t(Model& model)> objective,
         double delta_y = y_new - best_y;
 
         if ((delta_y < 0) || ((rand() / (RAND_MAX + 1.0)) < exp(-delta_y / Temp))) {
-            // Compute smoothed error estimate:
-            err_est *= 1.0 - smoothing_factor;
-            err_est += smoothing_factor * estimate_error(new_guess, best_guess);
-            printf("%g %g\n", err_est, w);
             // Update best guess:
-            model = new_guess;
-            best_guess = model;
+            best_guess = new_guess;
             best_y = y_new;
+
+            /* Shrink the width: */
+            w *= 1.0 - smoothing_factor;
+            w += smoothing_factor * min_width;
         }
 
         Temp *= delta;
-
-        /* If best_y has improved by more than the current temperature, or the
-         * most recent change was too small, shrink the width: */
-        if (((old_best_y - best_y) > Temp) || (err_est < w)) {
-            //w = 0.5 * (min_width + w); // This will smoothly approach min_width
-            //w = 0.5 * (err_est + w); // This will decrease only when err_est decreases
-            w = (1.0 - smoothing_factor) * w + smoothing_factor * min_width;// This will smoothly approach min_width
-            // reset the record of our old best:
-            old_best_y = best_y;
-        }
     }
 
     printf("System fully cooled after %d iterations\n", iter);
     printf("-log L = %.8g\n", best_y);
-    printf("est. err = %g\n", err_est);
-    return model;
+    return best_guess;
 }
 
 int main(int argc, char* argv[]) {
@@ -388,7 +265,7 @@ int main(int argc, char* argv[]) {
     srand(seed);
 
     std::vector<std::pair<double,int>> all_times;
-    Model ground_truth = instantiate_model(0.5e-2, 0.5e-3, 0.05, 0.03, 100);
+    Model ground_truth = instantiate_model(0.5e-6, 0.5e-7, 0.05, 0.03, 1e6);
 
     printf("Ground truth:\n");
     printf("  mu = %g\n", ground_truth.m_migr[0][1]);
@@ -443,18 +320,17 @@ int main(int argc, char* argv[]) {
     unsigned tries = 0, maxtries = 1;
     do {
         // Guess some initial model parameters:
-        real_t rloh = 0.01;
-        real_t mu = 0.01;
+        real_t rloh = 1e-4;
+        real_t mu = 1e-4;
         real_t fitness1 = 0.05;
         real_t fitness2 = 0.03;
-        real_t initialpop = 100;
+        real_t initialpop = 1e4;
 
         Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
         // Try out simulated annealing:
         std::cout << "Starting annealing..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
-            //return loglikelihood(model, all_times); // non-histogram version
             return loglikelihood_hist_both(model, binwidth, 
                                            reference_pop, incidence);
             // the histogram version
