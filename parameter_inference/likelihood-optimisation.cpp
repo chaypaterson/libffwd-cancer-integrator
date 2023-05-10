@@ -37,14 +37,14 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
                             const std::vector<size_t>& freqs) {
     // Histogram version of the -log likelihood
     // Recieves a histogram of cancers with a known type (node)
-    // Returns a -log Poisson likelihood
+    // Returns a -log binomial likelihood
     real_t mlogl = 0;
 
     real_t time = 0;
     std::vector<real_t> qvals(params.m_stages, 1);
     qvals[node] = 0;
     real_t end_time = binwidth;
-    real_t dt = 0.01;
+    real_t dt = 0.10;
 
     for (const size_t& curr_bin : freqs) {
         // integrate the hazard over the bin:
@@ -59,8 +59,13 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
         real_t Lambda = ref_population * prob * hazard;
 
         // -log Poisson likelihood:
-        mlogl += -log(Lambda) * curr_bin;
-        mlogl += +Lambda;
+        //mlogl += -log(Lambda) * curr_bin;
+        //mlogl += +Lambda; 
+        // -log binomial likelihood:
+        real_t p = Lambda / (Lambda + 1);
+        mlogl += -log(p) * curr_bin;
+        //mlogl += log(1 - p) * curr_bin; // requires end correction when
+        //prevalence is not 100% TODO
 
         // weight for survival/chance of detection of cancer:
         mlogl += logsurvival(params, node) * curr_bin;
@@ -317,14 +322,14 @@ int main(int argc, char* argv[]) {
         fakedata.close();
     }
 
-    unsigned tries = 0, maxtries = 1;
-    do {
+    unsigned tries = 0, maxtries = 10;
+    {
         // Guess some initial model parameters:
-        real_t rloh = 1e-4;
-        real_t mu = 1e-4;
+        real_t rloh = 1e-6;
+        real_t mu = 1e-6;
         real_t fitness1 = 0.05;
         real_t fitness2 = 0.03;
-        real_t initialpop = 1e4;
+        real_t initialpop = 1e6;
 
         Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
@@ -344,7 +349,7 @@ int main(int argc, char* argv[]) {
         std::cout << "  fitness1 = " << best_guess.m_birth[1] << std::endl;
         std::cout << "  fitness2 = " << best_guess.m_birth[2] << std::endl;
         std::cout << "  initialpop = " << best_guess.m_initial_pops[0] << std::endl;
-    } while (++tries < maxtries);
+    }
 
     return 0;
 }
