@@ -24,9 +24,8 @@ libgillespie.so:
 
 fivestage : $(CHARSRC) libflying.so
 	mkdir -p $(BUILDDIR)
-	$(CC) $(LIBCHAR) $(CHARSRC) $(FLAGS) -o $(BUILDDIR)/$(BIN)
-	$(CC) $(LIBCHAR) $(CHARSRC) $(FLAGS) $(OPT1) -o $(BUILDDIR)/$(BIN)-opt1
-	$(CC) $(LIBCHAR) $(CHARSRC) $(FLAGS) $(OPT2) -o $(BUILDDIR)/$(BIN)-opt2
+	$(CC) $(LIBCHAR) src/tests/$(CHARSRC) $(FLAGS) -o $(BUILDDIR)/$(BIN)
+	$(CC) $(LIBCHAR) src/tests/$(CHARSRC) $(FLAGS) $(OPT1) -o $(BUILDDIR)/$(BIN)-opt1
 
 twostage : $(CHARSRC) libflying.so libgillespie.so
 	mkdir -p $(BUILDDIR)
@@ -38,5 +37,5 @@ tsloss : libs
 	$(CC) $(LIBGILL) ts-loss-gillespie.cpp $(GILLFLAGS) $(OPT1) -o $(BUILDDIR)/tsgillespie
 
 unittests : libs
-	$(CC) $(LIBGILL) gillespie-sampler.cpp $(GILLFLAGS) -std=c++11 $(OPT1) -o bin/gillespie_sampler
-	$(CC) $(LIBCHAR) likelihood-unit-test.cpp $(FLAGS) $(OPT1) -o bin/unittest
+	$(CC) $(LIBGILL) src/tests/gillespie-sampler.cpp $(GILLFLAGS) -std=c++11 $(OPT1) -o bin/gillespie_sampler
+	$(CC) $(LIBCHAR) src/tests/likelihood-unit-test.cpp $(FLAGS) $(OPT1) -o bin/unittest
