@@ -37,7 +37,7 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
                             const std::vector<size_t>& freqs) {
     // Histogram version of the -log likelihood
     // Recieves a histogram of cancers with a known type (node)
-    // Returns a -log binomial likelihood
+    // Returns a -log Poisson-binomial likelihood
     real_t mlogl = 0;
 
     real_t time = 0;
@@ -55,23 +55,21 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
         }
         real_t prob2 = generating_function(qvals, params.m_initial_pops);
         // Compute the expected number of cases in this bin:
-        real_t hazard = -(prob2 - prob)/prob;
-        real_t Lambda = ref_population * prob * hazard;
+        real_t hazard = prob - prob2;
+        real_t Lambda = ref_population * hazard;
 
-        // -log Poisson likelihood:
-        //mlogl += -log(Lambda) * curr_bin;
-        //mlogl += +Lambda; 
-        // -log binomial likelihood:
-        real_t p = Lambda / (Lambda + 1);
+        // -log Poisson-binomial likelihood:
+        real_t p = Lambda / (Lambda + 1); // TODO why does this work?
+        //real_t p = hazard;
         mlogl += -log(p) * curr_bin;
-        //mlogl += log(1 - p) * curr_bin; // requires end correction when
-        //prevalence is not 100% TODO
 
         // weight for survival/chance of detection of cancer:
         mlogl += logsurvival(params, node) * curr_bin;
         // update the end time for the next pass:
         end_time += binwidth;
     }
+    // TODO end correction: probability not to get either type of cancer
+    //mlogl += -log(1.0 - lifetime_risk) * remaining_pop;
 
     return mlogl;
 }
@@ -154,13 +152,20 @@ double logcauchyv(double mode, double width) {
     return mode * exp(quantile);
 }
 
+double uniform(double mean, double width) {
+    double rand_num = (double)rand() / RAND_MAX;
+    double deviate = width * 2 * (rand_num - 0.5f);
+    return mean + deviate;
+}
+
 Model get_neighbour(Model& model, double w) {
     // TODO try pinning some values and fitting others
     real_t new_mu = logcauchyv(model.m_migr[0][1], w);
     real_t new_rloh = logcauchyv(model.m_migr[0][2], w);
-    real_t new_fitness1 = model.m_birth[1];
-    real_t new_fitness2 = model.m_birth[2];
-    //real_t new_inipop = logcauchyv(model.m_initial_pops[0], w);
+    // results are very sensitive to fitness values:
+    real_t new_fitness1 = uniform(model.m_birth[1], 0.01 * w);
+    real_t new_fitness2 = uniform(model.m_birth[2], 0.01 * w);
+    // inipop is unidentifiable:
     real_t new_inipop = model.m_initial_pops[0];
 
     return instantiate_model(new_rloh, new_mu, new_fitness1,
