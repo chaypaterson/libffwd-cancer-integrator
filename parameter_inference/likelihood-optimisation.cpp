@@ -68,8 +68,6 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
         // update the end time for the next pass:
         end_time += binwidth;
     }
-    // TODO end correction: probability not to get either type of cancer
-    //mlogl += -log(1.0 - lifetime_risk) * remaining_pop;
 
     return mlogl;
 }
@@ -86,6 +84,10 @@ real_t loglikelihood_hist_both(Model& params, real_t binwidth,
         mlogl += loglikelihood_hist_node(params, type.first, binwidth,
                                           ref_population, type.second);
     }
+    // TODO end correction: probability not to get either type of cancer
+    // some population remaining_pop in the reference pop have not got either
+    // cancer. both cancers combined have some lifetime risk lifetime_risk.
+    //mlogl += -log(1.0 - lifetime_risk) * remaining_pop;
 
     return mlogl;
 }
