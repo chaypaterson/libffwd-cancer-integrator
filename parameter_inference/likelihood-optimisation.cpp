@@ -38,30 +38,41 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
     // Histogram version of the -log likelihood
     // Recieves a histogram of cancers with a known type (node)
     // Returns a -log Poisson-binomial likelihood
+    // TODO fix, pass end_nodes as parameter
+    size_t end_nodes[] = {3,4};
     real_t mlogl = 0;
 
     real_t time = 0;
-    std::vector<real_t> qvals(params.m_stages, 1);
-    qvals[node] = 0;
+    std::vector<real_t> qvalsAll(params.m_stages, 1);
+    for (auto& endnode : end_nodes)
+        qvalsAll[endnode] = 0;
+    std::vector<real_t> qvalsExcept = qvalsAll;
+    qvalsExcept[node] = 1;
     real_t end_time = binwidth;
     real_t dt = 0.10;
 
     for (const size_t& curr_bin : freqs) {
         // integrate the hazard over the bin:
-        real_t prob = generating_function(qvals, params.m_initial_pops);
+        real_t PsiAll = generating_function(qvalsAll, params.m_initial_pops);
+        real_t PsiExcept = generating_function(qvalsExcept, params.m_initial_pops);
+        real_t prob = PsiAll / PsiExcept;
         while (time < end_time) {
-            heun_q_step(qvals, time, dt, params);
+            heun_q_step(qvalsAll, time, dt, params);
+            heun_q_step(qvalsExcept, time, dt, params);
             time += dt;
         }
-        real_t prob2 = generating_function(qvals, params.m_initial_pops);
+        real_t PsiAll2 = generating_function(qvalsAll, params.m_initial_pops);
+        real_t PsiExcept2 = generating_function(qvalsExcept, params.m_initial_pops);
+        real_t prob2 = PsiAll2 / PsiExcept2;
         // Compute the expected number of cases in this bin:
         real_t hazard = prob - prob2;
         real_t Lambda = ref_population * hazard;
 
         // -log Poisson-binomial likelihood:
-        real_t p = Lambda / (Lambda + 1); // TODO why does this work?
-        //real_t p = hazard;
+        //real_t p = Lambda / (Lambda + 1); // TODO why does this work?
+        real_t p = hazard;
         mlogl += -log(p) * curr_bin;
+        mlogl += -log(1 - p) * (ref_population - curr_bin);
 
         // weight for survival/chance of detection of cancer:
         mlogl += logsurvival(params, node) * curr_bin;
@@ -165,8 +176,8 @@ Model get_neighbour(Model& model, double w) {
     real_t new_mu = logcauchyv(model.m_migr[0][1], w);
     real_t new_rloh = logcauchyv(model.m_migr[0][2], w);
     // results are very sensitive to fitness values:
-    real_t new_fitness1 = uniform(model.m_birth[1], 0.01 * w);
-    real_t new_fitness2 = uniform(model.m_birth[2], 0.01 * w);
+    real_t new_fitness1 = uniform(model.m_birth[1], 0.010 * w);
+    real_t new_fitness2 = uniform(model.m_birth[2], 0.010 * w);
     // inipop is unidentifiable:
     real_t new_inipop = model.m_initial_pops[0];
 
@@ -277,7 +288,11 @@ int main(int argc, char* argv[]) {
     srand(seed);
 
     std::vector<std::pair<double,int>> all_times;
-    Model ground_truth = instantiate_model(0.5e-6, 0.5e-7, 0.05, 0.03, 1e6);
+    Model ground_truth = instantiate_model(5.0e-7, 
+                                           5.0e-8, 
+                                           0.05, 
+                                           0.03, 
+                                           1e6);
 
     printf("Ground truth:\n");
     printf("  mu = %g\n", ground_truth.m_migr[0][1]);
@@ -289,22 +304,25 @@ int main(int argc, char* argv[]) {
     all_times = generate_dataset(ground_truth, seed, dataset_size);
     std::cout << "Done. Saving..." << std::endl;
 
-    // save the fake data:
+    // compute maximum age:
+    real_t max_age = 0;
     {
+        // save the fake data:
         std::ofstream fakedata;
         fakedata.open("syntheticdata_raw.csv");
         for (auto& entry : all_times) {
             fakedata << entry.first << "," << entry.second << "," << std::endl;
+            max_age += (entry.first > max_age) * (entry.first - max_age);
         }
         fakedata.close();
     }
 
     // Convert age data to histogram:
-    real_t binwidth = 1.0f; // years
+    size_t reference_pop = all_times.size();
+    real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
     std::map<size_t, std::vector<size_t>> incidence;
     incidence[3] = convert_to_histogram(all_times, binwidth, 3);
     incidence[4] = convert_to_histogram(all_times, binwidth, 4);
-    size_t reference_pop = all_times.size();
     printf("Target likelihood:\n-log L = %g\n", 
             loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
                                     incidence));
@@ -314,7 +332,7 @@ int main(int argc, char* argv[]) {
         std::ofstream fakedata;
         fakedata.open("syntheticdata_hist.csv");
         fakedata << "bin width = " << binwidth << "\n";
-        fakedata << "max age = " << binwidth * incidence[3].size() << "\n";
+        fakedata << "max age = " << max_age << "\n";
         fakedata << "ref population = " << reference_pop << std::endl;
 
         fakedata << "[";
@@ -332,8 +350,8 @@ int main(int argc, char* argv[]) {
     unsigned tries = 0, maxtries = 10;
     {
         // Guess some initial model parameters:
-        real_t rloh = 1e-6;
-        real_t mu = 1e-6;
+        real_t rloh = 1e-7;
+        real_t mu = 1e-8;
         real_t fitness1 = 0.05;
         real_t fitness2 = 0.03;
         real_t initialpop = 1e6;

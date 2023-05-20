@@ -9,18 +9,23 @@
 #include <thread>
 #include <algorithm>
 
-#include "gillespie-algorithm.hpp"
+#include "../../gillespie-algorithm.hpp"
 
 // A Gillespie algorithm simulation of tumour suppressor loss
 // This will generate data for the maximum likelihood section
 
 int main(int argc, char* argv[]) {
+    if (argc < 3) {
+        printf("Call this program with:\n");
+        printf("    ./gillespie-sampler seed runs\n");
+        return 1;
+    }
     int seed = atoi(argv[1]);
     int runs = atoi(argv[2]);
 
     // System coefficients:
-    double rloh = 0.5e-2;
-    double mu = 0.5e-3;
+    real_t rloh = 5.26337e-7;
+    real_t mu = 2.16427e-8;
 
     Model model(5);
     model.m_migr[0][1] = mu;
@@ -31,7 +36,7 @@ int main(int argc, char* argv[]) {
     // birth and death rates:
     model.m_birth = {0, 0.05, 0.03, 0, 0};
     model.m_death = {0, 0, 0, 0, 0};
-    model.m_initial_pops = {1e2, 0, 0, 0, 0};
+    model.m_initial_pops = {1e6, 0, 0, 0, 0};
 
     std::vector<int> final_vertices = {3, 4};
 

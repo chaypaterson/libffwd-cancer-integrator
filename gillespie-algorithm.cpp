@@ -183,6 +183,11 @@ void print_results(std::vector<double> &all_times) {
 
 void print_kaplan_meier(double time_max, std::vector<double> &all_times) {
     size_t num_survivors = all_times.size();
+    print_kaplan_meier(time_max, all_times, num_survivors);
+}
+
+void print_kaplan_meier(double time_max, std::vector<double> &all_times, size_t ref_pop) {
+    size_t num_survivors = ref_pop;
     double dt = time_max / 200;
     double time = 0;
     double survival = 1.0;

@@ -10,9 +10,13 @@
 // A conjugate characteristics simulation of tumour suppressor loss
 
 int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("provide dt\n");
+        return 1;
+    }
     // System coefficients:
-    real_t rloh = 0.5e-2;
-    real_t mu = 0.5e-3;
+    real_t rloh = 6.957e-7;
+    real_t mu = 5.9606e-8;
 
     Model model(5);
     model.m_migr[0][1] = mu;
@@ -21,18 +25,20 @@ int main(int argc, char* argv[]) {
     model.m_migr[1][4] = 0.5 * rloh;
     model.m_migr[2][4] = 0.5 * mu;
     // birth and death rates:
-    model.m_birth = {0, 0.2, 0.2, 0, 0};
+    model.m_birth = {0, 0.04766, 0.03484, 0, 0};
     model.m_death = {0, 0, 0, 0, 0};
-    model.m_initial_pops = {1e2, 0, 0, 0, 0};
+    model.m_initial_pops = {1e6, 0, 0, 0, 0};
 
     // final vertices 3 and 4: 4 = mutants with LOH
-    // TODO new conditions: what about the probability to end up on 3, the
-    // probability to end up on 3 or 4, and the probability to end up on 4 GIVEN
-    // THAT 3 or 4 have been visited?
-    std::vector<real_t> qvalues = {1, 1, 1, 1, 0};
+    // new conditions: now trying to compute the probability of PRIMARY cases of
+    // 3 (i.e. survival for 3 CONDITIONED on 4 being empty)
+    // for one set of qvalues, all end nodes should be zero. for the other set,
+    // all end nodes should be zero EXCEPT the node of interest.
+    std::vector<real_t> qvaluesF = {1, 1, 1, 0, 0};
+    std::vector<real_t> qvalues3 = {1, 1, 1, 0, 1};
 
     real_t time = 0.0;
-    const real_t tmax = 100.0;
+    const real_t tmax = 380.0;
     real_t dt = atof(argv[1]); // integration step
     real_t t_write_step = 1.0; // write out step
 
@@ -46,17 +52,21 @@ int main(int argc, char* argv[]) {
 
     while (time < tmax) {
         while (time < t_write - dt) {
-            heun_q_step(qvalues, time, dt, model);
+            heun_q_step(qvaluesF, time, dt, model);
+            heun_q_step(qvalues3, time, dt, model);
             // Increment time:
             time += dt;
         }
 
         {
             real_t delta = t_write - time;
-            heun_q_step(qvalues, time, delta, model);
+            heun_q_step(qvaluesF, time, delta, model);
+            heun_q_step(qvalues3, time, delta, model);
             time = t_write;
             // Write out probabilities:
-            real_t prob = generating_function(qvalues, model.m_initial_pops);
+            real_t probF = generating_function(qvaluesF, model.m_initial_pops);
+            real_t prob3 = generating_function(qvalues3, model.m_initial_pops);
+            real_t prob = probF / prob3;
             std::cout << std::fixed << time << ", " << prob << ", ";
             std::cout << std::fixed << 1.0 - prob << ", " << std::endl;
             t_write += t_write_step;

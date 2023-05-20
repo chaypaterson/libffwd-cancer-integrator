@@ -4,9 +4,9 @@
 #include <vector>
 #include <cmath>
 
-#include "graph-model-spec.hpp"
-#include "flying-conjugates.hpp"
-#include "max-likelihood.hpp"
+#include "../../graph-model-spec.hpp"  // TODO change
+#include "../../flying-conjugates.hpp" // TODO change
+#include "../../max-likelihood.hpp"    // TODO change
 
 /* Max. likelihood unit test
  * Test definition of likelihood function
