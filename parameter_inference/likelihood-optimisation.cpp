@@ -37,7 +37,7 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
                             const std::vector<size_t>& freqs) {
     // Histogram version of the -log likelihood
     // Recieves a histogram of cancers with a known type (node)
-    // Returns a -log Poisson-binomial likelihood
+    // Returns a -log binomial likelihood
     // TODO fix, pass end_nodes as parameter
     size_t end_nodes[] = {3,4};
     real_t mlogl = 0;
@@ -52,10 +52,10 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
     real_t dt = 0.10;
 
     for (const size_t& curr_bin : freqs) {
-        // integrate the hazard over the bin:
+        // compute survival probabilities S at start and end of the bin:
         real_t PsiAll = generating_function(qvalsAll, params.m_initial_pops);
         real_t PsiExcept = generating_function(qvalsExcept, params.m_initial_pops);
-        real_t prob = PsiAll / PsiExcept;
+        real_t Sprob = PsiAll / PsiExcept;
         while (time < end_time) {
             heun_q_step(qvalsAll, time, dt, params);
             heun_q_step(qvalsExcept, time, dt, params);
@@ -63,14 +63,10 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
         }
         real_t PsiAll2 = generating_function(qvalsAll, params.m_initial_pops);
         real_t PsiExcept2 = generating_function(qvalsExcept, params.m_initial_pops);
-        real_t prob2 = PsiAll2 / PsiExcept2;
-        // Compute the expected number of cases in this bin:
-        real_t hazard = prob - prob2;
-        real_t Lambda = ref_population * hazard;
+        real_t Sprob2 = PsiAll2 / PsiExcept2;
 
-        // -log Poisson-binomial likelihood:
-        //real_t p = Lambda / (Lambda + 1); // TODO why does this work?
-        real_t p = hazard;
+        // -log binomial likelihood:
+        real_t p = Sprob - Sprob2;
         mlogl += -log(p) * curr_bin;
         mlogl += -log(1 - p) * (ref_population - curr_bin);
 
