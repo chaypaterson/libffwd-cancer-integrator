@@ -50,6 +50,7 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
     qvalsExcept[node] = 1;
     real_t end_time = binwidth;
     real_t dt = 0.10;
+	size_t nsurv = ref_population;
 
     for (const size_t& curr_bin : freqs) {
         // compute survival probabilities S at start and end of the bin:
@@ -68,7 +69,8 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
         // -log binomial likelihood:
         real_t p = Sprob - Sprob2;
         mlogl += -log(p) * curr_bin;
-        mlogl += -log(1 - p) * (ref_population - curr_bin);
+        mlogl += -log(1 - p) * (nsurv - curr_bin);
+		nsurv -= curr_bin;
 
         // weight for survival/chance of detection of cancer:
         mlogl += logsurvival(params, node) * curr_bin;
