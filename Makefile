@@ -3,6 +3,8 @@ BUILDDIR = bin
 LIBDIR = libs
 CORE = src/core
 TESTS = src/tests
+NUMER = src/errors
+LEARN = src/inference
 STD = --std=c++11
 OPT1 = -O3
 INCLUDE = -I$(CORE)
@@ -26,14 +28,16 @@ endif
 all : unittests tsloss fivestage sampler guesser numericalerrors
 
 guesser : libffwd.so libgillespie.so builddir
-	$(CC) $(LIBFFWD) $(LIBGILL) src/inference/likelihood-optimisation.cpp $(GILLFLAGS) -o $(BUILDDIR)/guesser
-
-numericalerrors : libffwd.so libgillespie.so builddir
-	$(CC) $(LIBFFWD) src/errors/ts-loss-characteristic-errors.cpp $(FLAGS) -o bin/tslosserrs
-	$(CC) $(LIBGILL) src/errors/gillespie-errors.cpp $(GILLFLAGS) -o bin/gilllosserrs
+	$(CC) $(LIBFFWD) $(LIBGILL) $(LEARN)/likelihood-optimisation.cpp $(GILLFLAGS) -o $(BUILDDIR)/guesser
 
 sampler : libgillespie.so builddir
-	$(CC) $(LIBGILL) src/inference/gillespie-sampler.cpp $(GILLFLAGS) -o $(BUILDDIR)/gillespie_sampler
+	$(CC) $(LIBGILL) $(LEARN)/gillespie-sampler.cpp $(GILLFLAGS) -o $(BUILDDIR)/gillespie_sampler
+
+numericalerrors : libffwd.so libgillespie.so builddir
+	$(CC) $(LIBFFWD) $(NUMER)/ts-loss-characteristic-errors.cpp $(FLAGS) -o bin/tslosserrs
+	$(CC) $(LIBGILL) $(NUMER)/gillespie-errors.cpp $(GILLFLAGS) -o bin/gilllosserrs
+
+tests: fivestage tsloss unittests
 
 fivestage : libffwd.so builddir
 	$(CC) $(LIBFFWD) $(TESTS)/five-stage-characteristic.cpp $(FLAGS) -o $(BUILDDIR)/five-step-characteristic
@@ -45,6 +49,8 @@ tsloss : libffwd.so libgillespie.so builddir
 unittests : libffwd.so libgillespie.so builddir
 	$(CC) $(LIBGILL) $(TESTS)/gillespie-sampler.cpp $(GILLFLAGS) -o bin/gillespie_sampler_test
 	$(CC) $(LIBFFWD) $(TESTS)/likelihood-unit-test.cpp $(FLAGS) -o bin/unittest
+
+core: libffwd.so libgillespie.so
 
 libffwd.so: libs
 	$(CC) $(CORE)/fast-forward.cpp $(FLAGS) -c -o $(LIBFFWD)
