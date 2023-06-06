@@ -5,7 +5,7 @@
 #include "graph-model-spec.hpp"
 #include "fast-forward.hpp"
 
-/* Flying conjugates
+/* Fast forward integration
  * This is a method for calculating survival and extinction probabilities of
  * birth-death-mutation processes on graphs. This method is based on a
  * generating function representation of the process: this enables the
@@ -16,7 +16,7 @@
  * 
  * This source file contains the function implementations. It has no entry
  * point, and should be compiled to a library with
- *      g++ fast-forward.cpp -c -o libflying.so
+ *      g++ fast-forward.cpp -c -o libffwd.so
  */
 
 std::vector<real_t> rhs_flow(const std::vector<real_t> &qcoords,

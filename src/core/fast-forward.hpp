@@ -6,7 +6,7 @@
 #ifndef FLYING_DEF
 #define FLYING_DEF
 
-/* Flying conjugates
+/* Fast forward integration
  * This is a method for calculating survival and extinction probabilities of
  * birth-death-mutation processes on graphs. This method is based on a
  * generating function representation of the process: this enables the
@@ -16,7 +16,7 @@
  * values are evolved along a vector field using Heun's method.
  * 
  * This header file contains the function declarations for the implementations
- * in the flying-conjugates library (flying-conjugates.cpp).
+ * in the fast forward library (fast-forward.cpp).
  */
 
 // This function computes the right-hand-side of the system of ordinary
