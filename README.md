@@ -84,7 +84,8 @@ with multiple passes, or higher order Runge-Kutta steps. A ''fast forward''
 method is one that 
 
 1. solves the Komogorov forward equations by numerically integrating the characteristics, and 
-2. is strictly faster than $O(\epsilon^{-2})$ in the global error $\epsilon$.
+2. is strictly faster than $O(\epsilon^{-2})$ in the global error $\epsilon$ (as
+$\epsilon$ decreases).
 
 Georg Luebeck and Suresh Moolgavkar previously developed a numerical integration
 approach based on Gaussian quadrature of Kolmogorov backward equations. I do not
@@ -114,4 +115,5 @@ Whole project is in C++ (with some Shell wrappers).
 
 Compiles under both G++ and Clang. 
 
-Requires [GSL](https://www.gnu.org/software/gsl/), which the Mac subsection of the Makefile assume depends on Homebrew.
+Requires [GSL](https://www.gnu.org/software/gsl/), which the Mac subsection of
+the Makefile assumes depends on Homebrew.
