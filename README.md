@@ -1,7 +1,7 @@
 cancer integrator
 =================
 
-Simulates first passage times and survival curves in multi-stage clonal expansion models of
+Simulates survival curves in generalised multi-stage clonal expansion models of
 Moolgavkar-Vernon-Knudsen type. This project allows us to
 define a birth-death-mutation process on an arbitrary directed graph
 (representing mutations), and generate survival curves using both Gillespie algorithm simulations and
@@ -79,43 +79,35 @@ curves in the conjugate coordinates using a time-stepping procedure, but does so
 in only one pass. 
 As it is based on Kolmogorov forward equations rather than Kolmogorov backward
 equations, and is noticeably faster than Gillespie, I have named it the ''fast
-forward'' method. Other related ''fast forward'' methods may be possible.
+forward'' method. Other related ''fast forward'' methods may be possible, e.g.
+with multiple passes, or higher order Runge-Kutta steps. A ''fast forward''
+method is one that 
+
+    1. solves the Komogorov forward equations by numerically integrating the characteristics, and 
+    2. is strictly faster than $O(\epsilon^{-2})$ in the global error $\epsilon$.
 
 Georg Luebeck and Suresh Moolgavkar previously developed a numerical integration
 approach based on Gaussian quadrature of Kolmogorov backward equations. I do not
-know if this can be extended to arbitrary directed graphs. Dennis Quinn's
+know if this can be extended to arbitrary directed graphs -- it may be possible,
+see Sanyi Tang et al. 2023. Dennis Quinn's
 algorithm is much more closely related to the experimental algorithm here, but
-there are several additional improvements.
+we have found some radical improvements.
 
 What the test cases should be of:
 ---------------------------------
 
-Two-hit and five-hit linear models.
-
-Later, models on graphs. Need a convenient way to implement Kronecker products
+Simulate models on graphs with both methods (Gillespie and fast forward). Need a convenient way to implement Kronecker products
 (TODO).
-
-            /\
-            |V
-    0 ----> 1 ----> 2
-
-       mu0  s  mu1
-
-Two steps model: 3 populations $(N_0, N_1, N_2)$. $N_1$ has an advantage/growth rate $s$.
-
-How long does it take for an $N_2$ to appear?
-
-Five-hit should be similar but use Ruibo and Ivana's parameters.
 
 Outputs:
 
   * Survival probabilities for Gillespie algorithm. Generate these using Kaplan-Meier
-    plots DONE
-  * Corresponding survival curves from the generating function DONE
+    plots
+  * Corresponding survival curves from the generating function
 
 These are both in CSV format, with a layout mirroring Ruibo Zhang et al. 2022.
 
 Language they should be in:
 ---------------------------
 
-C++ (stay as close to C as possible)
+C++

@@ -26,13 +26,13 @@ endif
 all : unittests tsloss fivestage sampler guesser numericalerrors
 
 guesser : libflying.so libgillespie.so builddir
-	$(CC) $(LIBCHAR) $(LIBGILL) parameter_inference/likelihood-optimisation.cpp $(GILLFLAGS) -o $(BUILDDIR)/guesser
+	$(CC) $(LIBCHAR) $(LIBGILL) src/inference/likelihood-optimisation.cpp $(GILLFLAGS) -o $(BUILDDIR)/guesser
 
 numericalerrors : libflying.so libgillespie.so builddir
 	$(CC) $(LIBCHAR) src/errors/ts-loss-characteristic-errors.cpp $(FLAGS) -o bin/tslosserrs
 
 sampler : libgillespie.so builddir
-	$(CC) $(LIBGILL) parameter_inference/gillespie-sampler.cpp $(GILLFLAGS) -o $(BUILDDIR)/gillespie_sampler
+	$(CC) $(LIBGILL) src/inference/gillespie-sampler.cpp $(GILLFLAGS) -o $(BUILDDIR)/gillespie_sampler
 
 fivestage : libflying.so builddir
 	$(CC) $(LIBCHAR) $(TESTS)/five-stage-characteristic.cpp $(FLAGS) -o $(BUILDDIR)/five-step-characteristic
@@ -42,7 +42,7 @@ tsloss : libflying.so libgillespie.so builddir
 	$(CC) $(LIBGILL) $(TESTS)/ts-loss-gillespie.cpp $(GILLFLAGS) -o $(BUILDDIR)/tsgillespie
 
 unittests : libflying.so libgillespie.so builddir
-	$(CC) $(LIBGILL) $(TESTS)/gillespie-sampler.cpp $(GILLFLAGS) -o bin/gillespie_sampler
+	$(CC) $(LIBGILL) $(TESTS)/gillespie-sampler.cpp $(GILLFLAGS) -o bin/gillespie_sampler_test
 	$(CC) $(LIBCHAR) $(TESTS)/likelihood-unit-test.cpp $(FLAGS) -o bin/unittest
 
 libflying.so: libs
