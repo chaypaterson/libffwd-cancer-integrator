@@ -5,7 +5,7 @@
 #include <cmath>
 
 #include "graph-model-spec.hpp"
-#include "flying-conjugates.hpp"
+#include "fast-forward.hpp"
 #include "max-likelihood.hpp"
 
 /* Max. likelihood unit test

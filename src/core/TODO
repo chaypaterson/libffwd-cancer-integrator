@@ -1,7 +1,7 @@
 TODO:
 
 namespaces (urgent)
-rename "flying conjugates" > "fast forward"
 
+might be nice:
 graph-model-spec needs a Kronecker product method
-(a general method to procedurally generate graphs from permutations/paths would also be nice)
+a general method to procedurally generate CDAWG graphs from permutations/paths

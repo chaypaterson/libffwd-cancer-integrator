@@ -1,7 +1,7 @@
 #ifndef MOST_LIKELY_DEF
 #define MOST_LIKELY_DEF
 #include "graph-model-spec.hpp"
-#include "flying-conjugates.hpp"
+#include "fast-forward.hpp"
 #include <vector>
 #include <cmath>
 #include <cstdio>

@@ -4,7 +4,7 @@
 #include <cmath>
 
 #include "graph-model-spec.hpp"
-#include "flying-conjugates.hpp"
+#include "fast-forward.hpp"
 
 // A numerical integrator for a four-step branching process model of colorectal
 // cancer initiation from Zhang et al. 2022. 

@@ -5,7 +5,7 @@
 #include <cmath>
 
 #include "graph-model-spec.hpp"
-#include "flying-conjugates.hpp"
+#include "fast-forward.hpp"
 
 /* A conjugate characteristics simulation of tumour suppressor loss
  * This program estimates the global error with Richardson extrapolation.

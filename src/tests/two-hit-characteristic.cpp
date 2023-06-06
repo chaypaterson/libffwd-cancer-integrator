@@ -4,7 +4,7 @@
 #include <cmath>
 
 #include "graph-model-spec.hpp"
-#include "flying-conjugates.hpp"
+#include "fast-forward.hpp"
 
 /* A numerical integrator based on the generating function representation of an
  * MVK-type birth-death-mutation process.

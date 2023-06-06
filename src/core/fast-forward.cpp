@@ -3,7 +3,7 @@
 #include <cmath>
 
 #include "graph-model-spec.hpp"
-#include "flying-conjugates.hpp"
+#include "fast-forward.hpp"
 
 /* Flying conjugates
  * This is a method for calculating survival and extinction probabilities of
@@ -16,7 +16,7 @@
  * 
  * This source file contains the function implementations. It has no entry
  * point, and should be compiled to a library with
- *      g++ flying-conjugates.cpp -c -o libflying.so
+ *      g++ fast-forward.cpp -c -o libflying.so
  */
 
 std::vector<real_t> rhs_flow(const std::vector<real_t> &qcoords,

@@ -7,7 +7,7 @@
 #include <functional>
 
 #include "graph-model-spec.hpp"
-#include "flying-conjugates.hpp"
+#include "fast-forward.hpp"
 #include "max-likelihood.hpp"
 #include "gillespie-algorithm.hpp"
 
