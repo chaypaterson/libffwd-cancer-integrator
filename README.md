@@ -55,7 +55,7 @@ Repeat while $t < $ maximum time.
   * The $q_j$ are conjugate variables to the populations $N_j$
   * The Kolmogorov forward equation is of the form
 
-$$\frac{\partial\Psi}{\partial t} = \sum_j X_j(q_0,q_1,\dots) \frac{\partial\Psi}{\partial q_j} + Y(q_0,q_1,\dots) \Psi$$
+$$\frac{\partial\Psi}{\partial t} = \vec{X} \cdot \nabla_{\vec{q}} \Psi + Y(\vec{q} \Psi$$
 with $X_j(q)$ determined by the reaction rates and stoichiometry. (The absorption
 term $Y(q)$ due to immigration is not currently implemented.)
 
