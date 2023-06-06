@@ -63,8 +63,12 @@ void times_to_final_vertices(const Model &model, int seed,
 
 void print_results(std::vector<double> &all_times);
 
-void print_kaplan_meier(double time_max, std::vector<double> &all_times, size_t ref_pop);
+void print_kaplan_meier(double time_max, std::vector<double> &all_times, 
+                        size_t ref_pop);
 void print_kaplan_meier(double time_max, std::vector<double> &all_times);
+
+real_t surv_kaplan_meier(double age, std::vector<double> &all_times, 
+                         size_t ref_pop);
 
 void print_naive_estimator(double time_max, std::vector<double> &all_times);
 

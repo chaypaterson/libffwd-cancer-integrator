@@ -206,6 +206,28 @@ void print_kaplan_meier(double time_max, std::vector<double> &all_times, size_t 
     }
 }
 
+real_t surv_kaplan_meier(double age, std::vector<double> &all_times, size_t ref_pop) {
+    // return the value of the Kaplan-Meier estimator at a given age=time
+    size_t num_survivors = ref_pop;
+    double time_max = all_times.back();
+    double dt = time_max / 200;
+    double time = 0;
+    double survival = 1.0; // TODO this is not very efficient: maybe pass
+    // initial survival and age as parameters somehow?
+    auto time_datum = all_times.begin();
+    while (time < age) {
+        // avoid unguarded access:
+        if (time >= time_max) break;
+        while (*time_datum < time) {
+            survival *= (1 - 1.0 / num_survivors);
+            --num_survivors;
+            ++time_datum;
+        }
+        time += dt;
+    }
+    return survival;
+}
+
 void print_naive_estimator(double time_max, std::vector<double> &all_times) {
     size_t num_survivors = all_times.size();
     const size_t total_survivors = num_survivors;

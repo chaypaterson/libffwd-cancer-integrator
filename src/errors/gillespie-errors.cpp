@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -12,7 +13,7 @@
 #include "gillespie-algorithm.hpp"
 
 // A Gillespie algorithm simulation of tumour suppressor loss
-// This will generate data for the maximum likelihood section
+// This program returns expected errors in the Gillespie simulation
 
 std::map<int,std::vector<double>> generate_dataset(int seed, int runs) {
     // System coefficients:
@@ -55,26 +56,41 @@ int main(int argc, char* argv[]) {
     int seed = atoi(argv[1]);
     int runs = atoi(argv[2]);
 
-    std::map<int,std::vector<double>> all_times = generate_dataset(seed, runs);
+    std::map<int,std::vector<double>> all_times_1 = generate_dataset(seed, runs);
+    std::map<int,std::vector<double>> all_times_2 = generate_dataset(++seed, runs);
 
-    std::cout << "age, node," << std::endl;
-    // compute maximum age in dataset:
+    // compute maximum age in either dataset, and sort both datasets:
     double age_max = 0;
-    for (auto& pair : all_times) {
+    for (auto& pair : all_times_1) {
         for (auto& age : pair.second) {
-            std::cout << age << ", " << pair.first << "," << std::endl;
             age_max += (age > age_max) * (age - age_max);
         }
         std::sort((pair.second).begin(), (pair.second).end());
     }
-    std::cout << std::endl;
 
-    std::cout << "\nSurvival curves:" << std::endl;
-    size_t reference_pop = all_times[3].size() + all_times[4].size();
+    for (auto& pair : all_times_2) {
+        for (auto& age : pair.second) {
+            age_max += (age > age_max) * (age - age_max);
+        }
+        std::sort((pair.second).begin(), (pair.second).end());
+    }
 
-    for (auto& pair : all_times) {
-        std::cout << "Type: " << pair.first << std::endl;
-        print_kaplan_meier(age_max, pair.second, reference_pop);
+    // compute scaled root mean square difference in survival curves:
+    size_t reference_pop_1 = all_times_1[3].size() + all_times_1[4].size();
+    size_t reference_pop_2 = all_times_2[3].size() + all_times_2[4].size();
+
+    size_t num_sample_points = 256;
+    double dt = age_max / (double)num_sample_points;
+
+    for (double age = 0; age <= age_max; age += dt) {
+        real_t s1 = surv_kaplan_meier(age, all_times_1[3], reference_pop_1);
+        real_t s2 = surv_kaplan_meier(age, all_times_2[3], reference_pop_2);
+        // TODO type 4
+        real_t error = s1 - s2;
+        error *= error;
+        error /= 2;
+        error = std::sqrt(error);
+        std::cout << age << "," << error << "," << std::endl;
     }
 
     return 0;
