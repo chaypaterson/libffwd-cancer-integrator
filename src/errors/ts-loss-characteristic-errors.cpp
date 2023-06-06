@@ -35,8 +35,10 @@ int main(int argc, char* argv[]) {
     model.m_initial_pops = {1e2, 0, 0, 0, 0};
 
     // final vertices 3 and 4: 4 = mutants with LOH
-    std::vector<real_t> qvalues = {1, 1, 1, 1, 0};
-    std::vector<real_t> qvalues2 = qvalues;
+    std::vector<real_t> qvaluesF = {1, 1, 1, 0, 0};
+    std::vector<real_t> qvaluesF2 = qvaluesF;
+    std::vector<real_t> qvalues4 = {1, 1, 1, 0, 1};
+    std::vector<real_t> qvalues42 = qvalues4;
 
     real_t time = 0.0;
     const real_t tmax = 100.0;
@@ -54,24 +56,34 @@ int main(int argc, char* argv[]) {
 
     while (time < tmax) {
         while (time < t_write - dt) {
-            heun_q_step(qvalues, time, dt, model);
-            // Advance qvalues 2 by half the relevant time step, twice
-            heun_q_step(qvalues2, time, half, model);
-            heun_q_step(qvalues2, time, half, model);
+            heun_q_step(qvaluesF, time, dt, model);
+            heun_q_step(qvalues4, time, dt, model);
+            // Advance qvalues.2 by half the relevant time step, twice
+            for (int i = 0; i < 2; ++i) {
+                heun_q_step(qvaluesF2, time, half, model);
+                heun_q_step(qvalues42, time, half, model);
+            }
             // Increment time:
             time += dt;
         }
 
         {
             real_t delta = t_write - time;
-            heun_q_step(qvalues, time, delta, model);
+            heun_q_step(qvaluesF, time, delta, model);
+            heun_q_step(qvalues4, time, delta, model);
             real_t halfdelta = 0.5 * delta;
-            heun_q_step(qvalues2, time, halfdelta, model);
-            heun_q_step(qvalues2, time, halfdelta, model);
+            for (int i = 0; i < 2; ++i) {
+                heun_q_step(qvaluesF2, time, halfdelta, model);
+                heun_q_step(qvalues42, time, halfdelta, model);
+            }
             time = t_write;
             // compute the P(t) values:
-            real_t prob = generating_function(qvalues, model.m_initial_pops);
-            real_t prob2 = generating_function(qvalues2, model.m_initial_pops);
+            real_t psiF = generating_function(qvaluesF, model.m_initial_pops);
+            real_t psi4 = generating_function(qvalues4, model.m_initial_pops);
+            real_t prob = psiF / psi4;
+            real_t psiF2 = generating_function(qvaluesF2, model.m_initial_pops);
+            real_t psi42 = generating_function(qvalues42, model.m_initial_pops);
+            real_t prob2 = psiF2 / psi42;
             // compute the corresponding error:
             double err = (prob - prob2);
             err /= (2 << 2 - 1); // richardson extrapolation

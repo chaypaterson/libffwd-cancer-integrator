@@ -1,0 +1,7 @@
+TODO:
+
+namespaces (urgent)
+rename "flying conjugates" > "fast forward"
+
+graph-model-spec needs a Kronecker product method
+(a general method to procedurally generate graphs from permutations/paths would also be nice)

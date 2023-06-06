@@ -6,10 +6,10 @@
 #include <cmath>
 #include <functional>
 
-#include "../graph-model-spec.hpp"
-#include "../flying-conjugates.hpp"
-#include "../max-likelihood.hpp"
-#include "../gillespie-algorithm.hpp"
+#include "graph-model-spec.hpp"
+#include "flying-conjugates.hpp"
+#include "max-likelihood.hpp"
+#include "gillespie-algorithm.hpp"
 
 /* Max. likelihood program:
  *      Generates a simulated dataset with hidden parameter values
