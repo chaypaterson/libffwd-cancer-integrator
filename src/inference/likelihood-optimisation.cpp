@@ -8,7 +8,6 @@
 
 #include "graph-model-spec.hpp"
 #include "fast-forward.hpp"
-#include "max-likelihood.hpp"
 #include "gillespie-algorithm.hpp"
 
 /* Max. likelihood program:
@@ -21,6 +20,8 @@
  * g++ likelihood-optimisation.cpp ../libs/libgillespie.so ../libs/libflying.so
  *      -lgsl -lm -o guesser
  */
+
+typedef std::vector<std::pair<real_t, int>> epidata_t;
 
 real_t logsurvival(Model& params, int node) {
     // return the survival probability for this node:
