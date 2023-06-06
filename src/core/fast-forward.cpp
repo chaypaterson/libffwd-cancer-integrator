@@ -95,47 +95,6 @@ void implicit_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &d
     // Do not increment time within this function.
 }
 
-void ralston_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt, 
-                 Model &parameters) {
-    // Time step the q-coordinates (qcoords) using a second order RK method
-    // Compute an initial guess, qcoords2:
-    std::vector<real_t> flux = rhs_flow(qcoords, parameters);
-    std::vector<real_t> qcoords2 = qcoords;
-    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
-        qcoords2[vertex] += flux[vertex] * dt;
-    }
-
-    // Use the initial guess qcoords2 to compute an improved guess:
-    std::vector<real_t> flux2 = rhs_flow(qcoords2, parameters);
-    // Combine the initial guess and improved guess using the trapezoid rule:
-    real_t alpha = 1.400;
-    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
-        qcoords[vertex] += ((1 - alpha) * flux[vertex] + alpha * flux2[vertex]) * dt;
-    }
-
-    // Do not increment time within this function.
-}
-
-void improvedeuler_q_step(std::vector<real_t> &qcoords, const real_t &time, 
-                 real_t &dt, Model &parameters) {
-    // Time step the q-coordinates (qcoords) using improved Euler integration
-    // Compute an initial guess, qcoords2:
-    std::vector<real_t> flux = rhs_flow(qcoords, parameters);
-    std::vector<real_t> qcoords2 = qcoords;
-    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
-        qcoords2[vertex] += 0.5 * flux[vertex] * dt;
-    }
-
-    // Use the initial guess qcoords2 to compute an improved guess:
-    std::vector<real_t> flux2 = rhs_flow(qcoords2, parameters);
-    // Combine the initial guess and improved guess using the trapezoid rule:
-    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
-        qcoords[vertex] += flux2[vertex] * dt;
-    }
-
-    // Do not increment time within this function.
-}
-
 void rungekutta_q_step(std::vector<real_t> &qcoords, const real_t &time, 
                  real_t &dt, Model &parameters) {
     // Time step the q-coordinates (qcoords) using classical Runge-Kutta integration
