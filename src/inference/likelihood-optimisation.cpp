@@ -19,6 +19,10 @@
  * Compiles with
  * g++ likelihood-optimisation.cpp ../libs/libgillespie.so ../libs/libflying.so
  *      -lgsl -lm -o guesser
+ *
+ * Contact:
+ *      Chay Paterson (chay.paterson@manchester.ac.uk)
+ *      Miaomiao Gao (miaomiao.gao@postgrad.manchester.ac.uk)
  */
 
 typedef std::vector<std::pair<real_t, int>> epidata_t;
@@ -175,8 +179,8 @@ Model get_neighbour(Model& model, double w) {
     real_t new_mu = logcauchyv(model.m_migr[0][1], w);
     real_t new_rloh = logcauchyv(model.m_migr[0][2], w);
     // results are very sensitive to fitness values:
-    real_t new_fitness1 = uniform(model.m_birth[1], 0.010 * w);
-    real_t new_fitness2 = uniform(model.m_birth[2], 0.010 * w);
+    real_t new_fitness1 = uniform(model.m_birth[1], 0.10 * w);
+    real_t new_fitness2 = uniform(model.m_birth[2], 0.10 * w);
     // inipop is unidentifiable:
     real_t new_inipop = model.m_initial_pops[0];
 
@@ -275,6 +279,39 @@ Model annealing_min(std::function<real_t(Model& model)> objective,
     return best_guess;
 }
 
+void print_model(Model &model) {
+    printf("  mu = %g\n", model.m_migr[0][1]);
+    printf("  rloh = %g\n", model.m_migr[0][2]);
+    printf("  fitness1 = %g\n", model.m_birth[1]);
+    printf("  fitness2 = %g\n", model.m_birth[2]);
+    printf("  inipop = %g\n", model.m_initial_pops[0]);
+}
+
+std::map<size_t, std::vector<size_t>> jackknife_incidence(
+                            size_t index,
+                            const std::map<size_t, std::vector<size_t>>
+                            &histogram,
+                            std::vector<size_t> end_nodes) {
+    // delete the index-th entry in the histogram
+    std::map<size_t, std::vector<size_t>> new_incidence = histogram;
+    // first we have to find the indexth person
+    size_t count = 0;
+    for (auto& end_node : end_nodes) {
+        for (auto& bin : new_incidence[end_node]) {
+            count += bin;
+            if (count > index) {
+                // delete one individual:
+                --bin;
+                // we are now done:
+                return new_incidence;
+            }
+        }
+    }
+    // if we get here something has gone wrong are there are not enough entries
+    // in the histogram.
+    return new_incidence;
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Call this program with\n ./guesser seed dataset_size\n");
@@ -294,13 +331,10 @@ int main(int argc, char* argv[]) {
                                            1e6);
 
     printf("Ground truth:\n");
-    printf("  mu = %g\n", ground_truth.m_migr[0][1]);
-    printf("  rloh = %g\n", ground_truth.m_migr[0][2]);
-    printf("  fitness1 = %g\n", ground_truth.m_birth[1]);
-    printf("  fitness2 = %g\n", ground_truth.m_birth[2]);
-    printf("  inipop = %g\n", ground_truth.m_initial_pops[0]);
+    print_model(ground_truth);
 
     all_times = generate_dataset(ground_truth, seed, dataset_size);
+    std::vector<size_t> end_nodes = {3,4};
     std::cout << "Done. Saving..." << std::endl;
 
     // compute maximum age:
@@ -320,8 +354,9 @@ int main(int argc, char* argv[]) {
     size_t reference_pop = all_times.size();
     real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
     std::map<size_t, std::vector<size_t>> incidence;
-    incidence[3] = convert_to_histogram(all_times, binwidth, 3);
-    incidence[4] = convert_to_histogram(all_times, binwidth, 4);
+    for (auto &end_node : end_nodes) {
+        incidence[end_node] = convert_to_histogram(all_times, binwidth, end_node);
+    }
     printf("Target likelihood:\n-log L = %g\n", 
             loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
                                     incidence));
@@ -334,20 +369,17 @@ int main(int argc, char* argv[]) {
         fakedata << "max age = " << max_age << "\n";
         fakedata << "ref population = " << reference_pop << std::endl;
 
-        fakedata << "[";
-        for (auto& bin : incidence[3]) 
-            fakedata << bin << ", ";
-        fakedata << "]" << std::endl;
-        fakedata << "[";
-        for (auto& bin : incidence[4])
-            fakedata << bin << ", ";
-        fakedata << "]" << std::endl;
+        for (auto &end_node : end_nodes) {
+            fakedata << "[";
+            for (auto& bin : incidence[end_node]) 
+                fakedata << bin << ", ";
+            fakedata << "]" << std::endl;
+        }
 
         fakedata.close();
     }
 
-    unsigned tries = 0, maxtries = 10;
-    {
+    for (unsigned tries = 0; tries < reference_pop; ++tries) {
         // Guess some initial model parameters:
         real_t rloh = 1e-7;
         real_t mu = 1e-8;
@@ -357,23 +389,28 @@ int main(int argc, char* argv[]) {
 
         Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
+        // Resample the incidence:
+        std::map<size_t, std::vector<size_t>> resampled_incidence;
+        resampled_incidence = jackknife_incidence(tries, incidence, end_nodes);
+
         // Try out simulated annealing:
         std::cout << "Starting annealing..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
             return loglikelihood_hist_both(model, binwidth, 
-                                           reference_pop, incidence);
+                                           reference_pop, resampled_incidence);
             // the histogram version
         };
 
         Model best_guess = annealing_min(objective, guess);
         // Annealing now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
-        std::cout << "  mu = " << best_guess.m_migr[0][1] << std::endl;
-        std::cout << "  rloh = " << best_guess.m_migr[0][2] << std::endl;
-        std::cout << "  fitness1 = " << best_guess.m_birth[1] << std::endl;
-        std::cout << "  fitness2 = " << best_guess.m_birth[2] << std::endl;
-        std::cout << "  initialpop = " << best_guess.m_initial_pops[0] << std::endl;
+        print_model(best_guess);
+        // Annealing now complete. Store guessed model parameters:
+        // do_something(best_guess);
     }
+    // Jack-knife resampling of incidence:
+    //resample_estimate(incidence, reference_pop);
+    //save the point estimates to make a density plot
 
     return 0;
 }
