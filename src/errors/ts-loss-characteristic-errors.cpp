@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
             real_t prob2 = psiF2 / psi42;
             // compute the corresponding error:
             double err = (prob - prob2);
-            err /= (2 << 2 - 1); // richardson extrapolation
+            err /= (2 << 2) - 1; // richardson extrapolation
             err *= (1 - 2 * (err < 0)); // abs value
             // Write out errors:
             std::cout << std::fixed << time << ", " << err << std::endl;

@@ -287,6 +287,40 @@ void print_model(Model &model) {
     printf("  inipop = %g\n", model.m_initial_pops[0]);
 }
 
+void write_model_line(std::ofstream& file, Model &model) {
+    file << model.m_migr[0][1];
+    file << ", ";
+    file << model.m_migr[0][2];
+    file << ", ";
+    file << model.m_birth[1];
+    file << ", ";
+    file << model.m_birth[2];
+    file << ", ";
+    file << model.m_initial_pops[0];
+    file << ",";
+    file << std::endl;
+}
+
+
+void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop, 
+                    std::vector<size_t>& end_nodes,
+                    std::map<size_t, std::vector<size_t>>& incidence) {
+    std::ofstream fakedata;
+    fakedata.open("syntheticdata_hist.csv");
+    fakedata << "bin width = " << binwidth << "\n";
+    fakedata << "max age = " << max_age << "\n";
+    fakedata << "ref population = " << reference_pop << std::endl;
+
+    for (auto &end_node : end_nodes) {
+        fakedata << "[";
+        for (auto& bin : incidence[end_node]) 
+            fakedata << bin << ", ";
+        fakedata << "]" << std::endl;
+    }
+
+    fakedata.close();
+}
+
 std::map<size_t, std::vector<size_t>> jackknife_incidence(
                             size_t index,
                             const std::map<size_t, std::vector<size_t>>
@@ -362,23 +396,10 @@ int main(int argc, char* argv[]) {
                                     incidence));
 
     // Save the histogram:
-    {
-        std::ofstream fakedata;
-        fakedata.open("syntheticdata_hist.csv");
-        fakedata << "bin width = " << binwidth << "\n";
-        fakedata << "max age = " << max_age << "\n";
-        fakedata << "ref population = " << reference_pop << std::endl;
+    save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
 
-        for (auto &end_node : end_nodes) {
-            fakedata << "[";
-            for (auto& bin : incidence[end_node]) 
-                fakedata << bin << ", ";
-            fakedata << "]" << std::endl;
-        }
-
-        fakedata.close();
-    }
-
+    // Jack-knife resampling of incidence:
+    std::vector<Model> bootstrapped_estimates;
     for (unsigned tries = 0; tries < reference_pop; ++tries) {
         // Guess some initial model parameters:
         real_t rloh = 1e-7;
@@ -406,11 +427,17 @@ int main(int argc, char* argv[]) {
         std::cout << "Best guesses:" << std::endl;
         print_model(best_guess);
         // Annealing now complete. Store guessed model parameters:
-        // do_something(best_guess);
+        bootstrapped_estimates.push_back(best_guess);
     }
-    // Jack-knife resampling of incidence:
-    //resample_estimate(incidence, reference_pop);
-    //save the point estimates to make a density plot
+
+    // save the point estimates so we can make a density plot later
+    std::ofstream estimates_by_row;
+    estimates_by_row.open("bootstrapped_estimates.csv");
+    estimates_by_row << "mu, rloh, s1, s2, initial_pop," << std::endl;
+    for (auto& guess : bootstrapped_estimates) {
+        write_model_line(estimates_by_row, guess);
+    }
+    estimates_by_row.close();
 
     return 0;
 }
