@@ -178,9 +178,12 @@ Model get_neighbour(Model& model, double w) {
     // TODO try pinning some values and fitting others
     real_t new_mu = logcauchyv(model.m_migr[0][1], w);
     real_t new_rloh = logcauchyv(model.m_migr[0][2], w);
-    // results are very sensitive to fitness values:
+    // results are very sensitive to fitness values (so use a narrower distribution):
     real_t new_fitness1 = uniform(model.m_birth[1], 0.10 * w);
     real_t new_fitness2 = uniform(model.m_birth[2], 0.10 * w);
+    // force the fitnesses to be positive (negative values are meaningless in this context)
+    new_fitness1 *= 1 - 2 * (new_fitness1 < 0);
+    new_fitness2 *= 1 - 2 * (new_fitness2 < 0);
     // inipop is unidentifiable:
     real_t new_inipop = model.m_initial_pops[0];
 
@@ -438,6 +441,32 @@ int main(int argc, char* argv[]) {
         write_model_line(estimates_by_row, guess);
     }
     estimates_by_row.close();
+
+    // Finally, the un-resampled estimate:
+    {
+        std::cout << "--------------" << std::endl;
+        std::cout << "Best estimate:" << std::endl;
+        // Guess some initial model parameters:
+        real_t rloh = 1e-7;
+        real_t mu = 1e-8;
+        real_t fitness1 = 0.05;
+        real_t fitness2 = 0.03;
+        real_t initialpop = 1e6;
+
+        Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
+
+        // Try out simulated annealing:
+        std::cout << "Starting annealing..." << std::endl;
+        std::function<real_t(Model&)> objective = [&](Model& model) {
+            return loglikelihood_hist_both(model, binwidth, 
+                                           reference_pop, incidence);
+        };
+
+        Model best_guess = annealing_min(objective, guess);
+        // Annealing now complete. Print guess:
+        std::cout << "Best guesses:" << std::endl;
+        print_model(best_guess);
+    }
 
     return 0;
 }
