@@ -51,6 +51,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Call this program with: " << std::endl;
         std::cout << "    ./gillespie-sampler seed runs";
         std::cout << std::endl;
+        return 1;
     }
 
     int seed = atoi(argv[1]);
@@ -82,15 +83,20 @@ int main(int argc, char* argv[]) {
     size_t num_sample_points = 256;
     double dt = age_max / (double)num_sample_points;
 
+    std::cout.precision(20);
     for (double age = 0; age <= age_max; age += dt) {
-        real_t s1 = surv_kaplan_meier(age, all_times_1[3], reference_pop_1);
-        real_t s2 = surv_kaplan_meier(age, all_times_2[3], reference_pop_2);
-        // TODO type 4
-        real_t error = s1 - s2;
-        error *= error;
-        error /= 2;
-        error = std::sqrt(error);
-        std::cout << age << "," << error << "," << std::endl;
+        double toterr = 0;
+        for (int type = 3; type < 5; ++type) {
+            real_t s1 = surv_kaplan_meier(age, all_times_1[type], reference_pop_1);
+            real_t s2 = surv_kaplan_meier(age, all_times_2[type], reference_pop_2);
+            real_t error = s1 - s2;
+            error *= error;
+            toterr += error;
+        }
+        toterr /= 2;
+        toterr = std::sqrt(toterr);
+        std::cout << std::fixed << age << ",";
+        std::cout << std::fixed << toterr << "," << std::endl;
     }
 
     return 0;
