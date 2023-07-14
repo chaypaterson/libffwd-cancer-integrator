@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Call this program with: " << std::endl;
         std::cout << "    ./gillespie-sampler seed runs";
         std::cout << std::endl;
+        return 1;
     }
 
     int seed = atoi(argv[1]);

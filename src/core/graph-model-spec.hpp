@@ -1,5 +1,6 @@
 #include <vector>
 #include <map>
+#include <cstddef>
 #ifndef GRAPH_MODEL_DEF
 #define GRAPH_MODEL_DEF
 
