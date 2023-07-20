@@ -5,3 +5,14 @@ documentation
 errorpropagation
 parameter_inference
 ruibo
+Makefile.in
+autom4te.cache
+depcomp
+install-sh
+missing
+aclocal.m4
+*.log
+*.deps
+ar-lib
+compile
+config.status
