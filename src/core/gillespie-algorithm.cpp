@@ -83,6 +83,8 @@ std::vector<int> gillespie_instance::x_to_event(double x) {
     return delta_pops;
 }
 
+// TODO namespace Gillespie {
+
 double first_passage_time(gsl_rng *rng, const Model &params, 
         const int final_vertex) {
     // create an instance of a simulation state:
@@ -215,7 +217,7 @@ real_t surv_kaplan_meier(double age, std::vector<double> &all_times, size_t ref_
     double survival = 1.0; // TODO this is not very efficient: maybe pass
     // initial survival and age as parameters somehow?
     auto time_datum = all_times.begin();
-    while (time < age) {
+    while ((time < age) && (time_datum != all_times.end())) {
         // avoid unguarded access:
         if (time >= time_max) break;
         while (*time_datum < time) {
