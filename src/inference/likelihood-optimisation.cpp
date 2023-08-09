@@ -349,6 +349,44 @@ std::map<size_t, std::vector<size_t>> jackknife_incidence(
     return new_incidence;
 }
 
+std::vector<Model> resample_incidence(
+    const std::map<size_t, std::vector<size_t>> &incidence,
+    size_t reference_pop, std::vector<size_t> end_nodes, real_t binwidth) {
+    std::vector<Model> resampled_estimates;
+
+    for (unsigned tries = 0; tries < reference_pop; ++tries) {
+        // Guess some initial model parameters:
+        real_t rloh = 1e-7;
+        real_t mu = 1e-8;
+        real_t fitness1 = 0.05;
+        real_t fitness2 = 0.03;
+        real_t initialpop = 1e6;
+
+        Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
+
+        // Resample the incidence:
+        std::map<size_t, std::vector<size_t>> resampled_incidence;
+        resampled_incidence = jackknife_incidence(tries, incidence, end_nodes);
+
+        // Try out simulated annealing:
+        std::cout << "Starting annealing..." << std::endl;
+        std::function<real_t(Model&)> objective = [&](Model& model) {
+            return loglikelihood_hist_both(model, binwidth, 
+                                           reference_pop, resampled_incidence);
+            // the histogram version
+        };
+
+        Model best_guess = annealing_min(objective, guess);
+        // Annealing now complete. Print guess:
+        std::cout << "Best guesses:" << std::endl;
+        print_model(best_guess);
+        // Annealing now complete. Store guessed model parameters:
+        resampled_estimates.push_back(best_guess);
+    }
+
+    return resampled_estimates;
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Call this program with\n ./guesser seed dataset_size\n");
@@ -402,42 +440,15 @@ int main(int argc, char* argv[]) {
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
 
     // Jack-knife resampling of incidence:
-    std::vector<Model> bootstrapped_estimates;
-    for (unsigned tries = 0; tries < reference_pop; ++tries) {
-        // Guess some initial model parameters:
-        real_t rloh = 1e-7;
-        real_t mu = 1e-8;
-        real_t fitness1 = 0.05;
-        real_t fitness2 = 0.03;
-        real_t initialpop = 1e6;
-
-        Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
-
-        // Resample the incidence:
-        std::map<size_t, std::vector<size_t>> resampled_incidence;
-        resampled_incidence = jackknife_incidence(tries, incidence, end_nodes);
-
-        // Try out simulated annealing:
-        std::cout << "Starting annealing..." << std::endl;
-        std::function<real_t(Model&)> objective = [&](Model& model) {
-            return loglikelihood_hist_both(model, binwidth, 
-                                           reference_pop, resampled_incidence);
-            // the histogram version
-        };
-
-        Model best_guess = annealing_min(objective, guess);
-        // Annealing now complete. Print guess:
-        std::cout << "Best guesses:" << std::endl;
-        print_model(best_guess);
-        // Annealing now complete. Store guessed model parameters:
-        bootstrapped_estimates.push_back(best_guess);
-    }
+    std::vector<Model> resampled_estimates =
+                       resample_incidence(incidence, reference_pop, 
+                                          end_nodes, binwidth);
 
     // save the point estimates so we can make a density plot later
     std::ofstream estimates_by_row;
-    estimates_by_row.open("bootstrapped_estimates.csv");
+    estimates_by_row.open("resampled_estimates.csv");
     estimates_by_row << "mu, rloh, s1, s2, initial_pop," << std::endl;
-    for (auto& guess : bootstrapped_estimates) {
+    for (auto& guess : resampled_estimates) {
         write_model_line(estimates_by_row, guess);
     }
     estimates_by_row.close();
