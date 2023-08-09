@@ -16,3 +16,4 @@ aclocal.m4
 ar-lib
 compile
 config.status
+data
