@@ -6,6 +6,8 @@
 #include <cmath>
 #include <functional>
 
+#include <Eigen/Dense>
+
 #include "graph-model-spec.hpp"
 #include "fast-forward.hpp"
 #include "gillespie-algorithm.hpp"
@@ -158,6 +160,19 @@ Model instantiate_model(real_t rloh, real_t mu, real_t fitness1,
     return params;
 }
 
+void differ_model(Model& params, real_t drloh, real_t dmu, real_t dfitness1,
+                   real_t dfitness2, real_t dinitialpop) {
+    params.m_migr[0][1] += dmu;
+    params.m_migr[0][2] += drloh;
+    params.m_migr[1][3] += 0.5 * dmu;
+    params.m_migr[1][4] += 0.5 * drloh;
+    params.m_migr[2][4] += 0.5 * dmu;
+    // birth and death rates:
+    params.m_birth[1] += dfitness1;
+    params.m_birth[2] += dfitness2;
+    params.m_initial_pops[0] += dinitialpop;
+}
+
 // SIMULATED ANNEALING STUFF:
 
 double logcauchyv(double mode, double width) {
@@ -304,7 +319,6 @@ void write_model_line(std::ofstream& file, Model &model) {
     file << std::endl;
 }
 
-
 void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop, 
                     std::vector<size_t>& end_nodes,
                     std::map<size_t, std::vector<size_t>>& incidence) {
@@ -440,18 +454,18 @@ int main(int argc, char* argv[]) {
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
 
     // Jack-knife resampling of incidence:
-    std::vector<Model> resampled_estimates =
-                       resample_incidence(incidence, reference_pop, 
-                                          end_nodes, binwidth);
+    //std::vector<Model> resampled_estimates =
+    //                   resample_incidence(incidence, reference_pop, 
+    //                                      end_nodes, binwidth);
 
-    // save the point estimates so we can make a density plot later
-    std::ofstream estimates_by_row;
-    estimates_by_row.open("resampled_estimates.csv");
-    estimates_by_row << "mu, rloh, s1, s2, initial_pop," << std::endl;
-    for (auto& guess : resampled_estimates) {
-        write_model_line(estimates_by_row, guess);
-    }
-    estimates_by_row.close();
+    //// save the point estimates so we can make a density plot later
+    //std::ofstream estimates_by_row;
+    //estimates_by_row.open("resampled_estimates.csv");
+    //estimates_by_row << "mu, rloh, s1, s2, initial_pop," << std::endl;
+    //for (auto& guess : resampled_estimates) {
+    //    write_model_line(estimates_by_row, guess);
+    //}
+    //estimates_by_row.close();
 
     // Finally, the un-resampled estimate:
     {
@@ -477,6 +491,27 @@ int main(int argc, char* argv[]) {
         // Annealing now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
         print_model(best_guess);
+
+        // Compute the hessian of the objective function
+        // parameter vector = [mu, rloh, s1, s2]
+        Eigen::MatrixXd Hessian(4,4);
+
+        // Numerical derivatives:
+        double epsilon = 1e-2 * mu;
+        Model dmodel = best_guess;
+        print_model(dmodel);
+        std::cout << objective(dmodel) << std::endl;
+        differ_model(dmodel, 0, epsilon, 0, 0, 0);
+        print_model(dmodel);
+        std::cout << objective(dmodel) << std::endl;
+        double dobjdmu2;
+        dobjdmu2 = (objective(dmodel) - objective(best_guess)) / epsilon;
+        differ_model(dmodel, 0, -2 * epsilon, 0, 0, 0);
+        dobjdmu2 += (objective(dmodel) - objective(best_guess)) / epsilon;
+        dobjdmu2 /= epsilon;
+
+        Hessian(0,0) = dobjdmu2;
+        std::cout << Hessian(0,0) << std::endl;
     }
 
     return 0;
