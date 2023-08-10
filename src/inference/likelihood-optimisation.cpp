@@ -7,6 +7,7 @@
 #include <functional>
 
 #include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 
 #include "graph-model-spec.hpp"
 #include "fast-forward.hpp"
@@ -160,17 +161,24 @@ Model instantiate_model(real_t rloh, real_t mu, real_t fitness1,
     return params;
 }
 
-void differ_model(Model& params, real_t drloh, real_t dmu, real_t dfitness1,
+Model differ_model(Model& params, real_t drloh, real_t dmu, real_t dfitness1,
                    real_t dfitness2, real_t dinitialpop) {
-    params.m_migr[0][1] += dmu;
-    params.m_migr[0][2] += drloh;
-    params.m_migr[1][3] += 0.5 * dmu;
-    params.m_migr[1][4] += 0.5 * drloh;
-    params.m_migr[2][4] += 0.5 * dmu;
+    Model dmodel = params;
+    dmodel.m_migr[0][1] += dmu;
+    dmodel.m_migr[0][2] += drloh;
+    dmodel.m_migr[1][3] += 0.5 * dmu;
+    dmodel.m_migr[1][4] += 0.5 * drloh;
+    dmodel.m_migr[2][4] += 0.5 * dmu;
     // birth and death rates:
-    params.m_birth[1] += dfitness1;
-    params.m_birth[2] += dfitness2;
-    params.m_initial_pops[0] += dinitialpop;
+    dmodel.m_birth[1] += dfitness1;
+    dmodel.m_birth[2] += dfitness2;
+    dmodel.m_initial_pops[0] += dinitialpop;
+
+    return dmodel;
+}
+
+Model differ_model(Model& params, std::vector<real_t> Delta) {
+    return differ_model(params, Delta[0], Delta[1], Delta[2], Delta[3], 0);
 }
 
 // SIMULATED ANNEALING STUFF:
@@ -406,8 +414,6 @@ int main(int argc, char* argv[]) {
         printf("Call this program with\n ./guesser seed dataset_size\n");
         return 1;
     }
-    // make some fake data:
-    std::cout << "Generating synthetic dataset..." << std::endl;
     size_t seed = std::atoi(argv[1]);
     size_t dataset_size = std::atoi(argv[2]);
     srand(seed);
@@ -422,6 +428,8 @@ int main(int argc, char* argv[]) {
     printf("Ground truth:\n");
     print_model(ground_truth);
 
+    // make some fake data:
+    std::cout << "Generating synthetic dataset..." << std::endl;
     all_times = generate_dataset(ground_truth, seed, dataset_size);
     std::vector<size_t> end_nodes = {3,4};
     std::cout << "Done. Saving..." << std::endl;
@@ -492,26 +500,57 @@ int main(int argc, char* argv[]) {
         std::cout << "Best guesses:" << std::endl;
         print_model(best_guess);
 
-        // Compute the hessian of the objective function
-        // parameter vector = [mu, rloh, s1, s2]
+        // Compute the hessian of the objective function:
         Eigen::MatrixXd Hessian(4,4);
 
         // Numerical derivatives:
-        double epsilon = 1e-2 * mu;
-        Model dmodel = best_guess;
-        print_model(dmodel);
-        std::cout << objective(dmodel) << std::endl;
-        differ_model(dmodel, 0, epsilon, 0, 0, 0);
-        print_model(dmodel);
-        std::cout << objective(dmodel) << std::endl;
-        double dobjdmu2;
-        dobjdmu2 = (objective(dmodel) - objective(best_guess)) / epsilon;
-        differ_model(dmodel, 0, -2 * epsilon, 0, 0, 0);
-        dobjdmu2 += (objective(dmodel) - objective(best_guess)) / epsilon;
-        dobjdmu2 /= epsilon;
+        double epsilon = 1e-2; // 1e-3 seems to be the smallest stable value?
+        // vector of parameter values:
+        std::vector<real_t> Theta = {rloh, mu, fitness1, fitness2};
 
-        Hessian(0,0) = dobjdmu2;
-        std::cout << Hessian(0,0) << std::endl;
+        for (int x = 0; x < 4; ++x) {
+            for (int y = 0; y < 4; ++y) {
+                // Delta vector:
+                std::vector<real_t> Delta(4, 0); // will store changes in parameters
+                // Offset the starting point to improve convergence (central
+                // finite difference scheme):
+                Delta[x] = -0.5 * epsilon * Theta[x], 
+                Delta[y] = -0.5 * epsilon * Theta[y];
+                // Compute the Hessian using a finite difference scheme:
+                Model dmodel = differ_model(best_guess, Delta);
+                Model dmodel2 = dmodel;
+                Delta[x] = 0, Delta[y] = 0; // reset Delta
+                double diff;
+                // Compute x-difference and subtract off:
+                Delta[x] = epsilon * Theta[x];
+                dmodel2 = differ_model(dmodel, Delta);
+                diff = -(objective(dmodel2) - objective(dmodel)) / epsilon;
+
+                // Shift stencil in y direction:
+                Delta[x] = 0, Delta[y] = epsilon * Theta[y];
+                dmodel = differ_model(dmodel, Delta);
+                dmodel2 = differ_model(dmodel2, Delta);
+                // Compute second x-difference and add on:
+                diff += (objective(dmodel2) - objective(dmodel)) / epsilon;
+                diff /= epsilon;
+                diff /= Theta[x] * Theta[y];
+
+                Hessian(x,y) = diff;
+            }
+        }
+
+        std::cout << "H = " << std::endl;
+        std::cout << "[rloh, mu, s1, s2]" << std::endl;
+        std::cout << Hessian << std::endl;
+
+        printf("\n");
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(Hessian);
+        std::cout << eigensolver.eigenvalues();
+        printf("\n");
+
+        // Invert Hessian to get covariance matrix:
+        std::cout << "cov = H^-1 = " << std::endl;
+        std::cout << Hessian.inverse() << std::endl;
     }
 
     return 0;
