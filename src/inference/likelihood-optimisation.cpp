@@ -502,46 +502,61 @@ int main(int argc, char* argv[]) {
 
         // Compute the hessian of the objective function:
         Eigen::MatrixXd Hessian(4,4);
+        Eigen::MatrixXd Hessian2(4,4);
 
         // Numerical derivatives:
         double epsilon = 1e-2; // 1e-3 seems to be the smallest stable value?
         // vector of parameter values:
         std::vector<real_t> Theta = {rloh, mu, fitness1, fitness2};
 
-        for (int x = 0; x < 4; ++x) {
-            for (int y = 0; y < 4; ++y) {
-                // Delta vector:
-                std::vector<real_t> Delta(4, 0); // will store changes in parameters
-                // Offset the starting point to improve convergence (central
-                // finite difference scheme):
-                Delta[x] = -0.5 * epsilon * Theta[x], 
-                Delta[y] = -0.5 * epsilon * Theta[y];
-                // Compute the Hessian using a finite difference scheme:
-                Model dmodel = differ_model(best_guess, Delta);
-                Model dmodel2 = dmodel;
-                Delta[x] = 0, Delta[y] = 0; // reset Delta
-                double diff;
-                // Compute x-difference and subtract off:
-                Delta[x] = epsilon * Theta[x];
-                dmodel2 = differ_model(dmodel, Delta);
-                diff = -(objective(dmodel2) - objective(dmodel)) / epsilon;
+        for (int extrapolation_pass = 0; extrapolation_pass < 2; ++extrapolation_pass) {
+            for (int x = 0; x < 4; ++x) {
+                for (int y = 0; y < 4; ++y) {
+                    // Delta vector:
+                    std::vector<real_t> Delta(4, 0); // will store changes in parameters
+                    // Offset the starting point to improve convergence (central
+                    // finite difference scheme):
+                    Delta[x] = -0.5 * epsilon * Theta[x], 
+                    Delta[y] = -0.5 * epsilon * Theta[y];
+                    // Compute the Hessian using a finite difference scheme:
+                    Model dmodel = differ_model(best_guess, Delta);
+                    Model dmodel2 = dmodel;
+                    Delta[x] = 0, Delta[y] = 0; // reset Delta
+                    double diff;
+                    // Compute x-difference and subtract off:
+                    Delta[x] = epsilon * Theta[x];
+                    dmodel2 = differ_model(dmodel, Delta);
+                    diff = -(objective(dmodel2) - objective(dmodel)) / epsilon;
 
-                // Shift stencil in y direction:
-                Delta[x] = 0, Delta[y] = epsilon * Theta[y];
-                dmodel = differ_model(dmodel, Delta);
-                dmodel2 = differ_model(dmodel2, Delta);
-                // Compute second x-difference and add on:
-                diff += (objective(dmodel2) - objective(dmodel)) / epsilon;
-                diff /= epsilon;
-                diff /= Theta[x] * Theta[y];
+                    // Shift stencil in y direction:
+                    Delta[x] = 0, Delta[y] = epsilon * Theta[y];
+                    dmodel = differ_model(dmodel, Delta);
+                    dmodel2 = differ_model(dmodel2, Delta);
+                    // Compute second x-difference and add on:
+                    diff += (objective(dmodel2) - objective(dmodel)) / epsilon;
+                    diff /= epsilon;
+                    diff /= Theta[x] * Theta[y];
 
-                Hessian(x,y) = diff;
+                    if (extrapolation_pass == 0) Hessian(x,y) = diff;
+                    if (extrapolation_pass == 1) Hessian2(x,y) = diff;
+                }
             }
+            // Richardson extrapolation:
+            epsilon *= 2;
         }
+
+        Hessian2 = Hessian * 4 / 3 - Hessian2 * 1 / 3;
 
         std::cout << "H = " << std::endl;
         std::cout << "[rloh, mu, s1, s2]" << std::endl;
         std::cout << Hessian << std::endl;
+
+        std::cout << "H2 = " << std::endl;
+        std::cout << "[rloh, mu, s1, s2]" << std::endl;
+        std::cout << Hessian2 << std::endl;
+
+        std::cout << "est. errs = " << std::endl;
+        std::cout << Hessian.inverse() * (Hessian - Hessian2) << std::endl;
 
         printf("\n");
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(Hessian);
@@ -551,6 +566,8 @@ int main(int argc, char* argv[]) {
         // Invert Hessian to get covariance matrix:
         std::cout << "cov = H^-1 = " << std::endl;
         std::cout << Hessian.inverse() << std::endl;
+        std::cout << "cov2 = H2^-1 = " << std::endl;
+        std::cout << Hessian2.inverse() << std::endl;
     }
 
     return 0;
