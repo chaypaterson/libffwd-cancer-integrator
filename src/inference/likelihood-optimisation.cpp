@@ -505,7 +505,22 @@ int main(int argc, char* argv[]) {
         Eigen::MatrixXd Hessian2(4,4);
 
         // Numerical derivatives:
-        double epsilon = 1e-2; // 1e-3 seems to be the smallest stable value?
+        double epsilon = 1e-2;
+        /* This choice of epsilon tries to balance truncation error and
+         * catastrophic cancellations: In theory, the optimal value is on the
+         * order of
+         *      epsilon ~ (machine tol. / A)**0.25
+         *              ~ 10^-4 * (A)**-0.25
+         * where A is the largest fourth derivative of the objective function.
+         * In practice, the code below becomes unstable when epsilon gets to
+         * 10^-3, so A could be very small.
+         *
+         * The numerical stability of this procedure appears to be very poor,
+         * however. A procedure based on automatic differentiation would be a
+         * huge improvement.
+         *
+         * - Chay
+         */
         // vector of parameter values:
         std::vector<real_t> Theta = {rloh, mu, fitness1, fitness2};
 
@@ -556,11 +571,19 @@ int main(int argc, char* argv[]) {
         std::cout << Hessian2 << std::endl;
 
         std::cout << "est. errs = " << std::endl;
-        std::cout << Hessian.inverse() * (Hessian - Hessian2) << std::endl;
+        std::cout << (Hessian - Hessian2) << std::endl;
 
         printf("\n");
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(Hessian);
         std::cout << eigensolver.eigenvalues();
+        std::cout << "condition number: " << 
+            eigensolver.eigenvalues()[3] / eigensolver.eigenvalues()[0];
+        printf("\n");
+        printf("\n");
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver2(Hessian2);
+        std::cout << eigensolver2.eigenvalues();
+        std::cout << "condition number: " << 
+            eigensolver2.eigenvalues()[3] / eigensolver2.eigenvalues()[0];
         printf("\n");
 
         // Invert Hessian to get covariance matrix:
