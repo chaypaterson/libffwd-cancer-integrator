@@ -33,3 +33,11 @@ tests and experiments.
 Thu 18 May 2023 11:52:28 MDT
 
 Is the first passage time the appropriate point of comparison? What does this assume about prevalence that the other model doesn't?
+
+Mon 14 Aug 23:48:14 BST 2023
+
+^^ most of the above has been dealt with
+
+For the guesser program:
+    Try a sinc derivative filter for the finite difference Hessian? could be
+    generated programmatically.
