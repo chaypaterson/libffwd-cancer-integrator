@@ -504,7 +504,7 @@ int main(int argc, char* argv[]) {
         Eigen::MatrixXd Hessian(4,4);
 
         // Numerical derivatives:
-        double epsilon = 1e-2;
+        double epsilon = 1e-1;
         /* This choice of epsilon tries to balance truncation error and
          * catastrophic cancellations: In theory, the optimal value is on the
          * order of
@@ -532,16 +532,30 @@ int main(int argc, char* argv[]) {
          *   +1  0  -1
          *
          * Reduces to +1 -2 +1 if x == y.
+         *
+        stencil.push_back({+0.25, -1, -1});
+        stencil.push_back({+0.25, +1, +1});
+        stencil.push_back({-0.25, +1, -1});
+        stencil.push_back({-0.25, -1, +1});
          */
-        stencil.push_back({+0.5, -1, -1});
-        stencil.push_back({+0.5, +1, +1});
-        stencil.push_back({-0.5, +1, -1});
-        stencil.push_back({-0.5, -1, +1});
-        for (auto& point : stencil) {
-            for (auto& elem : point)
-                std::cout << elem << ", ";
-            printf("\n");
-        }
+        /* 16 point hessian:
+         */
+        stencil.push_back({+1.0f/144, -2, -2});
+        stencil.push_back({+1.0f/144, +2, +2});
+        stencil.push_back({-1.0f/144, +2, -2});
+        stencil.push_back({-1.0f/144, -2, +2});
+        stencil.push_back({-8.0f/144, +1, +2});
+        stencil.push_back({-8.0f/144, +2, +1});
+        stencil.push_back({-8.0f/144, -1, -2});
+        stencil.push_back({-8.0f/144, -2, -1});
+        stencil.push_back({+8.0f/144, -1, +2});
+        stencil.push_back({+8.0f/144, -2, +1});
+        stencil.push_back({+8.0f/144, +1, -2});
+        stencil.push_back({+8.0f/144, +2, -1});
+        stencil.push_back({+64.0f/144, +1, +1});
+        stencil.push_back({+64.0f/144, -1, -1});
+        stencil.push_back({-64.0f/144, +1, -1});
+        stencil.push_back({-64.0f/144, -1, +1});
 
         for (int x = 0; x < 4; ++x) {
             for (int y = 0; y < 4; ++y) {
@@ -557,13 +571,12 @@ int main(int argc, char* argv[]) {
                     diff += point[0] * objective(dmodel) / epsilon;
                 }
                 // Scale diff appropriately to get derivative:
-                diff /= 2 * epsilon;
+                diff /= epsilon;
                 diff /= Theta[x] * Theta[y];
 
                 Hessian(x,y) = diff;
             }
         }
-
 
         std::cout << "H = " << std::endl;
         std::cout << "[rloh, mu, s1, s2]" << std::endl;
