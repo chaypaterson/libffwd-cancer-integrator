@@ -467,6 +467,35 @@ std::vector<std::vector<double>> StencilSixteen() {
             {-64.0f/144, -1, +1}};
 }
 
+std::vector<std::vector<double>> StencilSinc(int radius) {
+    /* Idealised 2D Sinc derivative filter:
+     * taps = 2 * radius + 1
+     */
+    std::vector<std::vector<double>> stencil;
+
+    for (int m = -radius; m < radius + 1; ++m) {
+        for (int n = -radius; n < radius + 1; ++n) {
+            double weight = 0;
+            if ((m * n) != 0) {
+                weight = 1.0f / (m * n);
+                if ((m + n) % 2) weight *= -1;
+                stencil.push_back({weight, (double)m, (double)n});
+            }
+        }
+    }
+
+    return stencil;
+}
+
+void StencilPrint(std::vector<std::vector<double>> stencil) {
+    for (auto& point : stencil) {
+        for (auto& coef : point) {
+            std::cout << coef << ", ";
+        }
+        std::cout << std::endl;
+    }
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Call this program with\n ./guesser seed dataset_size\n");
@@ -551,7 +580,7 @@ int main(int argc, char* argv[]) {
         Eigen::MatrixXd Hessian(4,4);
 
         // Numerical derivatives:
-        double epsilon = 1e-1;
+        double epsilon = 1e-3;
         /* This choice of epsilon tries to balance truncation error and
          * catastrophic cancellations: In theory, the optimal value is on the
          * order of
@@ -575,7 +604,9 @@ int main(int argc, char* argv[]) {
 
         // Pre-compute a stencil and weights to use for finite differencing:
         std::vector<std::vector<double>> stencil;
-        stencil = StencilSixteen();
+        //stencil = StencilSixteen();
+        stencil = StencilSinc(9);
+        StencilPrint(stencil);
 
         for (int x = 0; x < 4; ++x) {
             for (int y = 0; y < 4; ++y) {
