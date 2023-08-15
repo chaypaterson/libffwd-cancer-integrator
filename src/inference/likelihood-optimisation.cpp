@@ -147,6 +147,7 @@ std::vector<std::pair<double,int>> generate_dataset(Model& model, int seed, int 
 
 Model instantiate_model(real_t rloh, real_t mu, real_t fitness1, 
                         real_t fitness2, real_t initialpop) {
+    // Spawn a model of tumour suppressor loss
     Model params(5);
     params.m_migr[0][1] = mu;
     params.m_migr[0][2] = rloh;
@@ -409,6 +410,63 @@ std::vector<Model> resample_incidence(
     return resampled_estimates;
 }
 
+void jackknife_and_save(std::map<size_t, std::vector<size_t>> &incidence,
+                        size_t reference_pop, real_t binwidth, 
+                        std::vector<size_t> end_nodes) {
+    std::vector<Model> resampled_estimates =
+                       resample_incidence(incidence, reference_pop, 
+                                          end_nodes, binwidth);
+
+    // save the point estimates so we can make a density plot later
+    std::ofstream estimates_by_row;
+    estimates_by_row.open("resampled_estimates.csv");
+    estimates_by_row << "mu, rloh, s1, s2, initial_pop," << std::endl;
+    for (auto& guess : resampled_estimates) {
+        write_model_line(estimates_by_row, guess);
+    }
+    estimates_by_row.close();
+}
+
+// Stencils for numerical differentiation:
+// TODO these should be objects in a class
+std::vector<std::vector<double>> StencilFourPoint() {
+    /* stencil contains lines of the form: weight_i, x_i, y_i.
+     * Four point hessian:
+     *   -1  0  +1
+     *    0  0   0
+     *   +1  0  -1
+     *
+     * Reduces to +1 -2 +1 if x == y.
+     */
+    return {{+0.25, -1, -1}, 
+            {+0.25, +1, +1}, 
+            {-0.25, +1, -1}, 
+            {-0.25, -1, +1}};
+}
+
+std::vector<std::vector<double>> StencilSixteen() {
+    /* 16 point Hessian stencil:
+     * This is derived from the tensor product of the 5 point stencil with
+     * itself, (1/12) * (+1, -8, 0, +8, -1)
+     */
+    return {{+1.0f/144, -2, -2},
+            {+1.0f/144, +2, +2},
+            {-1.0f/144, +2, -2},
+            {-1.0f/144, -2, +2},
+            {-8.0f/144, +1, +2},
+            {-8.0f/144, +2, +1},
+            {-8.0f/144, -1, -2},
+            {-8.0f/144, -2, -1},
+            {+8.0f/144, -1, +2},
+            {+8.0f/144, -2, +1},
+            {+8.0f/144, +1, -2},
+            {+8.0f/144, +2, -1},
+            {+64.0f/144, +1, +1},
+            {+64.0f/144, -1, -1},
+            {-64.0f/144, +1, -1},
+            {-64.0f/144, -1, +1}};
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Call this program with\n ./guesser seed dataset_size\n");
@@ -462,18 +520,7 @@ int main(int argc, char* argv[]) {
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
 
     // Jack-knife resampling of incidence:
-    //std::vector<Model> resampled_estimates =
-    //                   resample_incidence(incidence, reference_pop, 
-    //                                      end_nodes, binwidth);
-
-    //// save the point estimates so we can make a density plot later
-    //std::ofstream estimates_by_row;
-    //estimates_by_row.open("resampled_estimates.csv");
-    //estimates_by_row << "mu, rloh, s1, s2, initial_pop," << std::endl;
-    //for (auto& guess : resampled_estimates) {
-    //    write_model_line(estimates_by_row, guess);
-    //}
-    //estimates_by_row.close();
+    // jackknife_and_save(incidence, reference_pop, binwidth, end_nodes);
 
     // Finally, the un-resampled estimate:
     {
@@ -520,42 +567,15 @@ int main(int argc, char* argv[]) {
          *
          * - Chay
          */
-        // vector of initial guesses of parameter values:
-        std::vector<real_t> Theta = {rloh, mu, fitness1, fitness2};
+        // vector of best guesses of parameter values:
+        std::vector<real_t> Theta = {best_guess.m_migr[0][2]/*rloh*/, 
+                                     best_guess.m_migr[0][1]/*mu*/, 
+                                     best_guess.m_birth[1]/*fitness1*/, 
+                                     best_guess.m_birth[2]/*fitness2*/};
 
         // Pre-compute a stencil and weights to use for finite differencing:
         std::vector<std::vector<double>> stencil;
-        /* stencil contains lines of the form: weight_i, x_i, y_i.
-         * Four point hessian:
-         *   -1  0  +1
-         *    0  0   0
-         *   +1  0  -1
-         *
-         * Reduces to +1 -2 +1 if x == y.
-         *
-        stencil.push_back({+0.25, -1, -1});
-        stencil.push_back({+0.25, +1, +1});
-        stencil.push_back({-0.25, +1, -1});
-        stencil.push_back({-0.25, -1, +1});
-         */
-        /* 16 point hessian:
-         */
-        stencil.push_back({+1.0f/144, -2, -2});
-        stencil.push_back({+1.0f/144, +2, +2});
-        stencil.push_back({-1.0f/144, +2, -2});
-        stencil.push_back({-1.0f/144, -2, +2});
-        stencil.push_back({-8.0f/144, +1, +2});
-        stencil.push_back({-8.0f/144, +2, +1});
-        stencil.push_back({-8.0f/144, -1, -2});
-        stencil.push_back({-8.0f/144, -2, -1});
-        stencil.push_back({+8.0f/144, -1, +2});
-        stencil.push_back({+8.0f/144, -2, +1});
-        stencil.push_back({+8.0f/144, +1, -2});
-        stencil.push_back({+8.0f/144, +2, -1});
-        stencil.push_back({+64.0f/144, +1, +1});
-        stencil.push_back({+64.0f/144, -1, -1});
-        stencil.push_back({-64.0f/144, +1, -1});
-        stencil.push_back({-64.0f/144, -1, +1});
+        stencil = StencilSixteen();
 
         for (int x = 0; x < 4; ++x) {
             for (int y = 0; y < 4; ++y) {
@@ -582,12 +602,6 @@ int main(int argc, char* argv[]) {
         std::cout << "[rloh, mu, s1, s2]" << std::endl;
         std::cout << Hessian << std::endl;
 
-        printf("\n");
-        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(Hessian);
-        std::cout << eigensolver.eigenvalues();
-        printf("\n");
-        std::cout << "condition number: " << 
-            eigensolver.eigenvalues()[3] / eigensolver.eigenvalues()[0];
         printf("\n");
 
         // Invert Hessian to get covariance matrix:
