@@ -466,9 +466,26 @@ std::vector<std::vector<double>> StencilSixteen() {
             {-64.0f/144, +1, -1},
             {-64.0f/144, -1, +1}};
 }
+std::vector<std::vector<double>> StencilLP16() {
+    /* forms a 16 point stencil that combines a derivative with a low pass
+     * filter using a tensor product
+     */
+    std::vector<std::vector<double>> stencil;
 
+    std::vector<double> coeffs = {-0.125, -0.25, 0, 0.25, 0.125};
+    //std::vector<double> coeffs = {+0.25/2, -1.47262/2, 0, +1.47262/2, -0.25/2};
+    for (int m = -2; m <= 2; ++m) {
+        for (int n = -2; n <= 2; ++n) {
+            double weight = coeffs[m + 2] * coeffs[n + 2];
+            if (weight * weight > 0)
+                stencil.push_back({weight, (double)m, (double)n});
+        }
+    }
+
+    return stencil;
+}
 std::vector<std::vector<double>> StencilSinc(int radius) {
-    /* Idealised 2D Sinc derivative filter:
+    /* Truncated 2D Sinc derivative filter:
      * taps = 2 * radius + 1
      */
     std::vector<std::vector<double>> stencil;
@@ -581,18 +598,8 @@ int main(int argc, char* argv[]) {
 
         // Numerical derivatives:
         double epsilon = 1e-3;
-        /* This choice of epsilon tries to balance truncation error and
-         * catastrophic cancellations: In theory, the optimal value is on the
-         * order of
-         *      epsilon ~ (machine tol. / A)**0.25
-         *              ~ 10^-4 * (A)**-0.25
-         * where A is the largest fourth derivative of the objective function.
-         * In practice, the code below becomes unstable when epsilon gets to
-         * 10^-3, so A could be very small.
-         *
-         * The numerical stability of this procedure appears to be very poor,
-         * however. A procedure based on automatic differentiation would be a
-         * huge improvement.
+        /* Try to choose epsilon to balance truncation error and
+         * catastrophic cancellations.
          *
          * - Chay
          */
@@ -604,16 +611,15 @@ int main(int argc, char* argv[]) {
 
         // Pre-compute a stencil and weights to use for finite differencing:
         std::vector<std::vector<double>> stencil;
-        //stencil = StencilSixteen();
-        stencil = StencilSinc(9);
-        StencilPrint(stencil);
+        stencil = StencilLP16();
 
+        // To improve numerical stability, take the derivatives with regards to
+        // the logs of the parameters, then convert back:
         for (int x = 0; x < 4; ++x) {
             for (int y = 0; y < 4; ++y) {
                 // Compute the Hessian using a finite difference scheme:
 
                 double diff = 0;
-
                 for (auto& point : stencil) {
                     std::vector<real_t> Delta(4, 0); 
                     Delta[x] += epsilon * Theta[x] * point[1];
@@ -623,11 +629,25 @@ int main(int argc, char* argv[]) {
                 }
                 // Scale diff appropriately to get derivative:
                 diff /= epsilon;
-                diff /= Theta[x] * Theta[y];
+                //diff /= Theta[x] * Theta[y]; // ignore this for now...
 
                 Hessian(x,y) = diff;
             }
         }
+
+        // Raw Hessian (in nice units):
+        std::cout << "H = " << std::endl;
+        std::cout << "[rloh, mu, s1, s2]" << std::endl;
+        std::cout << Hessian << std::endl;
+
+        printf("\n");
+
+        Eigen::MatrixXd Jacobian(4,4);
+        for (int i = 0; i < 4; ++i)
+            Jacobian(i,i) = 1.0 / Theta[i];
+
+        // True Hessian:
+        Hessian = Jacobian.transpose() * Hessian * Jacobian;
 
         std::cout << "H = " << std::endl;
         std::cout << "[rloh, mu, s1, s2]" << std::endl;
