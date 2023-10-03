@@ -41,3 +41,9 @@ Mon 14 Aug 23:48:14 BST 2023
 For the guesser program:
     Try a sinc derivative filter for the finite difference Hessian? could be
     generated programmatically.
+
+Tue  3 Oct 15:43:22 BST 2023
+
+^^ Most of the above done
+TODO URGENT: establish how "shallow" the global vs. local minima are. This could
+explain the twitchiness and sensitivity to outliers.
