@@ -446,10 +446,47 @@ std::vector<std::vector<double>> StencilLP16() {
     return stencil;
 }
 
-Eigen::MatrixXd compute_hessian(Model best_guess, 
-                                std::function<real_t(Model&)> objective) {
-    // Compute the hessian of the objective function:
-    Eigen::MatrixXd Hessian(4,4);
+Eigen::MatrixXd compute_gradient(std::function<real_t(Model&)> objective,
+                                Model point) {
+    // Compute the gradient of the objective function at a point:
+    int dim = 4;
+    Eigen::MatrixXd Gradient(dim,1);
+
+    // Numerical derivatives:
+    double epsilon = 1e-3; // use the same epsilon as we used for the hessian
+
+    std::vector<double> weights = {-0.125, -0.25, 0, 0.25, 0.125};
+    int radius = (weights.size() - 1) / 2; // NB: weights.size must be odd
+
+    // vector of parameter values:
+    std::vector<real_t> Theta = {point.m_migr[0][2] /*rloh*/, 
+                                 point.m_migr[0][1] /*mu*/, 
+                                 point.m_birth[1]   /*fitness1*/, 
+                                 point.m_birth[2]   /*fitness2*/};
+
+    for (int axis = 0; axis < dim; ++axis) {
+        /* Compute the derivative along each axis using a finite difference
+           scheme and the weights given above: */
+        double diff = 0;
+        for (int tap = 0, step = -radius; tap < weights.size(); ++tap, ++step) {
+            std::vector<real_t> Delta(dim, 0);
+            Delta[axis] = epsilon * Theta[axis] * step;
+            Model dmodel = differ_model(point, Delta);
+            diff += weights[tap] * objective(dmodel) / epsilon;
+        }
+        diff /= Theta[axis];
+
+        Gradient(axis, 0) = diff;
+    }
+
+    return Gradient;
+}
+
+Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
+                                Model point) {
+    // Compute the hessian of the objective function at a point:
+    int dim = 4;
+    Eigen::MatrixXd Hessian(dim,dim);
 
     // Numerical derivatives:
     double epsilon = 1e-3;
@@ -458,11 +495,11 @@ Eigen::MatrixXd compute_hessian(Model best_guess,
      *
      * - Chay
      */
-    // vector of best guesses of parameter values:
-    std::vector<real_t> Theta = {best_guess.m_migr[0][2] /*rloh*/, 
-                                 best_guess.m_migr[0][1] /*mu*/, 
-                                 best_guess.m_birth[1]   /*fitness1*/, 
-                                 best_guess.m_birth[2]   /*fitness2*/};
+    // vector of parameter values:
+    std::vector<real_t> Theta = {point.m_migr[0][2] /*rloh*/, 
+                                 point.m_migr[0][1] /*mu*/, 
+                                 point.m_birth[1]   /*fitness1*/, 
+                                 point.m_birth[2]   /*fitness2*/};
 
     // Pre-compute a stencil and weights to use for finite differencing:
     std::vector<std::vector<double>> stencil;
@@ -470,17 +507,17 @@ Eigen::MatrixXd compute_hessian(Model best_guess,
 
     // To improve numerical stability, take the derivatives with regards to
     // the logs of the parameters, then convert back:
-    for (int x = 0; x < 4; ++x) {
-        for (int y = 0; y < 4; ++y) {
+    for (int x = 0; x < dim; ++x) {
+        for (int y = 0; y < dim; ++y) {
             // Compute the Hessian using a finite difference scheme:
 
             double diff = 0;
-            for (auto& point : stencil) {
-                std::vector<real_t> Delta(4, 0); 
-                Delta[x] += epsilon * Theta[x] * point[1];
-                Delta[y] += epsilon * Theta[y] * point[2];
-                Model dmodel = differ_model(best_guess, Delta);
-                diff += point[0] * objective(dmodel) / epsilon;
+            for (auto& tap : stencil) {
+                std::vector<real_t> Delta(dim, 0); 
+                Delta[x] += epsilon * Theta[x] * tap[1];
+                Delta[y] += epsilon * Theta[y] * tap[2];
+                Model dmodel = differ_model(point, Delta);
+                diff += tap[0] * objective(dmodel) / epsilon;
             }
             // Scale diff appropriately to get second derivative:
             diff /= epsilon;
@@ -489,18 +526,11 @@ Eigen::MatrixXd compute_hessian(Model best_guess,
         }
     }
 
-    // Raw Hessian (in nice units):
-    std::cout << "H = " << std::endl;
-    std::cout << "[rloh, mu, s1, s2]" << std::endl;
-    std::cout << Hessian << std::endl;
-
-    printf("\n");
-
-    Eigen::MatrixXd Jacobian(4,4);
-    for (int i = 0; i < 4; ++i)
+    // Convert from log coords to true Hessian:
+    Eigen::MatrixXd Jacobian(dim,dim);
+    for (int i = 0; i < dim; ++i)
         Jacobian(i,i) = 1.0 / Theta[i];
 
-    // Convert from log coords to true Hessian:
     Hessian = Jacobian.transpose() * Hessian * Jacobian;
 
     return Hessian;
@@ -588,7 +618,7 @@ int main(int argc, char* argv[]) {
         print_model(best_guess);
 
         // Get and return Hessian:
-        Eigen::MatrixXd Hessian = compute_hessian(best_guess, objective);
+        Eigen::MatrixXd Hessian = compute_hessian(objective, best_guess);
 
         std::cout << "H = " << std::endl;
         std::cout << "[rloh, mu, s1, s2]" << std::endl;
