@@ -536,6 +536,17 @@ Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
     return Hessian;
 }
 
+Model gradient_min(std::function<real_t(Model& model)> objective, 
+                    Model initial_guess) {
+    // Initialise variables:
+    Model best_guess = initial_guess;
+    double best_y = objective(best_guess);
+
+    // Minimise objective using gradient descent (numerical not autodiff)
+    // Do something...
+    return best_guess;
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Call this program with\n ./guesser seed dataset_size\n");
