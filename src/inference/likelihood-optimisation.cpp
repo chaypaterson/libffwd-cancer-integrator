@@ -427,45 +427,7 @@ void jackknife_and_save(std::map<size_t, std::vector<size_t>> &incidence,
     estimates_by_row.close();
 }
 
-// Stencils for numerical differentiation:
-// TODO these should be objects in a class
-std::vector<std::vector<double>> StencilFourPoint() {
-    /* stencil contains lines of the form: weight_i, x_i, y_i.
-     * Four point hessian:
-     *   -1  0  +1
-     *    0  0   0
-     *   +1  0  -1
-     *
-     * Reduces to +1 -2 +1 if x == y.
-     */
-    return {{+0.25, -1, -1}, 
-            {+0.25, +1, +1}, 
-            {-0.25, +1, -1}, 
-            {-0.25, -1, +1}};
-}
-
-std::vector<std::vector<double>> StencilSixteen() {
-    /* 16 point Hessian stencil:
-     * This is derived from the tensor product of the 5 point stencil with
-     * itself, (1/12) * (+1, -8, 0, +8, -1)
-     */
-    return {{+1.0f/144, -2, -2},
-            {+1.0f/144, +2, +2},
-            {-1.0f/144, +2, -2},
-            {-1.0f/144, -2, +2},
-            {-8.0f/144, +1, +2},
-            {-8.0f/144, +2, +1},
-            {-8.0f/144, -1, -2},
-            {-8.0f/144, -2, -1},
-            {+8.0f/144, -1, +2},
-            {+8.0f/144, -2, +1},
-            {+8.0f/144, +1, -2},
-            {+8.0f/144, +2, -1},
-            {+64.0f/144, +1, +1},
-            {+64.0f/144, -1, -1},
-            {-64.0f/144, +1, -1},
-            {-64.0f/144, -1, +1}};
-}
+// Stencil for numerical differentiation:
 std::vector<std::vector<double>> StencilLP16() {
     /* forms a 16 point stencil that combines a derivative with a low pass
      * filter using a tensor product
@@ -473,7 +435,6 @@ std::vector<std::vector<double>> StencilLP16() {
     std::vector<std::vector<double>> stencil;
 
     std::vector<double> coeffs = {-0.125, -0.25, 0, 0.25, 0.125};
-    //std::vector<double> coeffs = {+0.25/2, -1.47262/2, 0, +1.47262/2, -0.25/2};
     for (int m = -2; m <= 2; ++m) {
         for (int n = -2; n <= 2; ++n) {
             double weight = coeffs[m + 2] * coeffs[n + 2];
@@ -484,33 +445,65 @@ std::vector<std::vector<double>> StencilLP16() {
 
     return stencil;
 }
-std::vector<std::vector<double>> StencilSinc(int radius) {
-    /* Truncated 2D Sinc derivative filter:
-     * taps = 2 * radius + 1
+
+Eigen::MatrixXd compute_hessian(Model best_guess, 
+                                std::function<real_t(Model&)> objective) {
+    // Compute the hessian of the objective function:
+    Eigen::MatrixXd Hessian(4,4);
+
+    // Numerical derivatives:
+    double epsilon = 1e-3;
+    /* Try to choose epsilon to balance truncation error and
+     * catastrophic cancellations.
+     *
+     * - Chay
      */
+    // vector of best guesses of parameter values:
+    std::vector<real_t> Theta = {best_guess.m_migr[0][2] /*rloh*/, 
+                                 best_guess.m_migr[0][1] /*mu*/, 
+                                 best_guess.m_birth[1]   /*fitness1*/, 
+                                 best_guess.m_birth[2]   /*fitness2*/};
+
+    // Pre-compute a stencil and weights to use for finite differencing:
     std::vector<std::vector<double>> stencil;
+    stencil = StencilLP16();
 
-    for (int m = -radius; m < radius + 1; ++m) {
-        for (int n = -radius; n < radius + 1; ++n) {
-            double weight = 0;
-            if ((m * n) != 0) {
-                weight = 1.0f / (m * n);
-                if ((m + n) % 2) weight *= -1;
-                stencil.push_back({weight, (double)m, (double)n});
+    // To improve numerical stability, take the derivatives with regards to
+    // the logs of the parameters, then convert back:
+    for (int x = 0; x < 4; ++x) {
+        for (int y = 0; y < 4; ++y) {
+            // Compute the Hessian using a finite difference scheme:
+
+            double diff = 0;
+            for (auto& point : stencil) {
+                std::vector<real_t> Delta(4, 0); 
+                Delta[x] += epsilon * Theta[x] * point[1];
+                Delta[y] += epsilon * Theta[y] * point[2];
+                Model dmodel = differ_model(best_guess, Delta);
+                diff += point[0] * objective(dmodel) / epsilon;
             }
+            // Scale diff appropriately to get second derivative:
+            diff /= epsilon;
+
+            Hessian(x,y) = diff;
         }
     }
 
-    return stencil;
-}
+    // Raw Hessian (in nice units):
+    std::cout << "H = " << std::endl;
+    std::cout << "[rloh, mu, s1, s2]" << std::endl;
+    std::cout << Hessian << std::endl;
 
-void StencilPrint(std::vector<std::vector<double>> stencil) {
-    for (auto& point : stencil) {
-        for (auto& coef : point) {
-            std::cout << coef << ", ";
-        }
-        std::cout << std::endl;
-    }
+    printf("\n");
+
+    Eigen::MatrixXd Jacobian(4,4);
+    for (int i = 0; i < 4; ++i)
+        Jacobian(i,i) = 1.0 / Theta[i];
+
+    // Convert from log coords to true Hessian:
+    Hessian = Jacobian.transpose() * Hessian * Jacobian;
+
+    return Hessian;
 }
 
 int main(int argc, char* argv[]) {
@@ -558,15 +551,12 @@ int main(int argc, char* argv[]) {
     for (auto &end_node : end_nodes) {
         incidence[end_node] = convert_to_histogram(all_times, binwidth, end_node);
     }
-    printf("Target likelihood:\n-log L = %g\n", 
-            loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
-                                    incidence));
 
     // Save the histogram:
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
 
     // Jack-knife resampling of incidence:
-    // jackknife_and_save(incidence, reference_pop, binwidth, end_nodes);
+    jackknife_and_save(incidence, reference_pop, binwidth, end_nodes);
 
     // Finally, the un-resampled estimate:
     {
@@ -578,6 +568,10 @@ int main(int argc, char* argv[]) {
         real_t fitness1 = 0.05;
         real_t fitness2 = 0.03;
         real_t initialpop = 1e6;
+
+        printf("Target likelihood:\n-log L = %g\n", 
+                loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
+                                        incidence));
 
         Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
@@ -593,61 +587,8 @@ int main(int argc, char* argv[]) {
         std::cout << "Best guesses:" << std::endl;
         print_model(best_guess);
 
-        // Compute the hessian of the objective function:
-        Eigen::MatrixXd Hessian(4,4);
-
-        // Numerical derivatives:
-        double epsilon = 1e-3;
-        /* Try to choose epsilon to balance truncation error and
-         * catastrophic cancellations.
-         *
-         * - Chay
-         */
-        // vector of best guesses of parameter values:
-        std::vector<real_t> Theta = {best_guess.m_migr[0][2]/*rloh*/, 
-                                     best_guess.m_migr[0][1]/*mu*/, 
-                                     best_guess.m_birth[1]/*fitness1*/, 
-                                     best_guess.m_birth[2]/*fitness2*/};
-
-        // Pre-compute a stencil and weights to use for finite differencing:
-        std::vector<std::vector<double>> stencil;
-        stencil = StencilLP16();
-
-        // To improve numerical stability, take the derivatives with regards to
-        // the logs of the parameters, then convert back:
-        for (int x = 0; x < 4; ++x) {
-            for (int y = 0; y < 4; ++y) {
-                // Compute the Hessian using a finite difference scheme:
-
-                double diff = 0;
-                for (auto& point : stencil) {
-                    std::vector<real_t> Delta(4, 0); 
-                    Delta[x] += epsilon * Theta[x] * point[1];
-                    Delta[y] += epsilon * Theta[y] * point[2];
-                    Model dmodel = differ_model(best_guess, Delta);
-                    diff += point[0] * objective(dmodel) / epsilon;
-                }
-                // Scale diff appropriately to get derivative:
-                diff /= epsilon;
-                //diff /= Theta[x] * Theta[y]; // ignore this for now...
-
-                Hessian(x,y) = diff;
-            }
-        }
-
-        // Raw Hessian (in nice units):
-        std::cout << "H = " << std::endl;
-        std::cout << "[rloh, mu, s1, s2]" << std::endl;
-        std::cout << Hessian << std::endl;
-
-        printf("\n");
-
-        Eigen::MatrixXd Jacobian(4,4);
-        for (int i = 0; i < 4; ++i)
-            Jacobian(i,i) = 1.0 / Theta[i];
-
-        // True Hessian:
-        Hessian = Jacobian.transpose() * Hessian * Jacobian;
+        // Get and return Hessian:
+        Eigen::MatrixXd Hessian = compute_hessian(best_guess, objective);
 
         std::cout << "H = " << std::endl;
         std::cout << "[rloh, mu, s1, s2]" << std::endl;
@@ -659,10 +600,16 @@ int main(int argc, char* argv[]) {
         std::cout << "cov = H^-1 = " << std::endl;
         std::cout << Hessian.inverse() << std::endl;
 
-        // Confidence intervals:
+        // Compute confidence intervals:
         std::cout << "Standard deviations:" << std::endl;
+        int param = 0;
         for (int param = 0; param < 4; ++param) {
-            std::cout << Theta[param] << " +/- ";
+            double estimate;
+            if (param == 0) estimate = best_guess.m_migr[0][2];
+            if (param == 1) estimate = best_guess.m_migr[0][1];
+            if (param == 2) estimate = best_guess.m_birth[1];
+            if (param == 3) estimate = best_guess.m_birth[2];
+            std::cout << estimate << " +/- ";
             std::cout << sqrt(Hessian.inverse()(param, param)) << std::endl;
         }
     }
