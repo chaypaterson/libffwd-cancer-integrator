@@ -448,7 +448,8 @@ std::vector<std::vector<double>> StencilLP16() {
 
 Eigen::MatrixXd compute_gradient(std::function<real_t(Model&)> objective,
                                 Model point) {
-    // Compute the gradient of the objective function at a point:
+    // Compute the gradient of the objective function at a point with respect to
+    // the logs of the model parameters:
     int dim = 4;
     Eigen::MatrixXd Gradient(dim,1);
 
@@ -474,7 +475,7 @@ Eigen::MatrixXd compute_gradient(std::function<real_t(Model&)> objective,
             Model dmodel = differ_model(point, Delta);
             diff += weights[tap] * objective(dmodel) / epsilon;
         }
-        diff /= Theta[axis];
+        //diff /= Theta[axis]; // do not rescale: use logs of parameters
 
         Gradient(axis, 0) = diff;
     }
@@ -538,12 +539,59 @@ Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
 
 Model gradient_min(std::function<real_t(Model& model)> objective, 
                     Model initial_guess) {
+    /* Minimise objective using gradient descent (NB: we are using numerical
+       differentiation, not autodiff/backpropagation)
+     */
+
     // Initialise variables:
     Model best_guess = initial_guess;
     double best_y = objective(best_guess);
 
-    // Minimise objective using gradient descent (numerical not autodiff)
-    // Do something...
+    int dim = 4;
+    double learning_rate = 1e-4;
+    double tolerance = 1e-3; // % change tolerated in parameter estimates
+
+    // while the gradient is too large:
+    while (1) {
+        // compute the gradient at the current best guess
+        Eigen::MatrixXd gradient = compute_gradient(objective, best_guess);
+
+        std::vector<real_t> Theta = {best_guess.m_migr[0][2] /*rloh*/,
+                                     best_guess.m_migr[0][1] /*mu*/, 
+                                     best_guess.m_birth[1]   /*fitness1*/,
+                                     best_guess.m_birth[2]   /*fitness2*/};
+
+        // update the current best guess by -learning_rate * gradient
+        std::vector<real_t> Delta(dim, 0);
+        for (int axis = 0; axis < dim; ++axis) {
+            Delta[axis] = Theta[axis] * (exp(-learning_rate * gradient(axis)) - 1);
+            std::cout << Delta[axis] << std::endl;
+        }
+
+        best_guess = differ_model(best_guess, Delta);
+
+        // we want the percentage-change in all coefficients to be lower than
+        // tolerance:
+
+        Eigen::MatrixXd Jacobian(dim,dim);
+        double change = 0;
+        for (int i = 0; i < dim; ++i) {
+            Jacobian(i,i) = 1.0 / Theta[i];
+            double dx = Delta[i] / Theta[i];
+            change += dx * dx;
+        }
+
+        change = std::sqrt(change);
+
+        //double change = learning_rate * (Jacobian * gradient).norm();
+        std::cout << change << std::endl;
+        print_model(best_guess);
+
+        // if the gradient is small enough, exit:
+        if (change < tolerance) break;
+        if (std::isnan(change)) break;
+    }
+
     return best_guess;
 }
 
@@ -597,7 +645,7 @@ int main(int argc, char* argv[]) {
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
 
     // Jack-knife resampling of incidence:
-    jackknife_and_save(incidence, reference_pop, binwidth, end_nodes);
+    //jackknife_and_save(incidence, reference_pop, binwidth, end_nodes);
 
     // Finally, the un-resampled estimate:
     {
@@ -617,13 +665,14 @@ int main(int argc, char* argv[]) {
         Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
         // Try out simulated annealing:
-        std::cout << "Starting annealing..." << std::endl;
+        //std::cout << "Starting annealing..." << std::endl;
+        std::cout << "Starting gradient descent..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
             return loglikelihood_hist_both(model, binwidth, 
                                            reference_pop, incidence);
         };
 
-        Model best_guess = annealing_min(objective, guess);
+        Model best_guess = gradient_min(objective, guess);
         // Annealing now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
         print_model(best_guess);
