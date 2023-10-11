@@ -306,126 +306,7 @@ Model annealing_min(std::function<real_t(Model& model)> objective,
     return best_guess;
 }
 
-void print_model(Model &model) {
-    printf("  mu = %g\n", model.m_migr[0][1]);
-    printf("  rloh = %g\n", model.m_migr[0][2]);
-    printf("  fitness1 = %g\n", model.m_birth[1]);
-    printf("  fitness2 = %g\n", model.m_birth[2]);
-    printf("  inipop = %g\n", model.m_initial_pops[0]);
-}
-
-void write_model_line(std::ofstream& file, Model &model) {
-    file << model.m_migr[0][1];
-    file << ", ";
-    file << model.m_migr[0][2];
-    file << ", ";
-    file << model.m_birth[1];
-    file << ", ";
-    file << model.m_birth[2];
-    file << ", ";
-    file << model.m_initial_pops[0];
-    file << ",";
-    file << std::endl;
-}
-
-void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop, 
-                    std::vector<size_t>& end_nodes,
-                    std::map<size_t, std::vector<size_t>>& incidence) {
-    std::ofstream fakedata;
-    fakedata.open("syntheticdata_hist.csv");
-    fakedata << "bin width = " << binwidth << "\n";
-    fakedata << "max age = " << max_age << "\n";
-    fakedata << "ref population = " << reference_pop << std::endl;
-
-    for (auto &end_node : end_nodes) {
-        fakedata << "[";
-        for (auto& bin : incidence[end_node]) 
-            fakedata << bin << ", ";
-        fakedata << "]" << std::endl;
-    }
-
-    fakedata.close();
-}
-
-std::map<size_t, std::vector<size_t>> jackknife_incidence(
-                            size_t index,
-                            const std::map<size_t, std::vector<size_t>>
-                            &histogram,
-                            std::vector<size_t> end_nodes) {
-    // delete the index-th entry in the histogram
-    std::map<size_t, std::vector<size_t>> new_incidence = histogram;
-    // first we have to find the indexth person
-    size_t count = 0;
-    for (auto& end_node : end_nodes) {
-        for (auto& bin : new_incidence[end_node]) {
-            count += bin;
-            if (count > index) {
-                // delete one individual:
-                --bin;
-                // we are now done:
-                return new_incidence;
-            }
-        }
-    }
-    // if we get here something has gone wrong are there are not enough entries
-    // in the histogram.
-    return new_incidence;
-}
-
-std::vector<Model> resample_incidence(
-    const std::map<size_t, std::vector<size_t>> &incidence,
-    size_t reference_pop, std::vector<size_t> end_nodes, real_t binwidth) {
-    std::vector<Model> resampled_estimates;
-
-    for (unsigned tries = 0; tries < reference_pop; ++tries) {
-        // Guess some initial model parameters:
-        real_t rloh = 1e-7;
-        real_t mu = 1e-8;
-        real_t fitness1 = 0.05;
-        real_t fitness2 = 0.03;
-        real_t initialpop = 1e6;
-
-        Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
-
-        // Resample the incidence:
-        std::map<size_t, std::vector<size_t>> resampled_incidence;
-        resampled_incidence = jackknife_incidence(tries, incidence, end_nodes);
-
-        // Try out simulated annealing:
-        std::cout << "Starting annealing..." << std::endl;
-        std::function<real_t(Model&)> objective = [&](Model& model) {
-            return loglikelihood_hist_both(model, binwidth, 
-                                           reference_pop, resampled_incidence);
-            // the histogram version
-        };
-
-        Model best_guess = annealing_min(objective, guess);
-        // Annealing now complete. Print guess:
-        std::cout << "Best guesses:" << std::endl;
-        print_model(best_guess);
-        // Annealing now complete. Store guessed model parameters:
-        resampled_estimates.push_back(best_guess);
-    }
-
-    return resampled_estimates;
-}
-
-void jackknife_and_save(std::map<size_t, std::vector<size_t>> &incidence,
-                        size_t reference_pop, real_t binwidth, 
-                        std::vector<size_t> end_nodes) {
-    std::vector<Model> resampled_estimates =
-                       resample_incidence(incidence, reference_pop, 
-                                          end_nodes, binwidth);
-
-    // save the point estimates so we can make a density plot later
-    std::ofstream estimates_by_row;
-    estimates_by_row.open("resampled_estimates.csv");
-    estimates_by_row << "mu, rloh, s1, s2, initial_pop," << std::endl;
-    for (auto& guess : resampled_estimates) {
-        write_model_line(estimates_by_row, guess);
-    }
-    estimates_by_row.close();
-}
+// Numerical analysis methods:
 
 // Stencil for numerical differentiation:
 std::vector<std::vector<double>> StencilLP16() {
@@ -583,9 +464,8 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
 
         change = std::sqrt(change);
 
-        //double change = learning_rate * (Jacobian * gradient).norm();
+        // TODO DEBUG:
         std::cout << change << std::endl;
-        print_model(best_guess);
 
         // if the gradient is small enough, exit:
         if (change < tolerance) break;
@@ -594,6 +474,121 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
 
     return best_guess;
 }
+
+// Methods to output data:
+
+void print_model(Model &model) {
+    printf("  mu = %g\n", model.m_migr[0][1]);
+    printf("  rloh = %g\n", model.m_migr[0][2]);
+    printf("  fitness1 = %g\n", model.m_birth[1]);
+    printf("  fitness2 = %g\n", model.m_birth[2]);
+    printf("  inipop = %g\n", model.m_initial_pops[0]);
+}
+
+void write_model_line(std::ofstream& file, Model &model) {
+    file << model.m_migr[0][1];
+    file << ", ";
+    file << model.m_migr[0][2];
+    file << ", ";
+    file << model.m_birth[1];
+    file << ", ";
+    file << model.m_birth[2];
+    file << ", ";
+    file << model.m_initial_pops[0];
+    file << ",";
+    file << std::endl;
+}
+
+void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop, 
+                    std::vector<size_t>& end_nodes,
+                    std::map<size_t, std::vector<size_t>>& incidence) {
+    std::ofstream fakedata;
+    fakedata.open("syntheticdata_hist.csv");
+    fakedata << "bin width = " << binwidth << "\n";
+    fakedata << "max age = " << max_age << "\n";
+    fakedata << "ref population = " << reference_pop << std::endl;
+
+    for (auto &end_node : end_nodes) {
+        fakedata << "[";
+        for (auto& bin : incidence[end_node]) 
+            fakedata << bin << ", ";
+        fakedata << "]" << std::endl;
+    }
+
+    fakedata.close();
+}
+
+std::map<size_t, std::vector<size_t>> jackknife_incidence(
+                            size_t index,
+                            const std::map<size_t, std::vector<size_t>>
+                            &histogram,
+                            std::vector<size_t> end_nodes) {
+    // delete the index-th entry in the histogram
+    std::map<size_t, std::vector<size_t>> new_incidence = histogram;
+    // first we have to find the indexth person
+    size_t count = 0;
+    for (auto& end_node : end_nodes) {
+        for (auto& bin : new_incidence[end_node]) {
+            count += bin;
+            if (count > index) {
+                // delete one individual:
+                --bin;
+                // we are now done:
+                return new_incidence;
+            }
+        }
+    }
+    // if we get here something has gone wrong are there are not enough entries
+    // in the histogram.
+    return new_incidence;
+}
+
+std::vector<Model> resample_incidence(
+    const std::map<size_t, std::vector<size_t>> &incidence,
+    size_t reference_pop, std::vector<size_t> end_nodes, real_t binwidth,
+    Model &initial_guess) {
+    std::vector<Model> resampled_estimates;
+
+    for (unsigned tries = 0; tries < reference_pop; ++tries) {
+        // Resample the incidence:
+        std::map<size_t, std::vector<size_t>> resampled_incidence;
+        resampled_incidence = jackknife_incidence(tries, incidence, end_nodes);
+
+        std::cout << "Resampling..." << std::endl;
+        std::function<real_t(Model&)> objective = [&](Model& model) {
+            return loglikelihood_hist_both(model, binwidth, 
+                                           reference_pop, resampled_incidence);
+            // the histogram version
+        };
+
+        Model best_guess = gradient_min(objective, initial_guess);
+        // Annealing now complete. Print guess:
+        std::cout << "Best guesses:" << std::endl;
+        print_model(best_guess);
+        // Annealing now complete. Store guessed model parameters:
+        resampled_estimates.push_back(best_guess);
+    }
+
+    return resampled_estimates;
+}
+
+void jackknife_and_save(std::map<size_t, std::vector<size_t>> &incidence,
+                        size_t reference_pop, real_t binwidth, 
+                        std::vector<size_t> end_nodes, Model &initial_guess) {
+    std::vector<Model> resampled_estimates =
+                       resample_incidence(incidence, reference_pop, 
+                                          end_nodes, binwidth, initial_guess);
+
+    // save the point estimates so we can make a density plot later
+    std::ofstream estimates_by_row;
+    estimates_by_row.open("resampled_estimates.csv");
+    estimates_by_row << "mu, rloh, s1, s2, initial_pop," << std::endl;
+    for (auto& guess : resampled_estimates) {
+        write_model_line(estimates_by_row, guess);
+    }
+    estimates_by_row.close();
+}
+
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -644,10 +639,8 @@ int main(int argc, char* argv[]) {
     // Save the histogram:
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
 
-    // Jack-knife resampling of incidence:
-    //jackknife_and_save(incidence, reference_pop, binwidth, end_nodes);
-
-    // Finally, the un-resampled estimate:
+    // Get the main un-resampled estimate with simulated annealing:
+    Model best_guess = ground_truth;
     {
         std::cout << "--------------" << std::endl;
         std::cout << "Best estimate:" << std::endl;
@@ -672,7 +665,7 @@ int main(int argc, char* argv[]) {
                                            reference_pop, incidence);
         };
 
-        Model best_guess = gradient_min(objective, guess);
+        best_guess = annealing_min(objective, guess);
         // Annealing now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
         print_model(best_guess);
@@ -703,6 +696,10 @@ int main(int argc, char* argv[]) {
             std::cout << sqrt(Hessian.inverse()(param, param)) << std::endl;
         }
     }
+
+    // Jack-knife resampling of incidence, now using gradient descent instead of
+    // simulated annealing:
+    jackknife_and_save(incidence, reference_pop, binwidth, end_nodes, best_guess);
 
     return 0;
 }
