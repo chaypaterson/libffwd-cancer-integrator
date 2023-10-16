@@ -12,14 +12,22 @@
 
 // A Gillespie algorithm simulation of tumour suppressor loss
 
-int main() {
-    int num_thr = std::thread::hardware_concurrency() - 2;
-    int runs_per_thr = 1e7;
+int main(int argc, char* argv[]) {
+    int runs_per_thr = 1e7; // default values
     int seed = 1;
+    if (argc < 4) {
+        printf("Call this program with\n ./tsgillespie seed runs type\n");
+        printf("type should be 3 or 4\n");
+        return 1;
+    } // else:
+    int num_thr = std::thread::hardware_concurrency() - 2;
+    seed = atoi(argv[1]);
+    runs_per_thr = atoi(argv[2]) / num_thr;
+    int type = atoi(argv[3]);
 
     // System coefficients:
-    double rloh = 0.5e-2;
-    double mu = 0.5e-3;
+    double rloh = 5e-7;
+    double mu = 5e-8;
 
     Model model(5);
     model.m_migr[0][1] = mu;
@@ -28,11 +36,11 @@ int main() {
     model.m_migr[1][4] = 0.5 * rloh;
     model.m_migr[2][4] = 0.5 * mu;
     // birth and death rates:
-    model.m_birth = {0, 0.2, 0.2, 0, 0};
+    model.m_birth = {0, 0.05, 0.03, 0, 0};
     model.m_death = {0, 0, 0, 0, 0};
-    model.m_initial_pops = {1e2, 0, 0, 0, 0};
+    model.m_initial_pops = {1e6, 0, 0, 0, 0};
 
-    std::vector<int> final_vertices = {4}; // TODO RUIBO IS THIS WRONG? CHAY
+    std::vector<int> final_vertices = {type};
 
     // Run many simulations and store the results:
     std::vector<std::pair<double,int>> all_times;
@@ -69,12 +77,15 @@ int main() {
     std::sort(all_times.begin(), all_times.end());
 
     std::vector<double> mutant_times;
-    for (auto& result : all_times)
-        if (result.second == 4)
+    for (auto& result : all_times) {
+        if (result.second == type) {
             mutant_times.push_back(result.first);
+        }
+    }
+
     // Kaplan-Meier plot:
     std::cout << "age, p1, p2," << std::endl;
-    print_naive_estimator(100, mutant_times);
+    print_naive_estimator(380, mutant_times);
 
     std::cout << std::endl;
 
