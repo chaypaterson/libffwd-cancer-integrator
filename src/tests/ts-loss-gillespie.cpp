@@ -40,7 +40,11 @@ int main(int argc, char* argv[]) {
     model.m_death = {0, 0, 0, 0, 0};
     model.m_initial_pops = {1e6, 0, 0, 0, 0};
 
-    std::vector<int> final_vertices = {type};
+    // We want the chance that the first tumour detected is of type "type".
+    // We want to stop the simulations when the first tumour is detected: i.e.
+    // of any type. And then we want the fraction of these that have the chosen
+    // type.
+    std::vector<int> final_vertices = {3, 4};
 
     // Run many simulations and store the results:
     std::vector<std::pair<double,int>> all_times;
@@ -81,6 +85,12 @@ int main(int argc, char* argv[]) {
         if (result.second == type) {
             mutant_times.push_back(result.first);
         }
+    }
+
+    // Guard against invalid access:
+    if (mutant_times.size() < 1) {
+        std::cout << "No results" << std::endl;
+        return 2;
     }
 
     // Kaplan-Meier plot:
