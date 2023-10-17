@@ -15,15 +15,15 @@
 int main(int argc, char* argv[]) {
     int runs_per_thr = 1e7; // default values
     int seed = 1;
-    if (argc < 4) {
-        printf("Call this program with\n ./tsgillespie seed runs type\n");
-        printf("type should be 3 or 4\n");
+    if (argc < 3) {
+        printf("Call this program with\n ./tsgillespie seed runs \n");
+        //printf("type should be 3 or 4\n");
         return 1;
     } // else:
     int num_thr = std::thread::hardware_concurrency() - 2;
     seed = atoi(argv[1]);
     runs_per_thr = atoi(argv[2]) / num_thr;
-    int type = atoi(argv[3]);
+    //int type = atoi(argv[3]);
 
     // System coefficients:
     double rloh = 5e-7;
@@ -79,25 +79,31 @@ int main(int argc, char* argv[]) {
     }
 
     std::sort(all_times.begin(), all_times.end());
+    size_t study_population = all_times.size();
 
-    std::vector<double> mutant_times;
-    for (auto& result : all_times) {
-        if (result.second == type) {
-            mutant_times.push_back(result.first);
+    // Print results for both types:
+    for (auto type : final_vertices) {
+        std::cout << "Type " << type << ":" << std::endl;
+
+        std::vector<double> mutant_times;
+        for (auto& result : all_times) {
+            if (result.second == type) {
+                mutant_times.push_back(result.first);
+            }
         }
+
+        // Guard against invalid access:
+        if (mutant_times.size() < 1) {
+            std::cout << "No results" << std::endl;
+            return 2;
+        }
+
+        // Kaplan-Meier plot:
+        std::cout << "age, p1, p2," << std::endl;
+        print_kaplan_meier(380, mutant_times, study_population);
+
+        std::cout << std::endl;
     }
-
-    // Guard against invalid access:
-    if (mutant_times.size() < 1) {
-        std::cout << "No results" << std::endl;
-        return 2;
-    }
-
-    // Kaplan-Meier plot:
-    std::cout << "age, p1, p2," << std::endl;
-    print_naive_estimator(380, mutant_times);
-
-    std::cout << std::endl;
 
     return 0;
 }

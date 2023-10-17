@@ -27,6 +27,13 @@ endif
 
 all : unittests tsloss fivestage sampler guesser numericalerrors
 
+install : tsloss guesser numericalerrors
+	cp $(BUILDDIR)/tsconj $(HOME)/.local/bin
+	cp $(BUILDDIR)/tsgillespie $(HOME)/.local/bin
+	cp $(BUILDDIR)/guesser $(HOME)/.local/bin
+	cp $(BUILDDIR)/tslosserrs $(HOME)/.local/bin
+	cp $(BUILDDIR)/gilllosserrs $(HOME)/.local/bin
+
 guesser : $(LIBFFWD) libgillespie.so builddir
 	$(CC) $(LIBFFWD) $(LIBGILL) -I /usr/include/eigen3 $(LEARN)/likelihood-optimisation.cpp $(GILLFLAGS) -o $(BUILDDIR)/guesser
 

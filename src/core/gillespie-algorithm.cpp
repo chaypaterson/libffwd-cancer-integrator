@@ -198,7 +198,7 @@ void print_kaplan_meier(double time_max, std::vector<double> &all_times, size_t 
             --num_survivors;
             ++time_datum;
             // avoid unguarded access:
-            if (time_datum == all_times.end()) return;
+            if (time_datum >= all_times.end()) break; // break, don't return.
         }
         std::cout << time << ", " << survival << ", ";
         std::cout << 1.0 - survival << "," << std::endl;
@@ -229,6 +229,7 @@ real_t surv_kaplan_meier(double age, std::vector<double> &all_times, size_t ref_
 }
 
 void print_naive_estimator(double time_max, std::vector<double> &all_times) {
+    // ONLY VALID WHEN THERE IS A SINGLE END NODE!
     size_t num_survivors = all_times.size();
     const size_t total_survivors = num_survivors;
     double dt = time_max / 200;
