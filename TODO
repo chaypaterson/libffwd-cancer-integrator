@@ -47,3 +47,7 @@ Tue  3 Oct 15:43:22 BST 2023
 ^^ Most of the above done
 TODO URGENT: establish how "shallow" the global vs. local minima are. This could
 explain the twitchiness and sensitivity to outliers.
+
+Thu 19 Oct 23:36:30 BST 2023
+
+eigendecomposition of cov matrix!
