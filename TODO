@@ -33,3 +33,8 @@ tests and experiments.
 Thu 18 May 2023 11:52:28 MDT
 
 Is the first passage time the appropriate point of comparison? What does this assume about prevalence that the other model doesn't?
+
+Sun 18 Feb 16:48:26 GMT 2024
+bin_PROGRAMS = gillespie_unit_test likelihood_unit_test
+gillespie_unit_test_SOURCES = src/tests/gillespie-sampler.cpp
+likelihood_unit_test_SOURCES = src/tests/likelihood-unit-test.cpp

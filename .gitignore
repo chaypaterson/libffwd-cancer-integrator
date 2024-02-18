@@ -17,3 +17,12 @@ ar-lib
 compile
 config.status
 data
+build/
+config.guess
+config.sub
+configure
+configure.ac~
+configure~
+ltmain.sh
+m4/
+
