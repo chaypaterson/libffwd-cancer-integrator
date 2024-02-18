@@ -79,6 +79,7 @@ int main(int argc, char* argv[]) {
     // compute scaled root mean square difference in survival curves:
     size_t reference_pop_1 = all_times_1[3].size() + all_times_1[4].size();
     size_t reference_pop_2 = all_times_2[3].size() + all_times_2[4].size();
+    // NB: these should both be equal to runs
 
     size_t num_sample_points = 256;
     double dt = age_max / (double)num_sample_points;
