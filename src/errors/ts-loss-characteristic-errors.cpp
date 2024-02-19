@@ -56,12 +56,12 @@ int main(int argc, char* argv[]) {
 
     while (time < tmax) {
         while (time < t_write - dt) {
-            heun_q_step(qvaluesF, time, dt, model);
-            heun_q_step(qvalues4, time, dt, model);
+            FFWD::heun_q_step(qvaluesF, time, dt, model);
+            FFWD::heun_q_step(qvalues4, time, dt, model);
             // Advance qvalues.2 by half the relevant time step, twice
             for (int i = 0; i < 2; ++i) {
-                heun_q_step(qvaluesF2, time, half, model);
-                heun_q_step(qvalues42, time, half, model);
+                FFWD::heun_q_step(qvaluesF2, time, half, model);
+                FFWD::heun_q_step(qvalues42, time, half, model);
             }
             // Increment time:
             time += dt;
@@ -69,20 +69,20 @@ int main(int argc, char* argv[]) {
 
         {
             real_t delta = t_write - time;
-            heun_q_step(qvaluesF, time, delta, model);
-            heun_q_step(qvalues4, time, delta, model);
+            FFWD::heun_q_step(qvaluesF, time, delta, model);
+            FFWD::heun_q_step(qvalues4, time, delta, model);
             real_t halfdelta = 0.5 * delta;
             for (int i = 0; i < 2; ++i) {
-                heun_q_step(qvaluesF2, time, halfdelta, model);
-                heun_q_step(qvalues42, time, halfdelta, model);
+                FFWD::heun_q_step(qvaluesF2, time, halfdelta, model);
+                FFWD::heun_q_step(qvalues42, time, halfdelta, model);
             }
             time = t_write;
             // compute the P(t) values:
-            real_t psiF = generating_function(qvaluesF, model.m_initial_pops);
-            real_t psi4 = generating_function(qvalues4, model.m_initial_pops);
+            real_t psiF = FFWD::generating_function(qvaluesF, model.m_initial_pops);
+            real_t psi4 = FFWD::generating_function(qvalues4, model.m_initial_pops);
             real_t prob = psiF / psi4;
-            real_t psiF2 = generating_function(qvaluesF2, model.m_initial_pops);
-            real_t psi42 = generating_function(qvalues42, model.m_initial_pops);
+            real_t psiF2 = FFWD::generating_function(qvaluesF2, model.m_initial_pops);
+            real_t psi42 = FFWD::generating_function(qvalues42, model.m_initial_pops);
             real_t prob2 = psiF2 / psi42;
             // compute the corresponding error:
             double err = (prob - prob2);

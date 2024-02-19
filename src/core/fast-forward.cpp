@@ -19,6 +19,8 @@
  *      g++ fast-forward.cpp -c -o libffwd.so
  */
 
+namespace FFWD {
+
 std::vector<real_t> rhs_flow(const std::vector<real_t> &qcoords,
                              Model &parameters) {
     // Compute and return a vector containing the rates of change of
@@ -153,4 +155,4 @@ real_t generating_function(std::vector<real_t> qcoords,
     return exp(log_psi);
 }
 
-
+}

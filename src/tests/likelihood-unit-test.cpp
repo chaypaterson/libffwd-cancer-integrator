@@ -32,14 +32,14 @@ void map_onto_data(Model& params, const epidata_t& this_data,
         // integrate to get likelihood:
         real_t time = 0.0;
         while (time < age) {
-            heun_q_step(qvals, time, dt, params);
+            FFWD::heun_q_step(qvals, time, dt, params);
             time += dt;
         }
 
-        real_t prob = generating_function(qvals, params.m_initial_pops);
+        real_t prob = FFWD::generating_function(qvals, params.m_initial_pops);
         // advance one dt step into the future:
-        heun_q_step(qvals, time, dt, params);
-        real_t prob2 = generating_function(qvals, params.m_initial_pops);
+        FFWD::heun_q_step(qvals, time, dt, params);
+        real_t prob2 = FFWD::generating_function(qvals, params.m_initial_pops);
         // capture derivative, this is the hazard:
         real_t dprob = prob - prob2;
         dprob /= dt;

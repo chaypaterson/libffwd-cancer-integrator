@@ -54,7 +54,7 @@ int main() {
         double dt2 = dt / subdivision;
         for (size_t vertex = 0; vertex < parameters.m_stages; ++vertex) {
             for (int i = 0; i < subdivision; ++i) {
-                heun_q_step(qvalues[vertex], time, dt2, parameters);
+                FFWD::heun_q_step(qvalues[vertex], time, dt2, parameters);
             } 
         }
 		// advance time by dt:
@@ -63,7 +63,7 @@ int main() {
         // iterate over different sites to get the probability
         std::cout << time << ", " ;
         for (size_t vertex = 0; vertex < parameters.m_stages; ++vertex) {
-            double prob = generating_function(qvalues[vertex], parameters.m_initial_pops);
+            double prob = FFWD::generating_function(qvalues[vertex], parameters.m_initial_pops);
             std::cout << 1.0 - prob << ", ";
         }
         std::cout << std::endl;

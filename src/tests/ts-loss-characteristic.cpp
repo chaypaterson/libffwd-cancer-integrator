@@ -56,20 +56,20 @@ int main(int argc, char* argv[]) {
 
     while (time < tmax) {
         while (time < t_write - dt) {
-            heun_q_step(qvaluesBoth, time, dt, model);
-            heun_q_step(qvaluesOther, time, dt, model);
+            FFWD::heun_q_step(qvaluesBoth, time, dt, model);
+            FFWD::heun_q_step(qvaluesOther, time, dt, model);
             // Increment time:
             time += dt;
         }
 
         {
             real_t delta = t_write - time;
-            heun_q_step(qvaluesBoth, time, delta, model);
-            heun_q_step(qvaluesOther, time, delta, model);
+            FFWD::heun_q_step(qvaluesBoth, time, delta, model);
+            FFWD::heun_q_step(qvaluesOther, time, delta, model);
             time = t_write;
             // Write out probabilities:
-            real_t probneither = generating_function(qvaluesBoth, model.m_initial_pops);
-            real_t probother = generating_function(qvaluesOther, model.m_initial_pops);
+            real_t probneither = FFWD::generating_function(qvaluesBoth, model.m_initial_pops);
+            real_t probother = FFWD::generating_function(qvaluesOther, model.m_initial_pops);
             // S(type, age) = Pr(neither type, age) / Pr(none of other type,
             // age)
             real_t prob = probneither / probother;

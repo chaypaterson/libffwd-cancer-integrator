@@ -62,16 +62,16 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
 
     for (const size_t& curr_bin : freqs) {
         // compute survival probabilities S at start and end of the bin:
-        real_t PsiAll = generating_function(qvalsAll, params.m_initial_pops);
-        real_t PsiExcept = generating_function(qvalsExcept, params.m_initial_pops);
+        real_t PsiAll = FFWD::generating_function(qvalsAll, params.m_initial_pops);
+        real_t PsiExcept = FFWD::generating_function(qvalsExcept, params.m_initial_pops);
         real_t Sprob = PsiAll / PsiExcept;
         while (time < end_time) {
-            heun_q_step(qvalsAll, time, dt, params);
-            heun_q_step(qvalsExcept, time, dt, params);
+            FFWD::heun_q_step(qvalsAll, time, dt, params);
+            FFWD::heun_q_step(qvalsExcept, time, dt, params);
             time += dt;
         }
-        real_t PsiAll2 = generating_function(qvalsAll, params.m_initial_pops);
-        real_t PsiExcept2 = generating_function(qvalsExcept, params.m_initial_pops);
+        real_t PsiAll2 = FFWD::generating_function(qvalsAll, params.m_initial_pops);
+        real_t PsiExcept2 = FFWD::generating_function(qvalsExcept, params.m_initial_pops);
         real_t Sprob2 = PsiAll2 / PsiExcept2;
 
         // -log binomial likelihood:
