@@ -59,6 +59,8 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
     real_t end_time = binwidth;
     real_t dt = 0.10;
 	size_t nsurv = ref_population;
+    // TODO germline mutations: implement a generating function with different
+    // initial conditions
 
     for (const size_t& curr_bin : freqs) {
         // compute survival probabilities S at start and end of the bin:
@@ -139,7 +141,6 @@ std::vector<std::pair<double,int>> generate_dataset(Model& model, int seed, int 
     // run some simulations and store the time and final node in
     // all_times:
     std::vector<std::pair<double,int>> all_times;
-    // TODO namespaces
     Gillespie::times_to_final_vertices(model, seed, runs, final_vertices, all_times);
 
     return all_times;
@@ -158,6 +159,7 @@ Model instantiate_model(real_t rloh, real_t mu, real_t fitness1,
     params.m_birth = {0, fitness1, fitness2, 0, 0};
     params.m_death = {0, 0, 0, 0, 0};
     params.m_initial_pops = {initialpop, 0, 0, 0, 0};
+    // TODO germline mutations: which initial node? i think 1?
 
     return params;
 }
@@ -356,7 +358,6 @@ Eigen::MatrixXd compute_gradient(std::function<real_t(Model&)> objective,
             Model dmodel = differ_model(point, Delta);
             diff += weights[tap] * objective(dmodel) / epsilon;
         }
-        //diff /= Theta[axis]; // do not rescale: use logs of parameters
 
         Gradient(axis, 0) = diff;
     }
