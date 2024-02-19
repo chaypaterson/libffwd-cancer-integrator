@@ -19,7 +19,7 @@
  *      g++ fast-forward.cpp -c -o libffwd.so
  */
 
-namespace FFWD {
+namespace fast_forward {
 
 std::vector<real_t> rhs_flow(const std::vector<real_t> &qcoords,
                              Model &parameters) {

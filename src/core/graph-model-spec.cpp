@@ -4,7 +4,7 @@
 #include "graph-model-spec.hpp"
 // A class for containing a specification of a birth-death-mutation-immigration
 // process on a graph.
-// This class contains the parameters and initial conditions of a model.
+// This file contains a unit test.
 
 Model product(const Model& graph_a, const Model& graph_b) {
     // compute and return the Kronecker product of the two models

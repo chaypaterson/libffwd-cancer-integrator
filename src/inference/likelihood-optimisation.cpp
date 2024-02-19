@@ -64,16 +64,16 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
 
     for (const size_t& curr_bin : freqs) {
         // compute survival probabilities S at start and end of the bin:
-        real_t PsiAll = FFWD::generating_function(qvalsAll, params.m_initial_pops);
-        real_t PsiExcept = FFWD::generating_function(qvalsExcept, params.m_initial_pops);
+        real_t PsiAll = fast_forward::generating_function(qvalsAll, params.m_initial_pops);
+        real_t PsiExcept = fast_forward::generating_function(qvalsExcept, params.m_initial_pops);
         real_t Sprob = PsiAll / PsiExcept;
         while (time < end_time) {
-            FFWD::heun_q_step(qvalsAll, time, dt, params);
-            FFWD::heun_q_step(qvalsExcept, time, dt, params);
+            fast_forward::heun_q_step(qvalsAll, time, dt, params);
+            fast_forward::heun_q_step(qvalsExcept, time, dt, params);
             time += dt;
         }
-        real_t PsiAll2 = FFWD::generating_function(qvalsAll, params.m_initial_pops);
-        real_t PsiExcept2 = FFWD::generating_function(qvalsExcept, params.m_initial_pops);
+        real_t PsiAll2 = fast_forward::generating_function(qvalsAll, params.m_initial_pops);
+        real_t PsiExcept2 = fast_forward::generating_function(qvalsExcept, params.m_initial_pops);
         real_t Sprob2 = PsiAll2 / PsiExcept2;
 
         // -log binomial likelihood:
@@ -141,7 +141,7 @@ std::vector<std::pair<double,int>> generate_dataset(Model& model, int seed, int 
     // run some simulations and store the time and final node in
     // all_times:
     std::vector<std::pair<double,int>> all_times;
-    Gillespie::times_to_final_vertices(model, seed, runs, final_vertices, all_times);
+    gillespie_ssa::times_to_final_vertices(model, seed, runs, final_vertices, all_times);
 
     return all_times;
 }

@@ -19,7 +19,7 @@
  * in the fast forward library (fast-forward.cpp).
  */
 
-namespace FFWD {
+namespace fast_forward {
 
 // This function computes the right-hand-side of the system of ordinary
 // differential equations that govern the characteristics:

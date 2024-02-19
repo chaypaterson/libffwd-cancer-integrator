@@ -14,7 +14,7 @@
  * used to simulate birth-death-migration processes on graphs.
  */
 
-namespace Gillespie {
+namespace gillespie_ssa {
 
 class gillespie_instance {
 public:

@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     // run some simulations and store the time and final node in
     // all_times:
     std::vector<std::pair<double,int>> all_times;
-    Gillespie::times_to_final_vertices(model, seed, runs, final_vertices, all_times);
+    gillespie_ssa::times_to_final_vertices(model, seed, runs, final_vertices, all_times);
 
     std::cout << "age, node," << std::endl;
     for (auto& pair : all_times)

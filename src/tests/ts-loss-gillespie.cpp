@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
             for (int i = 0; i < num_thr; ++i) {
                 // Use a different seed for each simulation:
                 simulations.at(i) = std::thread(
-                                    Gillespie::times_to_final_vertices, 
+                                    gillespie_ssa::times_to_final_vertices, 
                                     model, seed + i, runs_per_thr,
                                     final_vertices, 
                                     std::ref(times[i]));
@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
 
         // Kaplan-Meier plot:
         std::cout << "age, p1, p2," << std::endl;
-        Gillespie::print_kaplan_meier(380, mutant_times, study_population);
+        gillespie_ssa::print_kaplan_meier(380, mutant_times, study_population);
 
         std::cout << std::endl;
     }

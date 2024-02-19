@@ -12,7 +12,7 @@
  * algorithm.
  */
 
-namespace Gillespie {
+namespace gillespie_ssa {
 
 // a method to perform one step, changing the populations and advancing time
 void gillespie_instance::gillespie_step(gsl_rng *rng) {
