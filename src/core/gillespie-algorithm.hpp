@@ -13,6 +13,9 @@
  * This is a library that defines an iterator for the Gillespie algorithm when
  * used to simulate birth-death-migration processes on graphs.
  */
+
+namespace Gillespie {
+
 class gillespie_instance {
 public:
     // member variables:
@@ -71,5 +74,7 @@ real_t surv_kaplan_meier(double age, std::vector<double> &all_times,
                          size_t ref_pop);
 
 void print_naive_estimator(double time_max, std::vector<double> &all_times);
+
+}
 
 #endif

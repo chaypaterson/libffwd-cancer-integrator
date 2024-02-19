@@ -35,7 +35,7 @@ std::map<int,std::vector<double>> generate_dataset(int seed, int runs) {
     // run some simulations and store the time and final node in
     // all_times:
     std::vector<std::pair<double,int>> all_times;
-    times_to_final_vertices(model, seed, runs, final_vertices, all_times);
+    Gillespie::times_to_final_vertices(model, seed, runs, final_vertices, all_times);
 
     std::map<int,std::vector<double>> all_times_flipped;
     for (auto& entry : all_times) {
@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
 
     for (auto& pair : all_times) {
         std::cout << "Type: " << pair.first << std::endl;
-        print_kaplan_meier(age_max, pair.second, reference_pop);
+        Gillespie::print_kaplan_meier(age_max, pair.second, reference_pop);
     }
 
     return 0;

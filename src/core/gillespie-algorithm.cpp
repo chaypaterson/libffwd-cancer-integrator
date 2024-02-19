@@ -12,6 +12,8 @@
  * algorithm.
  */
 
+namespace Gillespie {
+
 // a method to perform one step, changing the populations and advancing time
 void gillespie_instance::gillespie_step(gsl_rng *rng) {
     double Gamma = get_gamma();
@@ -248,4 +250,6 @@ void print_naive_estimator(double time_max, std::vector<double> &all_times) {
         std::cout << 1.0 - survival << "," << std::endl;
         time += dt;
     } 
+}
+
 }

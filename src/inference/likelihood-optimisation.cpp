@@ -140,7 +140,7 @@ std::vector<std::pair<double,int>> generate_dataset(Model& model, int seed, int 
     // all_times:
     std::vector<std::pair<double,int>> all_times;
     // TODO namespaces
-    times_to_final_vertices(model, seed, runs, final_vertices, all_times);
+    Gillespie::times_to_final_vertices(model, seed, runs, final_vertices, all_times);
 
     return all_times;
 }
@@ -408,6 +408,11 @@ Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
         }
     }
 
+    // Raw Hessian (in nice units):                
+    std::cout << "H = " << std::endl;              
+    std::cout << "[rloh, mu, s1, s2]" << std::endl;
+    std::cout << Hessian << std::endl;             
+
     // Convert from log coords to true Hessian:
     Eigen::MatrixXd Jacobian(dim,dim);
     for (int i = 0; i < dim; ++i)
@@ -561,7 +566,7 @@ std::vector<Model> resample_incidence(
             // the histogram version
         };
 
-        Model best_guess = gradient_min(objective, initial_guess);
+        Model best_guess = annealing_min(objective, initial_guess);
         // Annealing now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
         print_model(best_guess);
