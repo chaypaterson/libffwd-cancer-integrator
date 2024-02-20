@@ -11,8 +11,11 @@
 // This integrator is based on integrating a Fourier-space version of the
 // Kolmogorov forward equations using the method of characteristics.
 
+using gmsce::fast_forward::heun_q_step;
+using gmsce::fast_forward::generating_function;
+
 void debug_print(const double &time, const std::vector<double> &qvalues,
-                 const Model &parameters) {
+                 const gmsce::Model &parameters) {
     std::cout << time << ", ";
     for (int vertex = 0; vertex < parameters.m_stages; ++vertex) {
         std::cout << qvalues[vertex] << ", ";
@@ -21,7 +24,7 @@ void debug_print(const double &time, const std::vector<double> &qvalues,
 }
 
 int main() {
-    Model parameters(6);
+    gmsce::Model parameters(6);
 
     // System coefficients:
     parameters.m_migr[0][1] = 2.86e-4;
@@ -54,7 +57,7 @@ int main() {
         double dt2 = dt / subdivision;
         for (size_t vertex = 0; vertex < parameters.m_stages; ++vertex) {
             for (int i = 0; i < subdivision; ++i) {
-                fast_forward::heun_q_step(qvalues[vertex], time, dt2, parameters);
+                heun_q_step(qvalues[vertex], time, dt2, parameters);
             } 
         }
 		// advance time by dt:
@@ -63,7 +66,7 @@ int main() {
         // iterate over different sites to get the probability
         std::cout << time << ", " ;
         for (size_t vertex = 0; vertex < parameters.m_stages; ++vertex) {
-            double prob = fast_forward::generating_function(
+            double prob = generating_function(
                                 qvalues[vertex], 
                                 parameters.m_initial_pops);
             std::cout << 1.0 - prob << ", ";

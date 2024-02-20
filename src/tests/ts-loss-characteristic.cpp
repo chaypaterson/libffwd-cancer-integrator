@@ -9,6 +9,10 @@
 
 // A conjugate characteristics simulation of tumour suppressor loss
 
+using gmsce::fast_forward::heun_q_step;
+using gmsce::fast_forward::generating_function;
+using gmsce::real_t;
+
 int main(int argc, char* argv[]) {
     if (argc < 3) {
         printf("Call this program with\n ./tsconj dt type\n");
@@ -19,7 +23,7 @@ int main(int argc, char* argv[]) {
     real_t rloh = 5e-7;
     real_t mu = 5e-8;
 
-    Model model(5);
+    gmsce::Model model(5);
     model.m_migr[0][1] = mu;
     model.m_migr[0][2] = rloh;
     model.m_migr[1][3] = 0.5 * mu;
@@ -56,22 +60,22 @@ int main(int argc, char* argv[]) {
 
     while (time < tmax) {
         while (time < t_write - dt) {
-            fast_forward::heun_q_step(qvaluesBoth, time, dt, model);
-            fast_forward::heun_q_step(qvaluesOther, time, dt, model);
+            heun_q_step(qvaluesBoth, time, dt, model);
+            heun_q_step(qvaluesOther, time, dt, model);
             // Increment time:
             time += dt;
         }
 
         {
             real_t delta = t_write - time;
-            fast_forward::heun_q_step(qvaluesBoth, time, delta, model);
-            fast_forward::heun_q_step(qvaluesOther, time, delta, model);
+            heun_q_step(qvaluesBoth, time, delta, model);
+            heun_q_step(qvaluesOther, time, delta, model);
             time = t_write;
             // Write out probabilities:
-            real_t probneither = fast_forward::generating_function(
+            real_t probneither = generating_function(
                                     qvaluesBoth, 
                                     model.m_initial_pops);
-            real_t probother = fast_forward::generating_function(
+            real_t probother = generating_function(
                                     qvaluesOther, 
                                     model.m_initial_pops);
             // S(type, age) = Pr(neither type, age) / Pr(none of other type,

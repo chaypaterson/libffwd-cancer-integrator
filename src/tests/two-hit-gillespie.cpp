@@ -31,7 +31,7 @@ int main() {
     double mu0 = 0.001;
     double mu1 = 0.001;
 
-    Model model(3);
+    gmsce::Model model(3);
     model.m_migr[0][1] = mu0;
     model.m_migr[1][2] = mu1;
     model.m_birth = {1, 1.2, 1};

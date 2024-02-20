@@ -14,10 +14,12 @@
  * Initial values are chosen for the conjugate coordinates "q[j]", and these
  * values are evolved along a vector field using Heun's method.
  * 
- * This source file contains the function implementations. It has no entry
- * point, and should be compiled to a library with
+ * This source file contains the function implementations. It is a library with 
+ * no main(...) entry point, and should be compiled with
  *      g++ fast-forward.cpp -c -o libffwd.so
  */
+
+namespace gmsce {
 
 namespace fast_forward {
 
@@ -153,6 +155,8 @@ real_t generating_function(std::vector<real_t> qcoords,
 
     // Return the exponential of log_psi to get psi:
     return exp(log_psi);
+}
+
 }
 
 }

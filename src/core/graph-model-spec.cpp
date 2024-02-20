@@ -6,6 +6,8 @@
 // process on a graph.
 // This file contains a unit test.
 
+namespace gmsce {
+
 Model product(const Model& graph_a, const Model& graph_b) {
     // compute and return the Kronecker product of the two models
     size_t n_vertices = graph_a.m_stages * graph_b.m_stages;
@@ -32,8 +34,12 @@ Model product(const Model& graph_a, const Model& graph_b) {
     return graph_c;
 }
 
+}
+
 #include <iostream>
 int main() {
+    using namespace gmsce;
+
     Model graph(3);
 
     std::cout << "(";

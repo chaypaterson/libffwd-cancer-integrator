@@ -19,6 +19,8 @@
  * in the fast forward library (fast-forward.cpp).
  */
 
+namespace gmsce {
+
 namespace fast_forward {
 
 // This function computes the right-hand-side of the system of ordinary
@@ -45,6 +47,8 @@ void implicit_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &d
 // q-coordinates:
 real_t generating_function(std::vector<real_t> qcoords, 
                            std::vector<real_t> initial_pops);
+
+}
 
 }
 

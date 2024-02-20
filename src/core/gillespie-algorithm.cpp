@@ -12,6 +12,8 @@
  * algorithm.
  */
 
+namespace gmsce {
+
 namespace gillespie_ssa {
 
 // a method to perform one step, changing the populations and advancing time
@@ -208,7 +210,7 @@ void print_kaplan_meier(double time_max, std::vector<double> &all_times, size_t 
     }
 }
 
-real_t surv_kaplan_meier(double age, std::vector<double> &all_times, size_t ref_pop) {
+gmsce::real_t surv_kaplan_meier(double age, std::vector<double> &all_times, size_t ref_pop) {
     // return the value of the Kaplan-Meier estimator at a given age=time
     size_t num_survivors = ref_pop;
     double time_max = all_times.back();
@@ -250,6 +252,8 @@ void print_naive_estimator(double time_max, std::vector<double> &all_times) {
         std::cout << 1.0 - survival << "," << std::endl;
         time += dt;
     } 
+}
+
 }
 
 }

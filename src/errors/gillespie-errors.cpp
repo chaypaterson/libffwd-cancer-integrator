@@ -15,12 +15,16 @@
 // A Gillespie algorithm simulation of tumour suppressor loss
 // This program returns expected errors in the Gillespie simulation
 
+using gmsce::gillespie_ssa::surv_kaplan_meier; 
+using gmsce::gillespie_ssa::times_to_final_vertices; 
+using gmsce::real_t;
+
 std::map<int,std::vector<double>> generate_dataset(int seed, int runs) {
     // System coefficients:
     double rloh = 5.0e-7;
     double mu = 5.0e-8;
 
-    Model model(5);
+    gmsce::Model model(5);
     model.m_migr[0][1] = mu;
     model.m_migr[0][2] = rloh;
     model.m_migr[1][3] = 0.5 * mu;
@@ -36,7 +40,7 @@ std::map<int,std::vector<double>> generate_dataset(int seed, int runs) {
     // run some simulations and store the time and final node in
     // all_times:
     std::vector<std::pair<double,int>> all_times;
-    gillespie_ssa::times_to_final_vertices(model, seed, runs, final_vertices, all_times);
+    times_to_final_vertices(model, seed, runs, final_vertices, all_times);
 
     std::map<int,std::vector<double>> all_times_flipped;
     for (auto& entry : all_times) {
@@ -88,8 +92,8 @@ int main(int argc, char* argv[]) {
     for (double age = 0; age <= age_max; age += dt) {
         double toterr = 0;
         for (int type = 3; type < 5; ++type) {
-            real_t s1 = gillespie_ssa::surv_kaplan_meier(age, all_times_1[type], reference_pop_1);
-            real_t s2 = gillespie_ssa::surv_kaplan_meier(age, all_times_2[type], reference_pop_2);
+            real_t s1 = surv_kaplan_meier(age, all_times_1[type], reference_pop_1);
+            real_t s2 = surv_kaplan_meier(age, all_times_2[type], reference_pop_2);
             real_t error = s1 - s2;
             error *= error;
             toterr += error;

@@ -12,6 +12,9 @@
 
 // A Gillespie algorithm simulation of tumour suppressor loss
 
+using gmsce::gillespie_ssa::times_to_final_vertices;
+using gmsce::gillespie_ssa::print_kaplan_meier;
+
 int main(int argc, char* argv[]) {
     int runs_per_thr = 1e7; // default values
     int seed = 1;
@@ -29,7 +32,7 @@ int main(int argc, char* argv[]) {
     double rloh = 5e-7;
     double mu = 5e-8;
 
-    Model model(5);
+    gmsce::Model model(5);
     model.m_migr[0][1] = mu;
     model.m_migr[0][2] = rloh;
     model.m_migr[1][3] = 0.5 * mu;
@@ -60,7 +63,7 @@ int main(int argc, char* argv[]) {
             for (int i = 0; i < num_thr; ++i) {
                 // Use a different seed for each simulation:
                 simulations.at(i) = std::thread(
-                                    gillespie_ssa::times_to_final_vertices, 
+                                    times_to_final_vertices, 
                                     model, seed + i, runs_per_thr,
                                     final_vertices, 
                                     std::ref(times[i]));
@@ -101,7 +104,7 @@ int main(int argc, char* argv[]) {
 
         // Kaplan-Meier plot:
         std::cout << "age, p1, p2," << std::endl;
-        gillespie_ssa::print_kaplan_meier(380, mutant_times, study_population);
+        print_kaplan_meier(380, mutant_times, study_population);
 
         std::cout << std::endl;
     }

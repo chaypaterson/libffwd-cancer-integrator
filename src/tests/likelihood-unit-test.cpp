@@ -12,6 +12,11 @@
  * Test definition of likelihood function
  */
 
+using gmsce::fast_forward::heun_q_step;
+using gmsce::fast_forward::generating_function;
+using gmsce::real_t; 
+using gmsce::Model;
+
 // A higher-order function for mapping "mapme" onto data and keeping track of
 // the total:
 void map_onto_data(Model& params, const epidata_t& this_data, 
@@ -32,14 +37,14 @@ void map_onto_data(Model& params, const epidata_t& this_data,
         // integrate to get likelihood:
         real_t time = 0.0;
         while (time < age) {
-            fast_forward::heun_q_step(qvals, time, dt, params);
+            heun_q_step(qvals, time, dt, params);
             time += dt;
         }
 
-        real_t prob = fast_forward::generating_function(qvals, params.m_initial_pops);
+        real_t prob = generating_function(qvals, params.m_initial_pops);
         // advance one dt step into the future:
-        fast_forward::heun_q_step(qvals, time, dt, params);
-        real_t prob2 = fast_forward::generating_function(qvals, params.m_initial_pops);
+        heun_q_step(qvals, time, dt, params);
+        real_t prob2 = generating_function(qvals, params.m_initial_pops);
         // capture derivative, this is the hazard:
         real_t dprob = prob - prob2;
         dprob /= dt;

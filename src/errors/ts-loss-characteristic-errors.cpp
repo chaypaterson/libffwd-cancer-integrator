@@ -7,9 +7,13 @@
 #include "graph-model-spec.hpp"
 #include "fast-forward.hpp"
 
-/* A conjugate characteristics simulation of tumour suppressor loss
+/* A fast forward method simulation of tumour suppressor loss
  * This program estimates the global error with Richardson extrapolation.
  */
+
+using gmsce::fast_forward::heun_q_step;
+using gmsce::fast_forward::generating_function;
+using gmsce::real_t;
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -23,7 +27,7 @@ int main(int argc, char* argv[]) {
     real_t rloh = 0.5e-2;
     real_t mu = 0.5e-3;
 
-    Model model(5);
+    gmsce::Model model(5);
     model.m_migr[0][1] = mu;
     model.m_migr[0][2] = rloh;
     model.m_migr[1][3] = 0.5 * mu;
@@ -56,12 +60,12 @@ int main(int argc, char* argv[]) {
 
     while (time < tmax) {
         while (time < t_write - dt) {
-            fast_forward::heun_q_step(qvaluesF, time, dt, model);
-            fast_forward::heun_q_step(qvalues4, time, dt, model);
+            heun_q_step(qvaluesF, time, dt, model);
+            heun_q_step(qvalues4, time, dt, model);
             // Advance qvalues.2 by half the relevant time step, twice
             for (int i = 0; i < 2; ++i) {
-                fast_forward::heun_q_step(qvaluesF2, time, half, model);
-                fast_forward::heun_q_step(qvalues42, time, half, model);
+                heun_q_step(qvaluesF2, time, half, model);
+                heun_q_step(qvalues42, time, half, model);
             }
             // Increment time:
             time += dt;
@@ -69,20 +73,20 @@ int main(int argc, char* argv[]) {
 
         {
             real_t delta = t_write - time;
-            fast_forward::heun_q_step(qvaluesF, time, delta, model);
-            fast_forward::heun_q_step(qvalues4, time, delta, model);
+            heun_q_step(qvaluesF, time, delta, model);
+            heun_q_step(qvalues4, time, delta, model);
             real_t halfdelta = 0.5 * delta;
             for (int i = 0; i < 2; ++i) {
-                fast_forward::heun_q_step(qvaluesF2, time, halfdelta, model);
-                fast_forward::heun_q_step(qvalues42, time, halfdelta, model);
+                heun_q_step(qvaluesF2, time, halfdelta, model);
+                heun_q_step(qvalues42, time, halfdelta, model);
             }
             time = t_write;
             // compute the P(t) values:
-            real_t psiF = fast_forward::generating_function(qvaluesF, model.m_initial_pops);
-            real_t psi4 = fast_forward::generating_function(qvalues4, model.m_initial_pops);
+            real_t psiF = generating_function(qvaluesF, model.m_initial_pops);
+            real_t psi4 = generating_function(qvalues4, model.m_initial_pops);
             real_t prob = psiF / psi4;
-            real_t psiF2 = fast_forward::generating_function(qvaluesF2, model.m_initial_pops);
-            real_t psi42 = fast_forward::generating_function(qvalues42, model.m_initial_pops);
+            real_t psiF2 = generating_function(qvaluesF2, model.m_initial_pops);
+            real_t psi42 = generating_function(qvalues42, model.m_initial_pops);
             real_t prob2 = psiF2 / psi42;
             // compute the corresponding error:
             double err = (prob - prob2);

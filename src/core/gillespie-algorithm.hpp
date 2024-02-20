@@ -14,6 +14,8 @@
  * used to simulate birth-death-migration processes on graphs.
  */
 
+namespace gmsce {
+
 namespace gillespie_ssa {
 
 class gillespie_instance {
@@ -77,4 +79,6 @@ void print_naive_estimator(double time_max, std::vector<double> &all_times);
 
 }
 
-#endif
+}
+
+#endif //GILLESPIE_DEF

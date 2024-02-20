@@ -25,7 +25,8 @@ ifeq ($(OS),Linux)
 	#OPTRYZEN = $(OPT1) -march=znver3 -flto
 endif
 
-all : unittests tsloss fivestage sampler guesser numericalerrors
+.PHONY : all
+all : unittests tsloss fivestage gillespie_sampler guesser numericalerrors
 
 install : tsloss guesser numericalerrors
 	cp $(BUILDDIR)/tsconj $(HOME)/.local/bin
@@ -37,7 +38,7 @@ install : tsloss guesser numericalerrors
 guesser : $(LIBFFWD) libgillespie.so builddir
 	$(CC) $(LIBFFWD) $(LIBGILL) -I /usr/include/eigen3 $(LEARN)/likelihood-optimisation.cpp $(GILLFLAGS) -o $(BUILDDIR)/guesser
 
-sampler : libgillespie.so builddir
+gillespie_sampler : libgillespie.so builddir
 	$(CC) $(LIBGILL) $(LEARN)/gillespie-sampler.cpp $(GILLFLAGS) -o $(BUILDDIR)/gillespie_sampler
 
 numericalerrors : $(LIBFFWD) libgillespie.so builddir
@@ -65,8 +66,10 @@ libgillespie.so: libs
 
 core: $(LIBFFWD) libgillespie.so
 
+.PHONY : libs
 libs :
 	mkdir -p $(LIBDIR)
 
+.PHONY : builddir
 builddir :
 	mkdir -p $(BUILDDIR)
