@@ -624,6 +624,9 @@ int main(int argc, char* argv[]) {
     // make some fake data:
     std::cout << "Generating synthetic dataset..." << std::endl;
     all_times = generate_dataset(ground_truth, seed, dataset_size);
+    // TODO: how to include germline mutations?
+    // vary the initial populations so that instead of node 0 the cells are
+    // initially on node 1
     std::vector<size_t> end_nodes = {3,4};
     std::cout << "Done. Saving..." << std::endl;
 
@@ -670,8 +673,7 @@ int main(int argc, char* argv[]) {
         Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
         // Try out simulated annealing:
-        //std::cout << "Starting annealing..." << std::endl;
-        std::cout << "Starting gradient descent..." << std::endl;
+        std::cout << "Starting annealing..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
             return loglikelihood_hist_both(model, binwidth, 
                                            reference_pop, incidence);
