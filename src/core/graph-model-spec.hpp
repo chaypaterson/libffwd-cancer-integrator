@@ -19,7 +19,7 @@
  * solvers, as well as new methods.
  */
 
-namespace gmsce {
+namespace clonal_expansion {
 
 typedef double real_t;
 

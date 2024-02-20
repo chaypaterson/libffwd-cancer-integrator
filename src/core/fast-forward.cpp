@@ -19,7 +19,7 @@
  *      g++ fast-forward.cpp -c -o libffwd.so
  */
 
-namespace gmsce {
+namespace clonal_expansion {
 
 namespace fast_forward {
 

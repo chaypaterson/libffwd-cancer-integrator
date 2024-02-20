@@ -28,11 +28,11 @@
  *      Miaomiao Gao (miaomiao.gao@postgrad.manchester.ac.uk)
  */
 
-using gmsce::gillespie_ssa::times_to_final_vertices;
-using gmsce::fast_forward::generating_function;
-using gmsce::fast_forward::heun_q_step;
-using gmsce::real_t;
-using gmsce::Model;
+using clonal_expansion::gillespie_ssa::times_to_final_vertices;
+using clonal_expansion::fast_forward::generating_function;
+using clonal_expansion::fast_forward::heun_q_step;
+using clonal_expansion::real_t;
+using clonal_expansion::Model;
 
 typedef std::vector<std::pair<real_t, int>> epidata_t;
 

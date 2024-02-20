@@ -6,7 +6,7 @@
 // process on a graph.
 // This file contains a unit test.
 
-namespace gmsce {
+namespace clonal_expansion {
 
 Model product(const Model& graph_a, const Model& graph_b) {
     // compute and return the Kronecker product of the two models
@@ -38,7 +38,7 @@ Model product(const Model& graph_a, const Model& graph_b) {
 
 #include <iostream>
 int main() {
-    using namespace gmsce;
+    using namespace clonal_expansion;
 
     Model graph(3);
 

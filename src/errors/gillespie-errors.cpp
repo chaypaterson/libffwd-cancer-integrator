@@ -15,16 +15,16 @@
 // A Gillespie algorithm simulation of tumour suppressor loss
 // This program returns expected errors in the Gillespie simulation
 
-using gmsce::gillespie_ssa::surv_kaplan_meier; 
-using gmsce::gillespie_ssa::times_to_final_vertices; 
-using gmsce::real_t;
+using clonal_expansion::gillespie_ssa::surv_kaplan_meier; 
+using clonal_expansion::gillespie_ssa::times_to_final_vertices; 
+using clonal_expansion::real_t;
 
 std::map<int,std::vector<double>> generate_dataset(int seed, int runs) {
     // System coefficients:
     double rloh = 5.0e-7;
     double mu = 5.0e-8;
 
-    gmsce::Model model(5);
+    clonal_expansion::Model model(5);
     model.m_migr[0][1] = mu;
     model.m_migr[0][2] = rloh;
     model.m_migr[1][3] = 0.5 * mu;

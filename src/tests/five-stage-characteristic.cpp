@@ -11,11 +11,11 @@
 // This integrator is based on integrating a Fourier-space version of the
 // Kolmogorov forward equations using the method of characteristics.
 
-using gmsce::fast_forward::heun_q_step;
-using gmsce::fast_forward::generating_function;
+using clonal_expansion::fast_forward::heun_q_step;
+using clonal_expansion::fast_forward::generating_function;
 
 void debug_print(const double &time, const std::vector<double> &qvalues,
-                 const gmsce::Model &parameters) {
+                 const clonal_expansion::Model &parameters) {
     std::cout << time << ", ";
     for (int vertex = 0; vertex < parameters.m_stages; ++vertex) {
         std::cout << qvalues[vertex] << ", ";
@@ -24,7 +24,7 @@ void debug_print(const double &time, const std::vector<double> &qvalues,
 }
 
 int main() {
-    gmsce::Model parameters(6);
+    clonal_expansion::Model parameters(6);
 
     // System coefficients:
     parameters.m_migr[0][1] = 2.86e-4;

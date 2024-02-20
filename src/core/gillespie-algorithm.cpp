@@ -12,7 +12,7 @@
  * algorithm.
  */
 
-namespace gmsce {
+namespace clonal_expansion {
 
 namespace gillespie_ssa {
 
@@ -210,7 +210,7 @@ void print_kaplan_meier(double time_max, std::vector<double> &all_times, size_t 
     }
 }
 
-gmsce::real_t surv_kaplan_meier(double age, std::vector<double> &all_times, size_t ref_pop) {
+double surv_kaplan_meier(double age, std::vector<double> &all_times, size_t ref_pop) {
     // return the value of the Kaplan-Meier estimator at a given age=time
     size_t num_survivors = ref_pop;
     double time_max = all_times.back();

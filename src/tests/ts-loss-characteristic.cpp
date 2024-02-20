@@ -9,9 +9,9 @@
 
 // A conjugate characteristics simulation of tumour suppressor loss
 
-using gmsce::fast_forward::heun_q_step;
-using gmsce::fast_forward::generating_function;
-using gmsce::real_t;
+using clonal_expansion::fast_forward::heun_q_step;
+using clonal_expansion::fast_forward::generating_function;
+using clonal_expansion::real_t;
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
     real_t rloh = 5e-7;
     real_t mu = 5e-8;
 
-    gmsce::Model model(5);
+    clonal_expansion::Model model(5);
     model.m_migr[0][1] = mu;
     model.m_migr[0][2] = rloh;
     model.m_migr[1][3] = 0.5 * mu;

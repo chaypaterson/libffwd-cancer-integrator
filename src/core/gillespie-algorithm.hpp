@@ -14,7 +14,7 @@
  * used to simulate birth-death-migration processes on graphs.
  */
 
-namespace gmsce {
+namespace clonal_expansion {
 
 namespace gillespie_ssa {
 

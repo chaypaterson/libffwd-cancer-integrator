@@ -14,7 +14,7 @@
 // A Gillespie algorithm simulation of tumour suppressor loss
 // This will generate data for the maximum likelihood section
 
-using gmsce::gillespie_ssa::times_to_final_vertices;
+using clonal_expansion::gillespie_ssa::times_to_final_vertices;
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
@@ -26,10 +26,10 @@ int main(int argc, char* argv[]) {
     int runs = atoi(argv[2]);
 
     // System coefficients:
-    gmsce::real_t rloh = 5.26337e-7;
-    gmsce::real_t mu = 2.16427e-8;
+    clonal_expansion::real_t rloh = 5.26337e-7;
+    clonal_expansion::real_t mu = 2.16427e-8;
 
-    gmsce::Model model(5);
+    clonal_expansion::Model model(5);
     model.m_migr[0][1] = mu;
     model.m_migr[0][2] = rloh;
     model.m_migr[1][3] = 0.5 * mu;

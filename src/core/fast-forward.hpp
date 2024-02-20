@@ -19,7 +19,7 @@
  * in the fast forward library (fast-forward.cpp).
  */
 
-namespace gmsce {
+namespace clonal_expansion {
 
 namespace fast_forward {
 
