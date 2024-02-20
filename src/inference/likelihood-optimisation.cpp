@@ -5,6 +5,7 @@
 #include <vector>
 #include <cmath>
 #include <functional>
+#include <string>
 
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
@@ -165,6 +166,23 @@ Model instantiate_model(real_t rloh, real_t mu, real_t fitness1,
     params.m_birth = {0, fitness1, fitness2, 0, 0};
     params.m_death = {0, 0, 0, 0, 0};
     params.m_initial_pops = {initialpop, 0, 0, 0, 0};
+
+    return params;
+}
+
+Model instantiate_model_germline(real_t rloh, real_t mu, real_t fitness1, 
+                                 real_t fitness2, real_t initialpop) {
+    // Spawn a model of tumour suppressor loss
+    Model params(5);
+    params.m_migr[0][1] = mu;
+    params.m_migr[0][2] = rloh;
+    params.m_migr[1][3] = 0.5 * mu;
+    params.m_migr[1][4] = 0.5 * rloh;
+    params.m_migr[2][4] = 0.5 * mu;
+    // birth and death rates:
+    params.m_birth = {0, fitness1, fitness2, 0, 0};
+    params.m_death = {0, 0, 0, 0, 0};
+    params.m_initial_pops = {0, initialpop, 0, 0, 0};
     // TODO germline mutations: which initial node? i think 1?
 
     return params;
@@ -513,9 +531,10 @@ void write_model_line(std::ofstream& file, Model &model) {
 
 void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop, 
                     std::vector<size_t>& end_nodes,
-                    std::map<size_t, std::vector<size_t>>& incidence) {
+                    std::map<size_t, std::vector<size_t>>& incidence,
+                    std::string filename) {
     std::ofstream fakedata;
-    fakedata.open("syntheticdata_hist.csv");
+    fakedata.open(filename);
     fakedata << "bin width = " << binwidth << "\n";
     fakedata << "max age = " << max_age << "\n";
     fakedata << "ref population = " << reference_pop << std::endl;
@@ -528,6 +547,13 @@ void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
     }
 
     fakedata.close();
+}
+
+void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop, 
+                    std::vector<size_t>& end_nodes,
+                    std::map<size_t, std::vector<size_t>>& incidence) {
+    save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence,
+                    "syntheticdata_hist.csv");
 }
 
 std::map<size_t, std::vector<size_t>> jackknife_incidence(
@@ -611,7 +637,7 @@ int main(int argc, char* argv[]) {
     size_t dataset_size = std::atoi(argv[2]);
     srand(seed);
 
-    std::vector<std::pair<double,int>> all_times;
+    std::vector<std::pair<double,int>> all_times, all_times_germline;
     Model ground_truth = instantiate_model(5.0e-7, 
                                            5.0e-8, 
                                            0.05, 
@@ -621,12 +647,22 @@ int main(int argc, char* argv[]) {
     printf("Ground truth:\n");
     print_model(ground_truth);
 
+    Model ground_truth_germline = instantiate_model(5.0e-7, 
+                                                    5.0e-8, 
+                                                    0.05, 
+                                                    0.03, 
+                                                    1e6);
+    printf("Ground truth (germline):\n");
+    print_model(ground_truth);
+
     // make some fake data:
     std::cout << "Generating synthetic dataset..." << std::endl;
-    all_times = generate_dataset(ground_truth, seed, dataset_size);
+    all_times = generate_dataset(ground_truth, seed, dataset_size / 2);
+    all_times_germline = generate_dataset(ground_truth_germline, seed, dataset_size / 2);
     // TODO: how to include germline mutations?
     // vary the initial populations so that instead of node 0 the cells are
     // initially on node 1
+
     std::vector<size_t> end_nodes = {3,4};
     std::cout << "Done. Saving..." << std::endl;
 
@@ -644,15 +680,20 @@ int main(int argc, char* argv[]) {
     }
 
     // Convert age data to histogram:
-    size_t reference_pop = all_times.size();
+    size_t reference_pop = all_times.size(); /* NB: with germline this is 1/2
+        the previous value */
     real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
-    std::map<size_t, std::vector<size_t>> incidence;
+    std::map<size_t, std::vector<size_t>> incidence, incidence_germline;
     for (auto &end_node : end_nodes) {
         incidence[end_node] = convert_to_histogram(all_times, binwidth, end_node);
+        incidence_germline[end_node] = convert_to_histogram(all_times_germline, 
+                                                              binwidth, end_node);
     }
 
     // Save the histogram:
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
+    save_histogram(binwidth, max_age, reference_pop, end_nodes,
+                    incidence_germline, "syntheticdata_hist_germline.csv");
 
     // Get the main un-resampled estimate with simulated annealing:
     Model best_guess = ground_truth;
@@ -669,6 +710,8 @@ int main(int argc, char* argv[]) {
         printf("Target likelihood:\n-log L = %g\n", 
                 loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
                                         incidence));
+        // TODO: need a loglikelihood_hist_both function that accepts both an
+        // incidence histogram and a germline histogram and returns a likelihood
 
         Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
