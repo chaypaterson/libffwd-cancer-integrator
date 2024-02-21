@@ -5,13 +5,14 @@ CORE = src/core
 TESTS = src/tests
 NUMER = src/errors
 LEARN = src/inference
-STD = --std=c++11
+STD = --std=c++17
 OPT1 = -O3
 INCLUDE = -I$(CORE)
 FLAGS = $(STD) $(OPT1) $(INCLUDE)
 LIBFFWD = $(LIBDIR)/libffwd.so
 LIBGILL = $(LIBDIR)/libgillespie.so
 GILLFLAGS = $(FLAGS) -lgsl -lgslcblas -pthread
+EIGEN = /usr/include/eigen3
 
 OS = $(shell uname)
 ifeq ($(OS),Darwin)
@@ -19,6 +20,7 @@ ifeq ($(OS),Darwin)
 	MACLIBS = -I/opt/homebrew/include/ -L/opt/homebrew/lib/
 	FLAGS += $(MACLIBS)
 	GILLFLAGS += $(MACLIBS)
+	EIGEN = /Users/user/Code/eigen
 endif
 ifeq ($(OS),Linux)
 	# Linux+Ryzen only:
@@ -36,7 +38,7 @@ install : tsloss guesser numericalerrors
 	cp $(BUILDDIR)/gilllosserrs $(HOME)/.local/bin
 
 guesser : $(LIBFFWD) libgillespie.so builddir
-	$(CC) $(LIBFFWD) $(LIBGILL) -I /usr/include/eigen3 $(LEARN)/likelihood-optimisation.cpp $(GILLFLAGS) -o $(BUILDDIR)/guesser
+	$(CC) $(LIBFFWD) $(LIBGILL) -I $(EIGEN) $(LEARN)/likelihood-optimisation.cpp $(GILLFLAGS) -o $(BUILDDIR)/guesser
 
 gillespie_sampler : libgillespie.so builddir
 	$(CC) $(LIBGILL) $(LEARN)/gillespie-sampler.cpp $(GILLFLAGS) -o $(BUILDDIR)/gillespie_sampler
