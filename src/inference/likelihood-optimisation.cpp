@@ -85,10 +85,8 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
 
         // -log binomial likelihood:
         real_t p = Sprob - Sprob2;
-        if (!std::isnan(log(p) + log(1 - p))) {
-            mlogl += -log(p) * curr_bin;
-            mlogl += -log(1 - p) * (nsurv - curr_bin);
-        }
+        mlogl += -log(p) * curr_bin;
+        mlogl += -log(1 - p) * (nsurv - curr_bin);
 		nsurv -= curr_bin;
 
         // weight for survival/chance of detection of cancer:
