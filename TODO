@@ -58,3 +58,10 @@ study germline mutations, see if identifiability improves
 Wed 21 Feb 2024 16:04:30 GMT
 current dev build of eigen requires C++>14
 choose: recommend stable or change std we compile against? C++14 is probably supported
+
+Fri 23 Feb 18:00:37 GMT 2024
+TODO: DECIDE ON C++ STANDARD! NAIL THIS DOWN
+and decide on what fitness to put in the new simulations for the
+germline/sporadic study
+
+discuss both with colleagues
