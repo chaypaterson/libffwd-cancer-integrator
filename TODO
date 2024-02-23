@@ -54,3 +54,7 @@ eigendecomposition of cov matrix!
 
 Tue 20 Feb 16:35:24 GMT 2024
 study germline mutations, see if identifiability improves
+
+Wed 21 Feb 2024 16:04:30 GMT
+current dev build of eigen requires C++>14
+choose: recommend stable or change std we compile against? C++14 is probably supported

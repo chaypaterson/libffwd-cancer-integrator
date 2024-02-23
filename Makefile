@@ -5,7 +5,7 @@ CORE = src/core
 TESTS = src/tests
 NUMER = src/errors
 LEARN = src/inference
-STD = --std=c++11
+STD = --std=c++17
 OPT1 = -O3
 INCLUDE = -I$(CORE)
 FLAGS = $(STD) $(OPT1) $(INCLUDE)
@@ -20,6 +20,7 @@ ifeq ($(OS),Darwin)
 	MACLIBS = -I/opt/homebrew/include/ -L/opt/homebrew/lib/
 	FLAGS += $(MACLIBS)
 	GILLFLAGS += $(MACLIBS)
+	EIGEN = /Users/user/Code/eigen
 endif
 ifeq ($(OS),Linux)
 	# Linux+Ryzen only:

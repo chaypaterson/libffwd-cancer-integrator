@@ -120,6 +120,30 @@ real_t loglikelihood_hist_both(Model& params, real_t binwidth,
     return mlogl;
 }
 
+real_t loglikelihood_hist_both(Model& params, real_t binwidth,
+                               size_t ref_population,
+                               std::map<size_t, std::vector<size_t>> histos_sporadic,
+                               std::map<size_t, std::vector<size_t>> histos_germline) {
+    // this version includes two separate sporadic and germline incidence curves.
+    real_t mlogl = 0;
+
+    for (const auto& type : histos_sporadic) {
+        mlogl += loglikelihood_hist_node(params, type.first, binwidth,
+                                          ref_population, type.second);
+    }
+
+    Model params_germline = params;
+    params_germline.m_initial_pops[1] = params.m_initial_pops[0];
+    params_germline.m_initial_pops[0] = 0;
+
+    for (const auto& type : histos_germline) {
+        mlogl += loglikelihood_hist_node(params, type.first, binwidth,
+                                          ref_population, type.second);
+    }
+
+    return mlogl;
+}
+
 std::vector<size_t> convert_to_histogram(const epidata_t& all_times, 
                                          real_t binwidth,
                                          size_t node) {
@@ -649,11 +673,11 @@ int main(int argc, char* argv[]) {
     printf("Ground truth:\n");
     print_model(ground_truth);
 
-    Model ground_truth_germline = instantiate_model(5.0e-7, 
-                                                    5.0e-8, 
-                                                    0.05, 
-                                                    0.03, 
-                                                    1e6);
+    Model ground_truth_germline = instantiate_model_germline(5.0e-7, 
+                                                             5.0e-8, 
+                                                             0.05, 
+                                                             0.03, 
+                                                             1e6);
     printf("Ground truth (germline):\n");
     print_model(ground_truth);
 
@@ -711,7 +735,7 @@ int main(int argc, char* argv[]) {
 
         printf("Target likelihood:\n-log L = %g\n", 
                 loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
-                                        incidence));
+                                        incidence, incidence_germline));
         // TODO: need a loglikelihood_hist_both function that accepts both an
         // incidence histogram and a germline histogram and returns a likelihood
 
@@ -721,8 +745,9 @@ int main(int argc, char* argv[]) {
         std::cout << "Starting annealing..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
             return loglikelihood_hist_both(model, binwidth, 
-                                           reference_pop, incidence);
+                                           reference_pop, incidence, incidence_germline);
         };
+        // TODO should now work with germline data
 
         best_guess = annealing_min(objective, guess);
         // Annealing now complete. Print guess:
