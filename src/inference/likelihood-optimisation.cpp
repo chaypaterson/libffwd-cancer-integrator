@@ -66,8 +66,6 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
     real_t end_time = binwidth;
     real_t dt = 0.10;
 	size_t nsurv = ref_population;
-    // TODO germline mutations: implement a generating function with different
-    // initial conditions
 
     for (const size_t& curr_bin : freqs) {
         // compute survival probabilities S at start and end of the bin:
@@ -205,6 +203,7 @@ Model instantiate_model_germline(real_t rloh, real_t mu, real_t fitness1,
     params.m_migr[2][4] = 0.5 * mu;
     // birth and death rates:
     params.m_birth = {0, fitness1, fitness2, 0, 0};
+    // TODO maybe fitness1 should be 0 for this model? discuss w colleagues
     params.m_death = {0, 0, 0, 0, 0};
     params.m_initial_pops = {0, initialpop, 0, 0, 0};
     // TODO germline mutations: which initial node? i think 1?
@@ -659,9 +658,11 @@ int main(int argc, char* argv[]) {
     }
     size_t seed = std::atoi(argv[1]);
     size_t dataset_size = std::atoi(argv[2]);
+    bool include_germline = 0; // run with germline or without?
     srand(seed);
 
     std::vector<std::pair<double,int>> all_times, all_times_germline;
+
     Model ground_truth = instantiate_model(5.0e-7, 
                                            5.0e-8, 
                                            0.05, 
@@ -671,21 +672,29 @@ int main(int argc, char* argv[]) {
     printf("Ground truth:\n");
     print_model(ground_truth);
 
-    Model ground_truth_germline = instantiate_model_germline(5.0e-7, 
-                                                             5.0e-8, 
-                                                             0.05, 
-                                                             0.03, 
-                                                             1e6);
-    printf("Ground truth (germline):\n");
-    print_model(ground_truth);
-
-    // make some fake data:
+    // simulate some data that could be collected by a longitudinal study:
     std::cout << "Generating synthetic dataset..." << std::endl;
-    all_times = generate_dataset(ground_truth, seed, dataset_size / 2);
-    all_times_germline = generate_dataset(ground_truth_germline, seed, dataset_size / 2);
-    // TODO: how to include germline mutations?
-    // vary the initial populations so that instead of node 0 the cells are
-    // initially on node 1
+    if (include_germline) {
+        // if we include germline cases, the clincal study has a 50:50 mix of
+        // sporadic cases and cases with germline alterations
+        Model ground_truth_germline = instantiate_model_germline(5.0e-7, 
+                                                                 5.0e-8, 
+                                                                 0.05, 
+                                                                 0.03, 
+                                                                 1e6);
+        printf("Ground truth (germline):\n");
+        print_model(ground_truth_germline);
+
+        all_times = generate_dataset(ground_truth, seed, dataset_size / 2);
+        // to include germline mutations:
+        // vary the initial populations so that instead of node 0 the cells are
+        // initially on node 1
+        all_times_germline = generate_dataset(ground_truth_germline, seed,
+                                              dataset_size / 2);
+    } else {
+        // sporadic cases only (default)
+        all_times = generate_dataset(ground_truth, seed, dataset_size);
+    }
 
     std::vector<size_t> end_nodes = {3,4};
     std::cout << "Done. Saving..." << std::endl;
@@ -707,17 +716,25 @@ int main(int argc, char* argv[]) {
     size_t reference_pop = all_times.size(); /* NB: with germline this is 1/2
         the previous value */
     real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
+
     std::map<size_t, std::vector<size_t>> incidence, incidence_germline;
+
     for (auto &end_node : end_nodes) {
-        incidence[end_node] = convert_to_histogram(all_times, binwidth, end_node);
-        incidence_germline[end_node] = convert_to_histogram(all_times_germline, 
-                                                              binwidth, end_node);
+        incidence[end_node] = convert_to_histogram(all_times, binwidth,
+                                                   end_node);
+        if (include_germline) {
+            incidence_germline[end_node] = convert_to_histogram(
+                                                   all_times_germline, binwidth,
+                                                   end_node);
+        }
     }
 
     // Save the histogram:
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
-    save_histogram(binwidth, max_age, reference_pop, end_nodes,
-                    incidence_germline, "syntheticdata_hist_germline.csv");
+    if (include_germline) {
+        save_histogram(binwidth, max_age, reference_pop, end_nodes,
+                        incidence_germline, "syntheticdata_hist_germline.csv");
+    }
 
     // Get the main un-resampled estimate with simulated annealing:
     Model best_guess = ground_truth;
@@ -731,29 +748,45 @@ int main(int argc, char* argv[]) {
         real_t fitness2 = 0.03;
         real_t initialpop = 1e6;
 
-        printf("Target likelihood:\n-log L = %g\n", 
-                loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
-                                        incidence, incidence_germline));
-        // TODO: need a loglikelihood_hist_both function that accepts both an
-        // incidence histogram and a germline histogram and returns a likelihood
+        if (include_germline) {
+            printf("Target likelihood:\n-log L = %g\n", 
+                    loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
+                                            incidence, incidence_germline));
+        } else {
+            printf("Target likelihood:\n-log L = %g\n", 
+                    loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
+                                            incidence));
+        }
 
         Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
+        // Get and return Hessian:
+        Eigen::MatrixXd Hessian;
+
         // Try out simulated annealing:
         std::cout << "Starting annealing..." << std::endl;
-        std::function<real_t(Model&)> objective = [&](Model& model) {
-            return loglikelihood_hist_both(model, binwidth, 
-                                           reference_pop, incidence, incidence_germline);
-        };
-        // TODO should now work with germline data
+        if (include_germline) {
+            std::function<real_t(Model&)> objective = [&](Model& model) {
+                return loglikelihood_hist_both(model, binwidth, 
+                                               reference_pop, incidence,
+                                               incidence_germline);
+            };
+            // this should now work with germline data
+            best_guess = annealing_min(objective, guess);
+            Hessian = compute_hessian(objective, best_guess);
+        } else {
+            std::function<real_t(Model&)> objective = [&](Model& model) {
+                return loglikelihood_hist_both(model, binwidth, 
+                                               reference_pop, incidence);
+            };
+            best_guess = annealing_min(objective, guess);
+            Hessian = compute_hessian(objective, best_guess);
+        }
 
-        best_guess = annealing_min(objective, guess);
         // Annealing now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
         print_model(best_guess);
 
-        // Get and return Hessian:
-        Eigen::MatrixXd Hessian = compute_hessian(objective, best_guess);
 
         std::cout << "H = " << std::endl;
         std::cout << "[rloh, mu, s1, s2]" << std::endl;
@@ -770,6 +803,7 @@ int main(int argc, char* argv[]) {
         int param = 0;
         for (int param = 0; param < 4; ++param) {
             double estimate;
+            // TODO disgusting:
             if (param == 0) estimate = best_guess.m_migr[0][2];
             if (param == 1) estimate = best_guess.m_migr[0][1];
             if (param == 2) estimate = best_guess.m_birth[1];
