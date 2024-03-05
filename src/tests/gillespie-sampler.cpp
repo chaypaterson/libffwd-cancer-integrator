@@ -9,7 +9,7 @@
 #include <thread>
 #include <algorithm>
 
-#include "gillespie-algorithm.hpp"
+#include "src/core/gillespie-algorithm.hpp"
 
 // A Gillespie algorithm simulation of tumour suppressor loss
 // This will generate data for the maximum likelihood section
