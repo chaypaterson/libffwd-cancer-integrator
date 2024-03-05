@@ -13,11 +13,15 @@
  *
  * Initial values are chosen for the conjugate coordinates "q[j]", and these
  * values are evolved along a vector field using Heun's method.
- * 
- * This source file contains the function implementations. It has no entry
- * point, and should be compiled to a library with
+ *
+ * This source file contains the function implementations. It is a library with
+ * no main(...) entry point, and should be compiled with
  *      g++ fast-forward.cpp -c -o libffwd.so
  */
+
+namespace clonal_expansion {
+
+namespace fast_forward {
 
 std::vector<real_t> rhs_flow(const std::vector<real_t> &qcoords,
                              Model &parameters) {
@@ -31,21 +35,21 @@ std::vector<real_t> rhs_flow(const std::vector<real_t> &qcoords,
     for (size_t vertex = 0; vertex < parameters.m_stages; ++vertex) {
         real_t rate_of_change = 0;
         // Rate of change of gamma due to birth process:
-        rate_of_change += parameters.m_birth[vertex] * 
-                            (qcoords[vertex] - 1) * 
-                            qcoords[vertex];
+        rate_of_change += parameters.m_birth[vertex] *
+                          (qcoords[vertex] - 1) *
+                          qcoords[vertex];
 
         // Rate of change of gamma due to death process:
-        rate_of_change += parameters.m_death[vertex] * 
-                            (1 - qcoords[vertex]);
+        rate_of_change += parameters.m_death[vertex] *
+                          (1 - qcoords[vertex]);
 
         // Rate of change of gamma due to mutation away from this vertex:
-        for (size_t out_vertex = 0; 
-             out_vertex < parameters.m_stages; 
-             ++out_vertex) {
-            rate_of_change += parameters.m_migr[vertex][out_vertex] * 
-                                (qcoords[out_vertex] - 1) * 
-                                qcoords[vertex];
+        for (size_t out_vertex = 0;
+                out_vertex < parameters.m_stages;
+                ++out_vertex) {
+            rate_of_change += parameters.m_migr[vertex][out_vertex] *
+                              (qcoords[out_vertex] - 1) *
+                              qcoords[vertex];
         }
 
         // Store the total rate of change:
@@ -55,7 +59,7 @@ std::vector<real_t> rhs_flow(const std::vector<real_t> &qcoords,
     return flux;
 }
 
-void heun_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt, 
+void heun_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt,
                  Model &parameters) {
     // Time step the q-coordinates (qcoords) using Heun's method
     // Compute an initial guess, qcoords2:
@@ -75,8 +79,8 @@ void heun_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt,
     // Do not increment time within this function.
 }
 
-void implicit_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt, 
-                 Model &parameters) {
+void implicit_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt,
+                     Model &parameters) {
     // Time step the q-coordinates (qcoords) using implicit Euler method
     // Compute an initial guess, qcoords2:
     std::vector<real_t> qcoords2 = qcoords;
@@ -95,8 +99,8 @@ void implicit_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &d
     // Do not increment time within this function.
 }
 
-void rungekutta_q_step(std::vector<real_t> &qcoords, const real_t &time, 
-                 real_t &dt, Model &parameters) {
+void rungekutta_q_step(std::vector<real_t> &qcoords, const real_t &time,
+                       real_t &dt, Model &parameters) {
     // Time step the q-coordinates (qcoords) using classical Runge-Kutta integration
     // Compute initial midpoint guesses, qcoords2 and qcoords3:
     std::vector<real_t> flux = rhs_flow(qcoords, parameters);
@@ -130,9 +134,9 @@ void rungekutta_q_step(std::vector<real_t> &qcoords, const real_t &time,
     // Do not increment time within this function.
 }
 
-real_t generating_function(std::vector<real_t> qcoords, 
+real_t generating_function(std::vector<real_t> qcoords,
                            std::vector<real_t> initial_pops) {
-    // Compute the value of the generating function (psi) at given 
+    // Compute the value of the generating function (psi) at given
     // q-coordinates (qcoords) with known initial conditions.
     // The initial conditions are the initial_pops.
 
@@ -153,4 +157,6 @@ real_t generating_function(std::vector<real_t> qcoords,
     return exp(log_psi);
 }
 
+}
 
+}

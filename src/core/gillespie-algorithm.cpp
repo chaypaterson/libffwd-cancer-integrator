@@ -12,6 +12,10 @@
  * algorithm.
  */
 
+namespace clonal_expansion {
+
+namespace gillespie_ssa {
+
 // a method to perform one step, changing the populations and advancing time
 void gillespie_instance::gillespie_step(gsl_rng *rng) {
     double Gamma = get_gamma();
@@ -24,8 +28,8 @@ void gillespie_instance::gillespie_step(gsl_rng *rng) {
         // Update m_gamma:
         m_gamma += m_parameters.m_birth[vertex] * delta_pops[vertex];
         m_gamma += m_parameters.m_death[vertex] * delta_pops[vertex];
-        for (size_t out_vertex = 0; 
-             out_vertex < m_vertices; ++out_vertex) {
+        for (size_t out_vertex = 0;
+                out_vertex < m_vertices; ++out_vertex) {
             m_gamma += m_parameters.m_migr[vertex][out_vertex] * delta_pops[vertex];
         }
     }
@@ -48,8 +52,8 @@ void gillespie_instance::set_gamma() {
     for (size_t vertex = 0; vertex < m_vertices; ++vertex) {
         m_gamma += m_parameters.m_birth[vertex] * m_pops[vertex];
         m_gamma += m_parameters.m_death[vertex] * m_pops[vertex];
-        for (size_t out_vertex = 0; 
-             out_vertex < m_vertices; ++out_vertex) {
+        for (size_t out_vertex = 0;
+                out_vertex < m_vertices; ++out_vertex) {
             m_gamma += m_parameters.m_migr[vertex][out_vertex] * m_pops[vertex];
         }
     }
@@ -71,8 +75,8 @@ std::vector<int> gillespie_instance::x_to_event(double x) {
             delta_pops[vertex] = -1;
             break;
         }
-        for (size_t out_vertex = 0; 
-             out_vertex < m_vertices; ++out_vertex) {
+        for (size_t out_vertex = 0;
+                out_vertex < m_vertices; ++out_vertex) {
             accum_rate += m_parameters.m_migr[vertex][out_vertex] * m_pops[vertex];
             if (accum_rate >= x) {
                 delta_pops[out_vertex] = +1;
@@ -105,7 +109,7 @@ double first_passage_time(gsl_rng *rng, const Model &params,
     return this_run.m_time;
 }
 
-std::pair<double,int> first_passage_time(gsl_rng *rng, const Model &params, 
+std::pair<double,int> first_passage_time(gsl_rng *rng, const Model &params,
         const std::vector<int> final_vertices) {
     // create an instance of a simulation state:
     gillespie_instance this_run(params);
@@ -133,9 +137,9 @@ std::pair<double,int> first_passage_time(gsl_rng *rng, const Model &params,
     return std::make_pair(this_run.m_time, ending_type);
 }
 
-void times_to_final_vertex(const Model &model, int seed, 
-            int runs_per_thr, int final_vertex,
-            std::vector<double> &results) {
+void times_to_final_vertex(const Model &model, int seed,
+                           int runs_per_thr, int final_vertex,
+                           std::vector<double> &results) {
     const gsl_rng_type *T;
     gsl_rng *r;
 
@@ -156,8 +160,8 @@ void times_to_final_vertex(const Model &model, int seed,
 }
 
 void times_to_final_vertices(const Model &model, int seed,
-            int runs_per_thr, std::vector<int> final_vertices,
-            std::vector<std::pair<double,int>> &results) {
+                             int runs_per_thr, std::vector<int> final_vertices,
+                             std::vector<std::pair<double,int>> &results) {
     const gsl_rng_type *T;
     gsl_rng *r;
 
@@ -169,8 +173,8 @@ void times_to_final_vertices(const Model &model, int seed,
     gsl_rng_set(r,seed);
 
     for (int i = 0; i < runs_per_thr; ++i) {
-        std::pair<double,int> result = 
-                first_passage_time(r, model, final_vertices);
+        std::pair<double,int> result =
+            first_passage_time(r, model, final_vertices);
         if (result.first >= 0)
             results.push_back(result);
     }
@@ -200,7 +204,7 @@ void print_kaplan_meier(double time_max, std::vector<double> &all_times, size_t 
             --num_survivors;
             ++time_datum;
             // avoid unguarded access:
-            if (time_datum == all_times.end()) return;
+            if (time_datum >= all_times.end()) break; // break, don't return.
         }
         std::cout << time << ", " << survival << ", ";
         std::cout << 1.0 - survival << "," << std::endl;
@@ -208,7 +212,7 @@ void print_kaplan_meier(double time_max, std::vector<double> &all_times, size_t 
     }
 }
 
-real_t surv_kaplan_meier(double age, std::vector<double> &all_times, size_t ref_pop) {
+double surv_kaplan_meier(double age, std::vector<double> &all_times, size_t ref_pop) {
     // return the value of the Kaplan-Meier estimator at a given age=time
     size_t num_survivors = ref_pop;
     double time_max = all_times.back();
@@ -231,6 +235,7 @@ real_t surv_kaplan_meier(double age, std::vector<double> &all_times, size_t ref_
 }
 
 void print_naive_estimator(double time_max, std::vector<double> &all_times) {
+    // ONLY VALID WHEN THERE IS A SINGLE END NODE!
     size_t num_survivors = all_times.size();
     const size_t total_survivors = num_survivors;
     double dt = time_max / 200;
@@ -248,5 +253,9 @@ void print_naive_estimator(double time_max, std::vector<double> &all_times) {
         std::cout << time << ", " << survival << ", ";
         std::cout << 1.0 - survival << "," << std::endl;
         time += dt;
-    } 
+    }
+}
+
+}
+
 }

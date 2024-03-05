@@ -34,7 +34,44 @@ Thu 18 May 2023 11:52:28 MDT
 
 Is the first passage time the appropriate point of comparison? What does this assume about prevalence that the other model doesn't?
 
+Mon 14 Aug 23:48:14 BST 2023
+
+^^ most of the above has been dealt with
+
+For the guesser program:
+    Try a sinc derivative filter for the finite difference Hessian? could be
+    generated programmatically.
+
+Tue  3 Oct 15:43:22 BST 2023
+
+^^ Most of the above done
+TODO URGENT: establish how "shallow" the global vs. local minima are. This could
+explain the twitchiness and sensitivity to outliers.
+
+Thu 19 Oct 23:36:30 BST 2023
+
+eigendecomposition of cov matrix!
+
 Sun 18 Feb 16:48:26 GMT 2024
 bin_PROGRAMS = gillespie_unit_test likelihood_unit_test
 gillespie_unit_test_SOURCES = src/tests/gillespie-sampler.cpp
 likelihood_unit_test_SOURCES = src/tests/likelihood-unit-test.cpp
+
+Tue 20 Feb 16:35:24 GMT 2024
+study germline mutations, see if identifiability improves
+
+Wed 21 Feb 2024 16:04:30 GMT
+current dev build of eigen requires C++>14
+choose: recommend stable or change std we compile against? C++14 is probably supported
+
+Fri 23 Feb 18:00:37 GMT 2024
+TODO: DECIDE ON C++ STANDARD! NAIL THIS DOWN
+and decide on what fitness to put in the new simulations for the
+germline/sporadic study
+
+discuss both with colleagues
+
+Fri  1 Mar 18:18:20 GMT 2024
+
+Format with:
+    astyle --style=google

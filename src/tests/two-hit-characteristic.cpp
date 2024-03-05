@@ -21,7 +21,7 @@
  */
 
 int main() {
-    Model two_hit(3);
+    clonal_expansion::Model two_hit(3);
     // System coefficients:
     two_hit.m_migr[0][1] = 0.001;
     two_hit.m_migr[1][2] = 0.001;

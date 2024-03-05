@@ -12,6 +12,11 @@
  * Test definition of likelihood function
  */
 
+using clonal_expansion::fast_forward::heun_q_step;
+using clonal_expansion::fast_forward::generating_function;
+using clonal_expansion::real_t; 
+using clonal_expansion::Model;
+
 // A higher-order function for mapping "mapme" onto data and keeping track of
 // the total:
 void map_onto_data(Model& params, const epidata_t& this_data, 

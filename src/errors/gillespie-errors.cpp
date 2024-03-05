@@ -15,12 +15,16 @@
 // A Gillespie algorithm simulation of tumour suppressor loss
 // This program returns expected errors in the Gillespie simulation
 
+using clonal_expansion::gillespie_ssa::surv_kaplan_meier; 
+using clonal_expansion::gillespie_ssa::times_to_final_vertices; 
+using clonal_expansion::real_t;
+
 std::map<int,std::vector<double>> generate_dataset(int seed, int runs) {
     // System coefficients:
     double rloh = 5.0e-7;
     double mu = 5.0e-8;
 
-    Model model(5);
+    clonal_expansion::Model model(5);
     model.m_migr[0][1] = mu;
     model.m_migr[0][2] = rloh;
     model.m_migr[1][3] = 0.5 * mu;
@@ -79,6 +83,7 @@ int main(int argc, char* argv[]) {
     // compute scaled root mean square difference in survival curves:
     size_t reference_pop_1 = all_times_1[3].size() + all_times_1[4].size();
     size_t reference_pop_2 = all_times_2[3].size() + all_times_2[4].size();
+    // NB: these should both be equal to runs
 
     size_t num_sample_points = 256;
     double dt = age_max / (double)num_sample_points;

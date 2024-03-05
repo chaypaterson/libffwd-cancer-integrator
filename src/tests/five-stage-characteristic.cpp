@@ -11,8 +11,11 @@
 // This integrator is based on integrating a Fourier-space version of the
 // Kolmogorov forward equations using the method of characteristics.
 
+using clonal_expansion::fast_forward::heun_q_step;
+using clonal_expansion::fast_forward::generating_function;
+
 void debug_print(const double &time, const std::vector<double> &qvalues,
-                 const Model &parameters) {
+                 const clonal_expansion::Model &parameters) {
     std::cout << time << ", ";
     for (int vertex = 0; vertex < parameters.m_stages; ++vertex) {
         std::cout << qvalues[vertex] << ", ";
@@ -21,7 +24,7 @@ void debug_print(const double &time, const std::vector<double> &qvalues,
 }
 
 int main() {
-    Model parameters(6);
+    clonal_expansion::Model parameters(6);
 
     // System coefficients:
     parameters.m_migr[0][1] = 2.86e-4;
@@ -63,7 +66,9 @@ int main() {
         // iterate over different sites to get the probability
         std::cout << time << ", " ;
         for (size_t vertex = 0; vertex < parameters.m_stages; ++vertex) {
-            double prob = generating_function(qvalues[vertex], parameters.m_initial_pops);
+            double prob = generating_function(
+                                qvalues[vertex], 
+                                parameters.m_initial_pops);
             std::cout << 1.0 - prob << ", ";
         }
         std::cout << std::endl;
