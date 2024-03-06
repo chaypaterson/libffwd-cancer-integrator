@@ -252,8 +252,8 @@ Model get_neighbour(Model& model, double w) {
     real_t new_mu = logcauchyv(model.m_migr[0][1], w);
     real_t new_rloh = logcauchyv(model.m_migr[0][2], w);
     // results are very sensitive to fitness values (so use a narrower distribution):
-    real_t new_fitness1 = uniform(model.m_birth[1], 0.10 * w);
-    real_t new_fitness2 = uniform(model.m_birth[2], 0.10 * w);
+    real_t new_fitness1 = uniform(model.m_birth[1], 0.80 * w);
+    real_t new_fitness2 = uniform(model.m_birth[2], 0.80 * w);
     // force the fitnesses to be positive (negative values are meaningless in this context)
     new_fitness1 *= 1 - 2 * (new_fitness1 < 0);
     new_fitness2 *= 1 - 2 * (new_fitness2 < 0);
@@ -665,7 +665,7 @@ int main(int argc, char* argv[]) {
 
     Model ground_truth = instantiate_model(5.0e-7, 
                                            5.0e-8, 
-                                           0.05, 
+                                           0.02, 
                                            0.03, 
                                            1e6);
 
@@ -679,7 +679,7 @@ int main(int argc, char* argv[]) {
         // sporadic cases and cases with germline alterations
         Model ground_truth_germline = instantiate_model_germline(5.0e-7, 
                                                                  5.0e-8, 
-                                                                 0.05, 
+                                                                 0.02, 
                                                                  0.03, 
                                                                  1e6);
         printf("Ground truth (germline):\n");
@@ -715,7 +715,8 @@ int main(int argc, char* argv[]) {
     // Convert age data to histogram:
     size_t reference_pop = all_times.size(); /* NB: with germline this is 1/2
         the previous value */
-    real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
+    //real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
+    real_t binwidth = 10.0; //fixed width
 
     std::map<size_t, std::vector<size_t>> incidence, incidence_germline;
 
@@ -744,7 +745,7 @@ int main(int argc, char* argv[]) {
         // Guess some initial model parameters:
         real_t rloh = 1e-7;
         real_t mu = 1e-8;
-        real_t fitness1 = 0.05;
+        real_t fitness1 = 0.02;
         real_t fitness2 = 0.03;
         real_t initialpop = 1e6;
 
