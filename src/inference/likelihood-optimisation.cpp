@@ -13,6 +13,7 @@
 #include "graph-model-spec.hpp"
 #include "fast-forward.hpp"
 #include "gillespie-algorithm.hpp"
+#include <thread>
 
 /* Max. likelihood program:
  *      Generates a simulated dataset with hidden parameter values
@@ -48,8 +49,8 @@ real_t logsurvival(Model& params, int node) {
 }
 
 real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
-                            size_t ref_population,
-                            const std::vector<size_t>& freqs) {
+                               size_t ref_population,
+                               const std::vector<size_t>& freqs) {
     // Histogram version of the -log likelihood
     // Recieves a histogram of cancers with a known type (node)
     // Returns a -log binomial likelihood
@@ -65,7 +66,7 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
     qvalsExcept[node] = 1;
     real_t end_time = binwidth;
     real_t dt = 0.10;
-	size_t nsurv = ref_population;
+    size_t nsurv = ref_population;
 
     for (const size_t& curr_bin : freqs) {
         // compute survival probabilities S at start and end of the bin:
@@ -85,7 +86,7 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
         real_t p = Sprob - Sprob2;
         mlogl += -log(p) * curr_bin;
         mlogl += -log(1 - p) * (nsurv - curr_bin);
-		nsurv -= curr_bin;
+        nsurv -= curr_bin;
 
         // weight for survival/chance of detection of cancer:
         mlogl += logsurvival(params, node) * curr_bin;
@@ -106,7 +107,7 @@ real_t loglikelihood_hist_both(Model& params, real_t binwidth,
 
     for (const auto& type : histos) {
         mlogl += loglikelihood_hist_node(params, type.first, binwidth,
-                                          ref_population, type.second);
+                                         ref_population, type.second);
     }
     // TODO end correction: probability not to get either type of cancer
     // some population remaining_pop in the reference pop have not got either
@@ -125,7 +126,7 @@ real_t loglikelihood_hist_both(Model& params, real_t binwidth,
 
     for (const auto& type : histos_sporadic) {
         mlogl += loglikelihood_hist_node(params, type.first, binwidth,
-                                          ref_population, type.second);
+                                         ref_population, type.second);
     }
 
     Model params_germline = params;
@@ -134,15 +135,15 @@ real_t loglikelihood_hist_both(Model& params, real_t binwidth,
 
     for (const auto& type : histos_germline) {
         mlogl += loglikelihood_hist_node(params, type.first, binwidth,
-                                          ref_population, type.second);
+                                         ref_population, type.second);
     }
 
     return mlogl;
 }
 
-std::vector<size_t> convert_to_histogram(const epidata_t& all_times, 
-                                         real_t binwidth,
-                                         size_t node) {
+std::vector<size_t> convert_to_histogram(const epidata_t& all_times,
+        real_t binwidth,
+        size_t node) {
     real_t max_age = 0;
     for (auto& datum : all_times) {
         if (datum.first > max_age) max_age = datum.first;
@@ -171,11 +172,12 @@ std::vector<std::pair<double,int>> generate_dataset(Model& model, int seed, int 
     // all_times:
     std::vector<std::pair<double,int>> all_times;
     times_to_final_vertices(model, seed, runs, final_vertices, all_times);
+    // TODO this is a natural candidate for parallelisation
 
     return all_times;
 }
 
-Model instantiate_model(real_t rloh, real_t mu, real_t fitness1, 
+Model instantiate_model(real_t rloh, real_t mu, real_t fitness1,
                         real_t fitness2, real_t initialpop) {
     // Spawn a model of tumour suppressor loss
     Model params(5);
@@ -192,7 +194,7 @@ Model instantiate_model(real_t rloh, real_t mu, real_t fitness1,
     return params;
 }
 
-Model instantiate_model_germline(real_t rloh, real_t mu, real_t fitness1, 
+Model instantiate_model_germline(real_t rloh, real_t mu, real_t fitness1,
                                  real_t fitness2, real_t initialpop) {
     // Spawn a model of tumour suppressor loss
     Model params(5);
@@ -261,9 +263,9 @@ Model get_neighbour(Model& model, double w) {
     real_t new_inipop = model.m_initial_pops[0];
 
     return instantiate_model(new_rloh, new_mu, new_fitness1,
-                            new_fitness2, new_inipop);
+                             new_fitness2, new_inipop);
 }
- 
+
 real_t estimate_error(Model& old_model, Model& new_model) {
     // TODO this function is ugly
     // There should be a nice internal method in the Model class for iterating
@@ -304,7 +306,7 @@ real_t estimate_error(Model& old_model, Model& new_model) {
  * parameters of the log-likelihood objective function to be "bound" in the
  * context.
  */
-Model annealing_min(std::function<real_t(Model& model)> objective, 
+Model annealing_min(std::function<real_t(Model &model)> objective,
                     Model initial_guess) {
     // Function reads a set of datum points and returns a set of model
     // parameters.
@@ -325,12 +327,12 @@ Model annealing_min(std::function<real_t(Model& model)> objective,
     printf("Initial likelihood:\n-log L = %g\n", best_y);
 
     // Simulated annealing process:
-    double Temp = best_y;      // Initial temperature 
+    double Temp = best_y;      // Initial temperature
     unsigned int iter = 0;  // count iterations
 
     while ((++iter < iter_max) && (Temp > Tmin)) {
         Model new_guess = get_neighbour(best_guess, w);
-       
+
         double y_new = objective(new_guess);
 
         if (std::isnan(y_new)) continue;
@@ -377,7 +379,7 @@ std::vector<std::vector<double>> StencilLP16() {
 }
 
 Eigen::MatrixXd compute_gradient(std::function<real_t(Model&)> objective,
-                                Model point) {
+                                 Model point) {
     // Compute the gradient of the objective function at a point with respect to
     // the logs of the model parameters:
     int dim = 4;
@@ -390,10 +392,11 @@ Eigen::MatrixXd compute_gradient(std::function<real_t(Model&)> objective,
     int radius = (weights.size() - 1) / 2; // NB: weights.size must be odd
 
     // vector of parameter values:
-    std::vector<real_t> Theta = {point.m_migr[0][2] /*rloh*/, 
-                                 point.m_migr[0][1] /*mu*/, 
-                                 point.m_birth[1]   /*fitness1*/, 
-                                 point.m_birth[2]   /*fitness2*/};
+    std::vector<real_t> Theta = {point.m_migr[0][2] /*rloh*/,
+                                 point.m_migr[0][1] /*mu*/,
+                                 point.m_birth[1]   /*fitness1*/,
+                                 point.m_birth[2]   /*fitness2*/
+                                };
 
     for (int axis = 0; axis < dim; ++axis) {
         /* Compute the derivative along each axis using a finite difference
@@ -419,17 +422,18 @@ Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
     Eigen::MatrixXd Hessian(dim,dim);
 
     // Numerical derivatives:
-    double epsilon = 1e-3;
+    double epsilon = 4e-3;
     /* Try to choose epsilon to balance truncation error and
      * catastrophic cancellations.
      *
      * - Chay
      */
     // vector of parameter values:
-    std::vector<real_t> Theta = {point.m_migr[0][2] /*rloh*/, 
-                                 point.m_migr[0][1] /*mu*/, 
-                                 point.m_birth[1]   /*fitness1*/, 
-                                 point.m_birth[2]   /*fitness2*/};
+    std::vector<real_t> Theta = {point.m_migr[0][2] /*rloh*/,
+                                 point.m_migr[0][1] /*mu*/,
+                                 point.m_birth[1]   /*fitness1*/,
+                                 point.m_birth[2]   /*fitness2*/
+                                };
 
     // Pre-compute a stencil and weights to use for finite differencing:
     std::vector<std::vector<double>> stencil;
@@ -443,7 +447,7 @@ Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
 
             double diff = 0;
             for (auto& tap : stencil) {
-                std::vector<real_t> Delta(dim, 0); 
+                std::vector<real_t> Delta(dim, 0);
                 Delta[x] += epsilon * Theta[x] * tap[1];
                 Delta[y] += epsilon * Theta[y] * tap[2];
                 Model dmodel = differ_model(point, Delta);
@@ -456,10 +460,10 @@ Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
         }
     }
 
-    // Raw Hessian (in nice units):                
-    std::cout << "H = " << std::endl;              
+    // Raw Hessian (in nice units):
+    std::cout << "H = " << std::endl;
     std::cout << "[rloh, mu, s1, s2]" << std::endl;
-    std::cout << Hessian << std::endl;             
+    std::cout << Hessian << std::endl;
 
     // Convert from log coords to true Hessian:
     Eigen::MatrixXd Jacobian(dim,dim);
@@ -471,8 +475,8 @@ Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
     return Hessian;
 }
 
-Model gradient_min(std::function<real_t(Model& model)> objective, 
-                    Model initial_guess) {
+Model gradient_min(std::function<real_t(Model& model)> objective,
+                   Model initial_guess) {
     /* Minimise objective using gradient descent (NB: we are using numerical
        differentiation, not autodiff/backpropagation)
      */
@@ -491,9 +495,10 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
         Eigen::MatrixXd gradient = compute_gradient(objective, best_guess);
 
         std::vector<real_t> Theta = {best_guess.m_migr[0][2] /*rloh*/,
-                                     best_guess.m_migr[0][1] /*mu*/, 
+                                     best_guess.m_migr[0][1] /*mu*/,
                                      best_guess.m_birth[1]   /*fitness1*/,
-                                     best_guess.m_birth[2]   /*fitness2*/};
+                                     best_guess.m_birth[2]   /*fitness2*/
+                                    };
 
         // update the current best guess by -learning_rate * gradient
         std::vector<real_t> Delta(dim, 0);
@@ -552,7 +557,7 @@ void write_model_line(std::ofstream& file, Model &model) {
     file << std::endl;
 }
 
-void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop, 
+void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
                     std::vector<size_t>& end_nodes,
                     std::map<size_t, std::vector<size_t>>& incidence,
                     std::string filename) {
@@ -564,7 +569,7 @@ void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
 
     for (auto &end_node : end_nodes) {
         fakedata << "[";
-        for (auto& bin : incidence[end_node]) 
+        for (auto& bin : incidence[end_node])
             fakedata << bin << ", ";
         fakedata << "]" << std::endl;
     }
@@ -572,18 +577,18 @@ void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
     fakedata.close();
 }
 
-void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop, 
+void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
                     std::vector<size_t>& end_nodes,
                     std::map<size_t, std::vector<size_t>>& incidence) {
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence,
-                    "syntheticdata_hist.csv");
+                   "syntheticdata_hist.csv");
 }
 
 std::map<size_t, std::vector<size_t>> jackknife_incidence(
-                            size_t index,
-                            const std::map<size_t, std::vector<size_t>>
-                            &histogram,
-                            std::vector<size_t> end_nodes) {
+                                       size_t index,
+                                       const std::map<size_t, std::vector<size_t>>
+                                       &histogram,
+                                       std::vector<size_t> end_nodes) {
     // delete the index-th entry in the histogram
     std::map<size_t, std::vector<size_t>> new_incidence = histogram;
     // first we have to find the indexth person
@@ -604,48 +609,81 @@ std::map<size_t, std::vector<size_t>> jackknife_incidence(
     return new_incidence;
 }
 
-std::vector<Model> resample_incidence(
-    const std::map<size_t, std::vector<size_t>> &incidence,
-    size_t reference_pop, std::vector<size_t> end_nodes, real_t binwidth,
-    Model &initial_guess) {
-    std::vector<Model> resampled_estimates;
+void resample_incidence(
+    const std::map<size_t, std::vector<size_t>> *incidence,
+    size_t reference_pop, size_t start, size_t end, std::vector<size_t> end_nodes,
+    real_t binwidth, Model *initial_guess, std::vector<Model> *resampled_estimates) {
 
-    for (unsigned tries = 0; tries < reference_pop; ++tries) {
+    for (unsigned tries = start; tries < end; ++tries) {
         // Resample the incidence:
         std::map<size_t, std::vector<size_t>> resampled_incidence;
-        resampled_incidence = jackknife_incidence(tries, incidence, end_nodes);
+        resampled_incidence = jackknife_incidence(tries, *incidence, end_nodes);
 
         std::cout << "Resampling..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
-            return loglikelihood_hist_both(model, binwidth, 
+            return loglikelihood_hist_both(model, binwidth,
                                            reference_pop, resampled_incidence);
             // the histogram version
         };
 
-        Model best_guess = annealing_min(objective, initial_guess);
+        Model best_guess = annealing_min(objective, *initial_guess);
         // Annealing now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
         print_model(best_guess);
         // Annealing now complete. Store guessed model parameters:
-        resampled_estimates.push_back(best_guess);
+        resampled_estimates->push_back(best_guess);
     }
-
-    return resampled_estimates;
 }
 
 void jackknife_and_save(std::map<size_t, std::vector<size_t>> &incidence,
-                        size_t reference_pop, real_t binwidth, 
-                        std::vector<size_t> end_nodes, Model &initial_guess) {
-    std::vector<Model> resampled_estimates =
-                       resample_incidence(incidence, reference_pop, 
-                                          end_nodes, binwidth, initial_guess);
+                        size_t reference_pop, real_t binwidth,
+                        std::vector<size_t> end_nodes, Model &initial_guess,
+                        size_t n_child_threads = 0) {
+    // spawn child threads to carry out resampling
+    // how many resamples should we generate on each child thread?
+    // in total we need reference_pop many, but simply running
+    // reference_pop/(n_child_threads+1) replicates on each thread might run too few
+    // if reference_pop is not a round multiple of n_child_threads. instead, run
+    // reference_pop/(n_child_threads+1) on all child threads, and
+    // the remainder, reference_pop % n_child_threads, in the
+    // main thread. this should also allow this program to run in
+    // single-threaded mode in the same way, making it backwards-compatible
+    size_t runs_per_thr = reference_pop / (n_child_threads + 1);
+    size_t remainder    = reference_pop % (n_child_threads + 1);
+
+    std::vector<std::vector<Model>> results(n_child_threads + 1);
+
+    std::vector<std::thread> child_threads(0);
+    for (int thread = 0; thread < n_child_threads; ++thread) {
+        size_t start, end; // start and end replicates: range of data-points in
+                           // reference population to resample
+        start = thread * runs_per_thr;
+        end = start + runs_per_thr;
+
+        child_threads.push_back(std::thread(resample_incidence,
+            &incidence, reference_pop, start, end, end_nodes, binwidth,
+            &initial_guess, &results[thread]));
+    }
+
+    // run runs_per_thr + remainder in this, the parent thread:
+    resample_incidence(&incidence, reference_pop, reference_pop - runs_per_thr - remainder,
+                       reference_pop, end_nodes, binwidth,
+                       &initial_guess, &results[n_child_threads]);
+
+    // Wait for child threads to finish
+    for (auto& thread : child_threads) {
+        thread.join();
+    }
 
     // save the point estimates so we can make a density plot later
     std::ofstream estimates_by_row;
     estimates_by_row.open("resampled_estimates.csv");
     estimates_by_row << "mu, rloh, s1, s2, initial_pop," << std::endl;
-    for (auto& guess : resampled_estimates) {
-        write_model_line(estimates_by_row, guess);
+    for (auto& estimate_set : results) {
+        for (auto& estimate : estimate_set) {
+            write_model_line(estimates_by_row, estimate);
+        }
+        estimate_set.clear();
     }
     estimates_by_row.close();
 }
@@ -663,10 +701,10 @@ int main(int argc, char* argv[]) {
 
     std::vector<std::pair<double,int>> all_times, all_times_germline;
 
-    Model ground_truth = instantiate_model(5.0e-7, 
-                                           5.0e-8, 
-                                           0.05, 
-                                           0.03, 
+    Model ground_truth = instantiate_model(5.0e-7,
+                                           5.0e-8,
+                                           0.05,
+                                           0.03,
                                            1e6);
 
     printf("Ground truth:\n");
@@ -677,11 +715,11 @@ int main(int argc, char* argv[]) {
     if (include_germline) {
         // if we include germline cases, the clincal study has a 50:50 mix of
         // sporadic cases and cases with germline alterations
-        Model ground_truth_germline = instantiate_model_germline(5.0e-7, 
-                                                                 5.0e-8, 
-                                                                 0.05, 
-                                                                 0.03, 
-                                                                 1e6);
+        Model ground_truth_germline = instantiate_model_germline(5.0e-7,
+                                      5.0e-8,
+                                      0.05,
+                                      0.03,
+                                      1e6);
         printf("Ground truth (germline):\n");
         print_model(ground_truth_germline);
 
@@ -722,11 +760,11 @@ int main(int argc, char* argv[]) {
 
     for (auto &end_node : end_nodes) {
         incidence[end_node] = convert_to_histogram(all_times, binwidth,
-                                                   end_node);
+                              end_node);
         if (include_germline) {
             incidence_germline[end_node] = convert_to_histogram(
-                                                   all_times_germline, binwidth,
-                                                   end_node);
+                                               all_times_germline, binwidth,
+                                               end_node);
         }
     }
 
@@ -734,7 +772,7 @@ int main(int argc, char* argv[]) {
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
     if (include_germline) {
         save_histogram(binwidth, max_age, reference_pop, end_nodes,
-                        incidence_germline, "syntheticdata_hist_germline.csv");
+                       incidence_germline, "syntheticdata_hist_germline.csv");
     }
 
     // Get the main un-resampled estimate with simulated annealing:
@@ -750,13 +788,13 @@ int main(int argc, char* argv[]) {
         real_t initialpop = 1e6;
 
         if (include_germline) {
-            printf("Target likelihood:\n-log L = %g\n", 
-                    loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
-                                            incidence, incidence_germline));
+            printf("Target likelihood:\n-log L = %g\n",
+                   loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
+                                           incidence, incidence_germline));
         } else {
-            printf("Target likelihood:\n-log L = %g\n", 
-                    loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
-                                            incidence));
+            printf("Target likelihood:\n-log L = %g\n",
+                   loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
+                                           incidence));
         }
 
         Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
@@ -766,23 +804,22 @@ int main(int argc, char* argv[]) {
 
         // Try out simulated annealing:
         std::cout << "Starting annealing..." << std::endl;
+        std::function<real_t(Model&)> objective;
         if (include_germline) {
-            std::function<real_t(Model&)> objective = [&](Model& model) {
-                return loglikelihood_hist_both(model, binwidth, 
+            objective = [&](Model& model) {
+                return loglikelihood_hist_both(model, binwidth,
                                                reference_pop, incidence,
                                                incidence_germline);
             };
             // this should now work with germline data
-            best_guess = annealing_min(objective, guess);
-            Hessian = compute_hessian(objective, best_guess);
         } else {
-            std::function<real_t(Model&)> objective = [&](Model& model) {
-                return loglikelihood_hist_both(model, binwidth, 
+            objective = [&](Model& model) {
+                return loglikelihood_hist_both(model, binwidth,
                                                reference_pop, incidence);
             };
-            best_guess = annealing_min(objective, guess);
-            Hessian = compute_hessian(objective, best_guess);
         }
+        best_guess = annealing_min(objective, guess);
+        Hessian = compute_hessian(objective, best_guess);
 
         // Annealing now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
