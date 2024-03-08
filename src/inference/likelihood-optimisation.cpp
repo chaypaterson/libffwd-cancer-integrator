@@ -665,7 +665,7 @@ int main(int argc, char* argv[]) {
 
     Model ground_truth = instantiate_model(5.0e-7, 
                                            5.0e-8, 
-                                           0.02, 
+                                           0.05, 
                                            0.03, 
                                            1e6);
 
@@ -679,7 +679,7 @@ int main(int argc, char* argv[]) {
         // sporadic cases and cases with germline alterations
         Model ground_truth_germline = instantiate_model_germline(5.0e-7, 
                                                                  5.0e-8, 
-                                                                 0.02, 
+                                                                 0.05, 
                                                                  0.03, 
                                                                  1e6);
         printf("Ground truth (germline):\n");
@@ -745,7 +745,7 @@ int main(int argc, char* argv[]) {
         // Guess some initial model parameters:
         real_t rloh = 1e-7;
         real_t mu = 1e-8;
-        real_t fitness1 = 0.02;
+        real_t fitness1 = 0.05;
         real_t fitness2 = 0.03;
         real_t initialpop = 1e6;
 
