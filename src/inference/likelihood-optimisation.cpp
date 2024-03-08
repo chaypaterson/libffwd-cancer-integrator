@@ -768,23 +768,22 @@ int main(int argc, char* argv[]) {
 
         // Try out simulated annealing:
         std::cout << "Starting annealing..." << std::endl;
+        std::function<real_t(Model&)> objective;
         if (include_germline) {
-            std::function<real_t(Model&)> objective = [&](Model& model) {
+            objective = [&](Model& model) {
                 return loglikelihood_hist_both(model, binwidth,
                                                reference_pop, incidence,
                                                incidence_germline);
             };
             // this should now work with germline data
-            best_guess = annealing_min(objective, guess);
-            Hessian = compute_hessian(objective, best_guess);
         } else {
-            std::function<real_t(Model&)> objective = [&](Model& model) {
+            objective = [&](Model& model) {
                 return loglikelihood_hist_both(model, binwidth,
                                                reference_pop, incidence);
             };
-            best_guess = annealing_min(objective, guess);
-            Hessian = compute_hessian(objective, best_guess);
         }
+        best_guess = annealing_min(objective, guess);
+        Hessian = compute_hessian(objective, best_guess);
 
         // Annealing now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
