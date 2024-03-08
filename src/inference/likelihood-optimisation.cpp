@@ -13,6 +13,7 @@
 #include "graph-model-spec.hpp"
 #include "fast-forward.hpp"
 #include "gillespie-algorithm.hpp"
+#include <thread>
 
 /* Max. likelihood program:
  *      Generates a simulated dataset with hidden parameter values
@@ -171,6 +172,7 @@ std::vector<std::pair<double,int>> generate_dataset(Model& model, int seed, int 
     // all_times:
     std::vector<std::pair<double,int>> all_times;
     times_to_final_vertices(model, seed, runs, final_vertices, all_times);
+    // TODO this is a natural candidate for parallelisation
 
     return all_times;
 }
@@ -420,7 +422,7 @@ Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
     Eigen::MatrixXd Hessian(dim,dim);
 
     // Numerical derivatives:
-    double epsilon = 1e-3;
+    double epsilon = 4e-3;
     /* Try to choose epsilon to balance truncation error and
      * catastrophic cancellations.
      *
@@ -586,7 +588,7 @@ std::map<size_t, std::vector<size_t>> jackknife_incidence(
                                        size_t index,
                                        const std::map<size_t, std::vector<size_t>>
                                        &histogram,
-std::vector<size_t> end_nodes) {
+                                       std::vector<size_t> end_nodes) {
     // delete the index-th entry in the histogram
     std::map<size_t, std::vector<size_t>> new_incidence = histogram;
     // first we have to find the indexth person
@@ -607,16 +609,15 @@ std::vector<size_t> end_nodes) {
     return new_incidence;
 }
 
-std::vector<Model> resample_incidence(
-    const std::map<size_t, std::vector<size_t>> &incidence,
-    size_t reference_pop, std::vector<size_t> end_nodes, real_t binwidth,
-    Model &initial_guess) {
-    std::vector<Model> resampled_estimates;
+void resample_incidence(
+    const std::map<size_t, std::vector<size_t>> *incidence,
+    size_t reference_pop, size_t start, size_t end, std::vector<size_t> end_nodes,
+    real_t binwidth, Model *initial_guess, std::vector<Model> *resampled_estimates) {
 
-    for (unsigned tries = 0; tries < reference_pop; ++tries) {
+    for (unsigned tries = start; tries < end; ++tries) {
         // Resample the incidence:
         std::map<size_t, std::vector<size_t>> resampled_incidence;
-        resampled_incidence = jackknife_incidence(tries, incidence, end_nodes);
+        resampled_incidence = jackknife_incidence(tries, *incidence, end_nodes);
 
         std::cout << "Resampling..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
@@ -625,30 +626,64 @@ std::vector<Model> resample_incidence(
             // the histogram version
         };
 
-        Model best_guess = annealing_min(objective, initial_guess);
+        Model best_guess = annealing_min(objective, *initial_guess);
         // Annealing now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
         print_model(best_guess);
         // Annealing now complete. Store guessed model parameters:
-        resampled_estimates.push_back(best_guess);
+        resampled_estimates->push_back(best_guess);
     }
-
-    return resampled_estimates;
 }
 
 void jackknife_and_save(std::map<size_t, std::vector<size_t>> &incidence,
                         size_t reference_pop, real_t binwidth,
-                        std::vector<size_t> end_nodes, Model &initial_guess) {
-    std::vector<Model> resampled_estimates =
-        resample_incidence(incidence, reference_pop,
-                           end_nodes, binwidth, initial_guess);
+                        std::vector<size_t> end_nodes, Model &initial_guess,
+                        size_t n_child_threads = 0) {
+    // spawn child threads to carry out resampling
+    // how many resamples should we generate on each child thread?
+    // in total we need reference_pop many, but simply running
+    // reference_pop/(n_child_threads+1) replicates on each thread might run too few
+    // if reference_pop is not a round multiple of n_child_threads. instead, run
+    // reference_pop/(n_child_threads+1) on all child threads, and
+    // the remainder, reference_pop % n_child_threads, in the
+    // main thread. this should also allow this program to run in
+    // single-threaded mode in the same way, making it backwards-compatible
+    size_t runs_per_thr = reference_pop / (n_child_threads + 1);
+    size_t remainder    = reference_pop % (n_child_threads + 1);
+
+    std::vector<std::vector<Model>> results(n_child_threads + 1);
+
+    std::vector<std::thread> child_threads(0);
+    for (int thread = 0; thread < n_child_threads; ++thread) {
+        size_t start, end; // start and end replicates: range of data-points in
+                           // reference population to resample
+        start = thread * runs_per_thr;
+        end = start + runs_per_thr;
+
+        child_threads.push_back(std::thread(resample_incidence,
+            &incidence, reference_pop, start, end, end_nodes, binwidth,
+            &initial_guess, &results[thread]));
+    }
+
+    // run runs_per_thr + remainder in this, the parent thread:
+    resample_incidence(&incidence, reference_pop, reference_pop - runs_per_thr - remainder,
+                       reference_pop, end_nodes, binwidth,
+                       &initial_guess, &results[n_child_threads]);
+
+    // Wait for child threads to finish
+    for (auto& thread : child_threads) {
+        thread.join();
+    }
 
     // save the point estimates so we can make a density plot later
     std::ofstream estimates_by_row;
     estimates_by_row.open("resampled_estimates.csv");
     estimates_by_row << "mu, rloh, s1, s2, initial_pop," << std::endl;
-    for (auto& guess : resampled_estimates) {
-        write_model_line(estimates_by_row, guess);
+    for (auto& estimate_set : results) {
+        for (auto& estimate : estimate_set) {
+            write_model_line(estimates_by_row, estimate);
+        }
+        estimate_set.clear();
     }
     estimates_by_row.close();
 }
