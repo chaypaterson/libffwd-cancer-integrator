@@ -253,9 +253,8 @@ Model get_neighbour(Model& model, double w) {
     // TODO try pinning some values and fitting others
     real_t new_mu = logcauchyv(model.m_migr[0][1], w);
     real_t new_rloh = logcauchyv(model.m_migr[0][2], w);
-    // results are very sensitive to fitness values (so use a narrower distribution):
-    real_t new_fitness1 = uniform(model.m_birth[1], 0.80 * w);
-    real_t new_fitness2 = uniform(model.m_birth[2], 0.80 * w);
+    real_t new_fitness1 = logcauchyv(model.m_birth[1], 0.10 * w);
+    real_t new_fitness2 = logcauchyv(model.m_birth[2], 0.10 * w);
     // force the fitnesses to be positive (negative values are meaningless in this context)
     new_fitness1 *= 1 - 2 * (new_fitness1 < 0);
     new_fitness2 *= 1 - 2 * (new_fitness2 < 0);
@@ -853,7 +852,7 @@ int main(int argc, char* argv[]) {
 
     // Jack-knife resampling of incidence, now using gradient descent instead of
     // simulated annealing:
-    jackknife_and_save(incidence, reference_pop, binwidth, end_nodes, best_guess);
+    //jackknife_and_save(incidence, reference_pop, binwidth, end_nodes, best_guess);
 
     return 0;
 }
