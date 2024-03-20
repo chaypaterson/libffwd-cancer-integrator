@@ -6,6 +6,7 @@
 #include <cmath>
 #include <functional>
 #include <string>
+#include <thread>
 
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
@@ -13,7 +14,7 @@
 #include "graph-model-spec.hpp"
 #include "fast-forward.hpp"
 #include "gillespie-algorithm.hpp"
-#include <thread>
+#include "likelihood-optimisation.hpp"
 
 /* Max. likelihood program:
  *      Generates a simulated dataset with hidden parameter values
@@ -36,7 +37,7 @@ using clonal_expansion::fast_forward::heun_q_step;
 using clonal_expansion::real_t;
 using clonal_expansion::Model;
 
-typedef std::vector<std::pair<real_t, int>> epidata_t;
+typedef std::vector<std::pair<double, int>> epidata_t;
 
 real_t logsurvival(Model& params, int node) {
     // return the survival probability for this node:
@@ -165,12 +166,12 @@ std::vector<size_t> convert_to_histogram(const epidata_t& all_times,
 
 // Gillespie algorithm functions:
 
-std::vector<std::pair<double,int>> generate_dataset(Model& model, int seed, int runs) {
+epidata_t generate_dataset(Model& model, int seed, int runs) {
     std::vector<int> final_vertices = {3, 4};
 
     // run some simulations and store the time and final node in
     // all_times:
-    std::vector<std::pair<double,int>> all_times;
+    epidata_t all_times;
     times_to_final_vertices(model, seed, runs, final_vertices, all_times);
     // TODO this is a natural candidate for parallelisation
 
@@ -503,7 +504,6 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
         std::vector<real_t> Delta(dim, 0);
         for (int axis = 0; axis < dim; ++axis) {
             Delta[axis] = Theta[axis] * (exp(-learning_rate * gradient(axis)) - 1);
-            std::cout << Delta[axis] << std::endl;
         }
 
         best_guess = differ_model(best_guess, Delta);
@@ -521,13 +521,12 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
 
         change = std::sqrt(change);
 
-        // TODO DEBUG:
-        std::cout << change << std::endl;
-
         // if the gradient is small enough, exit:
         if (change < tolerance) break;
         if (std::isnan(change)) break;
     }
+
+    printf("-log L = %.8g\n", objective(best_guess));
 
     return best_guess;
 }
@@ -603,7 +602,7 @@ std::map<size_t, std::vector<size_t>> jackknife_incidence(
             }
         }
     }
-    // if we get here something has gone wrong are there are not enough entries
+    // if we get here something has gone wrong and there are not enough entries
     // in the histogram.
     return new_incidence;
 }
@@ -655,13 +654,13 @@ void jackknife_and_save(std::map<size_t, std::vector<size_t>> &incidence,
     std::vector<std::thread> child_threads(0);
     for (int thread = 0; thread < n_child_threads; ++thread) {
         size_t start, end; // start and end replicates: range of data-points in
-                           // reference population to resample
+        // reference population to resample
         start = thread * runs_per_thr;
         end = start + runs_per_thr;
 
         child_threads.push_back(std::thread(resample_incidence,
-            &incidence, reference_pop, start, end, end_nodes, binwidth,
-            &initial_guess, &results[thread]));
+                                            &incidence, reference_pop, start, end, end_nodes, binwidth,
+                                            &initial_guess, &results[thread]));
     }
 
     // run runs_per_thr + remainder in this, the parent thread:
@@ -687,137 +686,108 @@ void jackknife_and_save(std::map<size_t, std::vector<size_t>> &incidence,
     estimates_by_row.close();
 }
 
+real_t save_data_compute_maximum(epidata_t &all_times) {
+    // compute the maximum age and save the all_times data:
+    real_t max_age = 0;
 
-int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        printf("Call this program with\n ./guesser seed dataset_size\n");
-        return 1;
+    std::ofstream fakedata;
+    fakedata.open("syntheticdata_raw.csv");
+    for (auto& entry : all_times) {
+        fakedata << entry.first << "," << entry.second << "," << std::endl;
+        max_age += (entry.first > max_age) * (entry.first - max_age);
     }
-    size_t seed = std::atoi(argv[1]);
-    size_t dataset_size = std::atoi(argv[2]);
-    bool include_germline = 0; // run with germline or without?
-    srand(seed);
+    fakedata.close();
 
-    std::vector<std::pair<double,int>> all_times, all_times_germline;
+    return max_age;
+}
 
-    Model ground_truth = instantiate_model(5.0e-7,
-                                           5.0e-8,
-                                           0.05,
-                                           0.03,
-                                           1e6);
+void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
+                               Model (*method_min)(std::function<real_t(Model&)>, Model)) {
+    // The main test harness for statistical inference:
+    // * Generate data from a clinical study
+    // * Minimise the -log likelihood function
+    // * Resample the estimates (if appropriate)
+    // this version includes germline cases, the clinical study has a 50:50 mix of
+    // sporadic cases and cases with germline alterations
+    Model ground_truth_germline = ground_truth;
+    ground_truth_germline.m_initial_pops[1] = ground_truth.m_initial_pops[0];
+    ground_truth_germline.m_initial_pops[0] = 0;
+    // fitnesses 1 and 2 = 0.05, 0.03, // should these be zero?  consider
 
-    printf("Ground truth:\n");
-    print_model(ground_truth);
+    size_t seed = options.seed;
+    size_t dataset_size = options.dataset_size;
 
-    // simulate some data that could be collected by a longitudinal study:
-    std::cout << "Generating synthetic dataset..." << std::endl;
-    if (include_germline) {
-        // if we include germline cases, the clincal study has a 50:50 mix of
-        // sporadic cases and cases with germline alterations
-        Model ground_truth_germline = instantiate_model_germline(5.0e-7,
-                                      5.0e-8,
-                                      0.05,
-                                      0.03,
-                                      1e6);
-        printf("Ground truth (germline):\n");
-        print_model(ground_truth_germline);
+    printf("Ground truth (germline):\n");
+    print_model(ground_truth_germline);
 
-        all_times = generate_dataset(ground_truth, seed, dataset_size / 2);
-        // to include germline mutations:
-        // vary the initial populations so that instead of node 0 the cells are
-        // initially on node 1
-        all_times_germline = generate_dataset(ground_truth_germline, seed,
-                                              dataset_size / 2);
-    } else {
-        // sporadic cases only (default)
-        all_times = generate_dataset(ground_truth, seed, dataset_size);
-    }
+    epidata_t all_times =
+        generate_dataset(ground_truth, seed, dataset_size / 2);
+    // to include germline mutations:
+    // vary the initial populations so that instead of node 0 the cells are
+    // initially on node 1
+    epidata_t all_times_germline =
+        generate_dataset(ground_truth_germline, seed, dataset_size / 2);
 
     std::vector<size_t> end_nodes = {3,4};
     std::cout << "Done. Saving..." << std::endl;
 
-    // compute maximum age:
-    real_t max_age = 0;
-    {
-        // save the fake data:
-        std::ofstream fakedata;
-        fakedata.open("syntheticdata_raw.csv");
-        for (auto& entry : all_times) {
-            fakedata << entry.first << "," << entry.second << "," << std::endl;
-            max_age += (entry.first > max_age) * (entry.first - max_age);
-        }
-        fakedata.close();
-    }
+    // compute maximum age and save the all_times data:
+    real_t max_age = save_data_compute_maximum(all_times);
 
     // Convert age data to histogram:
     size_t reference_pop = all_times.size(); /* NB: with germline this is 1/2
         the previous value */
     //real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
     real_t binwidth = 10.0; //fixed width
+    std::cout << "max age = " << max_age;
+    std::cout << "\n bin width = " << binwidth << std::endl;
 
     std::map<size_t, std::vector<size_t>> incidence, incidence_germline;
 
     for (auto &end_node : end_nodes) {
         incidence[end_node] = convert_to_histogram(all_times, binwidth,
                               end_node);
-        if (include_germline) {
-            incidence_germline[end_node] = convert_to_histogram(
-                                               all_times_germline, binwidth,
-                                               end_node);
-        }
+        incidence_germline[end_node] = convert_to_histogram(
+                                           all_times_germline, binwidth,
+                                           end_node);
     }
 
     // Save the histogram:
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
-    if (include_germline) {
-        save_histogram(binwidth, max_age, reference_pop, end_nodes,
-                       incidence_germline, "syntheticdata_hist_germline.csv");
-    }
+    save_histogram(binwidth, max_age, reference_pop, end_nodes,
+                   incidence_germline, "syntheticdata_hist_germline.csv");
 
     // Get the main un-resampled estimate with simulated annealing:
-    Model best_guess = ground_truth;
+    printf("Target likelihood:\n-log L = %g\n",
+           loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
+                                   incidence, incidence_germline));
     {
         std::cout << "--------------" << std::endl;
         std::cout << "Best estimate:" << std::endl;
         // Guess some initial model parameters:
         real_t rloh = 1e-7;
         real_t mu = 1e-8;
-        real_t fitness1 = 0.05;
-        real_t fitness2 = 0.03;
+        real_t fitness1 = 0.02;
+        real_t fitness2 = 0.02;
         real_t initialpop = 1e6;
 
-        if (include_germline) {
-            printf("Target likelihood:\n-log L = %g\n",
-                   loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
-                                           incidence, incidence_germline));
-        } else {
-            printf("Target likelihood:\n-log L = %g\n",
-                   loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
-                                           incidence));
-        }
 
         Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
         // Get and return Hessian:
         Eigen::MatrixXd Hessian;
 
-        // Try out simulated annealing:
-        std::cout << "Starting annealing..." << std::endl;
+        // Minimise the -log likelihood:
         std::function<real_t(Model&)> objective;
-        if (include_germline) {
-            objective = [&](Model& model) {
-                return loglikelihood_hist_both(model, binwidth,
-                                               reference_pop, incidence,
-                                               incidence_germline);
-            };
-            // this should now work with germline data
-        } else {
-            objective = [&](Model& model) {
-                return loglikelihood_hist_both(model, binwidth,
-                                               reference_pop, incidence);
-            };
-        }
-        best_guess = annealing_min(objective, guess);
+        objective = [&](Model& model) {
+            return loglikelihood_hist_both(model, binwidth,
+                                           reference_pop, incidence,
+                                           incidence_germline);
+        };
+        // this should now work with germline data
+
+        std::cout << "Minimising likelihood..." << std::endl;
+        Model best_guess = method_min(objective, guess);
         Hessian = compute_hessian(objective, best_guess);
 
         // Annealing now complete. Print guess:
@@ -849,10 +819,152 @@ int main(int argc, char* argv[]) {
             std::cout << sqrt(Hessian.inverse()(param, param)) << std::endl;
         }
     }
+}
 
-    // Jack-knife resampling of incidence, now using gradient descent instead of
-    // simulated annealing:
-    //jackknife_and_save(incidence, reference_pop, binwidth, end_nodes, best_guess);
+Model get_estimate(real_t binwidth, size_t reference_pop,
+                   std::map<size_t, std::vector<size_t>> incidence,
+                   Model (*method_min)(std::function<real_t(Model&)>, Model)) {
+    std::cout << "--------------" << std::endl;
+    std::cout << "Best estimate:" << std::endl;
+    // Guess some initial model parameters:
+    real_t rloh = 1e-6;
+    real_t mu = 1e-7;
+    real_t fitness1 = 0.03;
+    real_t fitness2 = 0.03;
+    real_t initialpop = 1e6;
+
+    Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
+
+    // Get and return Hessian:
+    Eigen::MatrixXd Hessian;
+
+    // Minimise the -log likelihood:
+    std::function<real_t(Model&)> objective = [&](Model& model) {
+        return loglikelihood_hist_both(model, binwidth,
+                                       reference_pop, incidence);
+    };
+
+    // Try out simulated annealing:
+    std::cout << "Starting minimisation..." << std::endl;
+    Model best_guess = method_min(objective, guess);
+    Hessian = compute_hessian(objective, best_guess);
+
+    // Annealing now complete. Print guess:
+    std::cout << "Best guesses:" << std::endl;
+    print_model(best_guess);
+
+    std::cout << "H = " << std::endl;
+    std::cout << "[rloh, mu, s1, s2]" << std::endl;
+    std::cout << Hessian << std::endl;
+
+    printf("\n");
+
+    // Invert Hessian to get covariance matrix:
+    std::cout << "cov = H^-1 = " << std::endl;
+    std::cout << Hessian.inverse() << std::endl;
+
+    // Compute confidence intervals:
+    std::cout << "Standard deviations:" << std::endl;
+    int param = 0;
+    for (int param = 0; param < 4; ++param) {
+        double estimate;
+        // TODO disgusting:
+        if (param == 0) estimate = best_guess.m_migr[0][2];
+        if (param == 1) estimate = best_guess.m_migr[0][1];
+        if (param == 2) estimate = best_guess.m_birth[1];
+        if (param == 3) estimate = best_guess.m_birth[2];
+        std::cout << estimate << " +/- ";
+        std::cout << sqrt(Hessian.inverse()(param, param)) << std::endl;
+    }
+
+    return best_guess;
+}
+
+void guess_parameters(Model &ground_truth, GuesserConfig options,
+                      Model (*method_min)(std::function<real_t(Model&)>, Model)) {
+    // The main test harness for statistical inference:
+    // * Generate data from a clinical study
+    // * Minimise the -log likelihood function
+    // * Resample the estimates (if selected)
+    printf("Ground truth:\n");
+    print_model(ground_truth);
+    size_t seed = options.seed;
+    size_t dataset_size = options.dataset_size;
+
+    // simulate some data that could be collected by a longitudinal study:
+    std::cout << "Generating synthetic dataset..." << std::endl;
+    // sporadic cases only (default)
+    epidata_t all_times = generate_dataset(ground_truth, seed, dataset_size);
+
+    std::vector<size_t> end_nodes = {3,4};
+    std::cout << "Done. Saving..." << std::endl;
+
+    // compute maximum age and save the all_times data:
+    real_t max_age = save_data_compute_maximum(all_times);
+
+    // Convert age data to histogram:
+    size_t reference_pop = all_times.size(); /* NB: with germline this is 1/2
+        the previous value */
+    //real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
+    real_t binwidth = 10.0;
+    std::cout << "max age = " << max_age;
+    std::cout << "\n bin width = " << binwidth << std::endl;
+
+    std::map<size_t, std::vector<size_t>> incidence, incidence_germline;
+
+    for (auto &end_node : end_nodes) {
+        incidence[end_node] = convert_to_histogram(all_times, binwidth,
+                              end_node);
+    }
+
+    // Save the histogram:
+    save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
+
+    printf("Target likelihood:\n-log L = %g\n",
+           loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
+                                   incidence));
+
+    // Get the main un-resampled best parameter estimate:
+    Model best_guess = get_estimate(binwidth, reference_pop, incidence,
+                                    method_min);
+
+    // Jack-knife resampling of incidence:
+    if (options.resample_after) {
+        // TODO currently jackknife_and_save only uses annealing
+        jackknife_and_save(incidence, reference_pop, binwidth, end_nodes,
+                           best_guess);
+    }
+}
+
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        std::cout << "Call this program with:\n";
+        std::cout << "./guesser --seed seed --sample_size dataset_size ...\n";
+        std::cout << std::endl;
+        return 1;
+    }
+    // read in config options:
+    GuesserConfig options(argc, argv);
+
+    srand(options.seed);
+
+    Model ground_truth = instantiate_model(5.0e-7,
+                                           5.0e-8,
+                                           0.05,
+                                           0.03,
+                                           1e6);
+
+    // the default minimisation method is annealing:
+    Model (*method_min)(std::function<real_t(Model&)>, Model) = annealing_min;
+    // but:
+    if (options.minimise_with == GRADIENT) method_min = gradient_min;
+
+    if (options.include_germline) {
+        guess_parameters_germline(ground_truth, options, method_min);
+        return 0;
+    }
+
+    guess_parameters(ground_truth, options, method_min);
 
     return 0;
 }
