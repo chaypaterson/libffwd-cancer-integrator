@@ -6,6 +6,8 @@
 
 enum Minimise {ANNEALING, GRADIENT};
 
+namespace clonal_expansion {
+
 class GuesserConfig 
 {
 public:
@@ -13,7 +15,8 @@ public:
     size_t dataset_size;
     bool include_germline = false; // mixed germline/sporadic study or not (default not)
     bool resample_after   = false; // resample or not (default not)
-    enum Minimise minimise_with = ANNEALING;
+    enum Minimise minimise_with = ANNEALING; // TODO could just be a bool
+    bool level_sets       = false; // whether or not to draw with level sets
     // what minimisation method to use (default annealing, can do gradient)
 
     GuesserConfig(int argc, char* argv[])
@@ -31,9 +34,12 @@ public:
             if (!strcmp(argv[arg], "--resample")) resample_after = true;
             if (!strcmp(argv[arg], "--annealing")) minimise_with = ANNEALING;
             if (!strcmp(argv[arg], "--gradient")) minimise_with = GRADIENT;
+            if (!strcmp(argv[arg], "--draw_level_sets")) level_sets = true;
         }
     }
 private:
 };
+
+} // namespace clonal_expansion
 
 #endif //LIKELIHOOD_H

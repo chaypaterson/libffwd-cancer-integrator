@@ -36,6 +36,7 @@ using clonal_expansion::fast_forward::generating_function;
 using clonal_expansion::fast_forward::heun_q_step;
 using clonal_expansion::real_t;
 using clonal_expansion::Model;
+using clonal_expansion::GuesserConfig;
 
 typedef std::vector<std::pair<double, int>> epidata_t;
 
@@ -379,7 +380,7 @@ std::vector<std::vector<double>> StencilLP16() {
     return stencil;
 }
 
-Eigen::MatrixXd compute_gradient(std::function<real_t(Model&)> objective,
+Eigen::MatrixXd gradient_log(std::function<real_t(Model&)> objective,
                                  Model point) {
     // Compute the gradient of the objective function at a point with respect to
     // the logs of the model parameters:
@@ -493,7 +494,7 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
     // while the gradient is too large:
     while (1) {
         // compute the gradient at the current best guess
-        Eigen::MatrixXd gradient = compute_gradient(objective, best_guess);
+        Eigen::MatrixXd gradient = gradient_log(objective, best_guess);
 
         std::vector<real_t> Theta = {best_guess.m_migr[0][2] /*rloh*/,
                                      best_guess.m_migr[0][1] /*mu*/,
@@ -702,6 +703,58 @@ real_t save_data_compute_maximum(epidata_t &all_times) {
     return max_age;
 }
 
+void draw_level_sets(std::function<real_t(Model &model)> objective,
+                    Model point, int q_axis, int p_axis) {
+    // This function will visualise a level set of the negative log likelihood
+    // function in a chosen parameter plane. It does this by drawing a curve
+    // with a "pencil" that follows Hamilton's equations. The "pencil"
+    // automatically updates the point in the plane, as its coordinates are just
+    // pointers to the corresponding variables in the underlying model, "point".
+    // Note that the model "point" is deliberately passed by value to
+    // create a mutable copy inside this function.
+    // We will need to translate between different coordinate axes and Model
+    // parameters, so here is a vector of pointers to parameters:
+    std::vector<real_t*> params = {&(point.m_migr[0][2]), /*rloh*/
+                                   &(point.m_migr[0][1]), /*mu*/
+                                   &(point.m_birth[1]), /*fitness1*/
+                                   &(point.m_birth[2])  /*fitness2*/
+                                  };
+    // Create the paper:
+    std::ofstream drawing;
+    drawing.open("level_set.csv");
+
+    // Create the pencil:
+    struct {real_t* p; real_t* q; real_t time; } pencil;
+    pencil.p = params[p_axis], pencil.q = params[q_axis], pencil.time = 0;
+
+    // Trace a level set of the objective function using
+    // Hamilton's equations:
+    real_t dt = 0.1;
+    real_t tmax = 100; // TODO find a smarter way to exit the loop
+    while (pencil.time < tmax) {
+        Eigen::MatrixXd gradient = gradient_log(objective, point);
+        /* Hamilton's equations:
+         * dp / dt = - dH / dq
+         * dq / dt = + dH / dp
+         */
+
+        real_t dp = -gradient(q_axis) * dt;
+        real_t dq = +gradient(p_axis) * dt;
+
+        // remember that gradient_log works in log space:
+        dp /= *(pencil.q), dq /= *(pencil.p);
+
+        *(pencil.p) += dp, *(pencil.q) += dq; // this updates point too
+
+        pencil.time += dt;
+
+        // draw:
+        drawing << *(pencil.q) << "," << *(pencil.p) << "," << std::endl;
+    }
+
+    drawing.close();
+}
+
 void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
                                Model (*method_min)(std::function<real_t(Model&)>, Model)) {
     // The main test harness for statistical inference:
@@ -711,6 +764,8 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
     // this version includes germline cases, the clinical study has a 50:50 mix of
     // sporadic cases and cases with germline alterations
     Model ground_truth_germline = ground_truth;
+    // For germline cases, move the initial cells to the state with one
+    // mutation:
     ground_truth_germline.m_initial_pops[1] = ground_truth.m_initial_pops[0];
     ground_truth_germline.m_initial_pops[0] = 0;
     // fitnesses 1 and 2 = 0.05, 0.03, // should these be zero?  consider
@@ -905,8 +960,8 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
     // Convert age data to histogram:
     size_t reference_pop = all_times.size(); /* NB: with germline this is 1/2
         the previous value */
-    //real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
-    real_t binwidth = 10.0;
+    real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
+    //real_t binwidth = 10.0;
     std::cout << "max age = " << max_age;
     std::cout << "\n bin width = " << binwidth << std::endl;
 
@@ -933,6 +988,12 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         // TODO currently jackknife_and_save only uses annealing
         jackknife_and_save(incidence, reference_pop, binwidth, end_nodes,
                            best_guess);
+    }
+
+    // Draw level sets: TODO
+    if (options.level_sets) {
+        1 + 1;//draw_level_sets(); // TODO get_estimate needs to return the
+        // Hessian too
     }
 }
 
