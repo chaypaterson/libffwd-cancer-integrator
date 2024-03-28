@@ -269,6 +269,7 @@ Model get_neighbour(Model& model, double w) {
 }
 
 real_t estimate_error(Model& old_model, Model& new_model) {
+    // TODO delete, unused
     // TODO this function is ugly
     // There should be a nice internal method in the Model class for iterating
     // over parameters TODO implement this
@@ -399,6 +400,8 @@ Eigen::MatrixXd gradient_log(std::function<real_t(Model&)> objective,
                                  point.m_birth[1]   /*fitness1*/,
                                  point.m_birth[2]   /*fitness2*/
                                 };
+    // TODO really Theta should be a callable method of Model: calling it like
+    // point.vec_theta() --> std::vector<real_t> {the above ...};
 
     for (int axis = 0; axis < dim; ++axis) {
         /* Compute the derivative along each axis using a finite difference
@@ -714,7 +717,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     // create a mutable copy inside this function.
     // We will need to translate between different coordinate axes and Model
     // parameters, so here is a vector of pointers to parameters:
-    std::vector<real_t*> params = {&point.m_migr[0][2], /*rloh*/
+    std::vector<volatile real_t*> params = {&point.m_migr[0][2], /*rloh*/
                                    &point.m_migr[0][1], /*mu*/
                                    &point.m_birth[1], /*fitness1*/
                                    &point.m_birth[2]  /*fitness2*/
@@ -724,8 +727,11 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     drawing.open("level_set.csv");
 
     // Create the pencil:
-    struct {real_t* p; real_t* q; real_t time; } pencil;
+    struct {volatile real_t* p; volatile real_t* q; real_t time; } pencil;
     pencil.p = params[p_axis], pencil.q = params[q_axis], pencil.time = 0;
+
+    // draw initial point:
+    drawing << *pencil.q << "," << *pencil.p << "," << std::endl;
 
     // Trace a level set of the objective function using
     // Hamilton's equations:
@@ -742,9 +748,9 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         real_t dq = +gradient(p_axis) * dt;
 
         // remember that gradient_log works in log space:
-        //dp /= pencil.q, dq /= pencil.p; // try also
         dp *= *pencil.p, dq *= *pencil.q;
 
+        // move the pencil:
         *pencil.p += dp, *pencil.q += dq; // this updates point too
 
         pencil.time += dt;
@@ -754,6 +760,78 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     }
 
     drawing.close();
+}
+
+struct Estimate {
+    Model best_guess;
+    Eigen::MatrixXd Hessian;
+    Estimate();
+    Estimate(const Model& guess) : best_guess(guess) {}
+    Estimate(const Estimate& est) : best_guess(est.best_guess), Hessian(est.Hessian) {}
+};
+
+void print_best_guess(Estimate estimate) {
+    std::cout << "Best guesses:" << std::endl;
+    print_model(estimate.best_guess);
+
+    std::cout << "H = " << std::endl;
+    std::cout << "[rloh, mu, s1, s2]" << std::endl;
+    std::cout << estimate.Hessian << std::endl;
+
+    printf("\n");
+
+    // Invert Hessian to get covariance matrix:
+    std::cout << "cov = H^-1 = " << std::endl;
+    std::cout << estimate.Hessian.inverse() << std::endl;
+
+    // Compute confidence intervals:
+    std::cout << "Standard deviations:" << std::endl;
+    std::vector<real_t> Theta = {estimate.best_guess.m_migr[0][2] /*rloh*/,
+                                 estimate.best_guess.m_migr[0][1] /*mu*/,
+                                 estimate.best_guess.m_birth[1]   /*fitness1*/,
+                                 estimate.best_guess.m_birth[2]   /*fitness2*/
+                                };
+    for (int param = 0; param < Theta.size(); ++param) {
+        std::cout << Theta[param] << " +/- ";
+        std::cout << sqrt(estimate.Hessian.inverse()(param, param));
+        std::cout << std::endl;
+    }
+}
+
+Estimate get_estimate_germline(real_t binwidth, size_t reference_pop,
+                    std::map<size_t, std::vector<size_t>> incidence,
+                    std::map<size_t, std::vector<size_t>> incidence_germline,
+                    Model (*method_min)(std::function<real_t(Model&)>, Model)) {
+    std::cout << "--------------" << std::endl;
+    std::cout << "Best estimate:" << std::endl;
+    // Guess some initial model parameters:
+    real_t rloh = 1e-7;
+    real_t mu = 1e-8;
+    real_t fitness1 = 0.02;
+    real_t fitness2 = 0.02;
+    real_t initialpop = 1e6;
+
+    Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
+
+    // Minimise the -log likelihood:
+    std::function<real_t(Model&)> objective = [&](Model& model) {
+        return loglikelihood_hist_both(model, binwidth,
+                                       reference_pop, incidence,
+                                       incidence_germline);
+    };
+    // this should now work with germline data
+
+    std::cout << "Minimising likelihood..." << std::endl;
+    Model best_guess = method_min(objective, guess);
+    // Get and return Hessian:
+    Eigen::MatrixXd Hessian = compute_hessian(objective, best_guess);
+
+    // Annealing now complete. Print guess:
+    Estimate estimate(best_guess);
+    estimate.Hessian = Hessian;
+    print_best_guess(estimate);
+
+    return estimate;
 }
 
 void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
@@ -817,67 +895,43 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
     printf("Target likelihood:\n-log L = %g\n",
            loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
                                    incidence, incidence_germline));
-    {
-        std::cout << "--------------" << std::endl;
-        std::cout << "Best estimate:" << std::endl;
-        // Guess some initial model parameters:
-        real_t rloh = 1e-7;
-        real_t mu = 1e-8;
-        real_t fitness1 = 0.02;
-        real_t fitness2 = 0.02;
-        real_t initialpop = 1e6;
 
+    Estimate estimate = get_estimate_germline(binwidth, reference_pop,
+                    incidence, incidence_germline, method_min);
 
-        Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
+    // Annealing now complete. Print guess:
+    print_best_guess(estimate);
 
-        // Get and return Hessian:
-        Eigen::MatrixXd Hessian;
+    if (options.resample_after) {
+        std::cout << "resampling not yet supported for germline studies";
+        std::cout << std::endl;
+    }
 
-        // Minimise the -log likelihood:
-        std::function<real_t(Model&)> objective;
-        objective = [&](Model& model) {
+    // Draw level sets: TODO
+    if (options.level_sets) {
+        std::function<real_t(Model&)> objective = [&](Model& model) {
             return loglikelihood_hist_both(model, binwidth,
                                            reference_pop, incidence,
                                            incidence_germline);
         };
-        // this should now work with germline data
+        // choose a starting point from the best guess and local hessian:
+        Model start_point = estimate.best_guess;
+        int q_axis = 1, p_axis = 0; // mu (1) vs rloh (0)
+        real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
 
-        std::cout << "Minimising likelihood..." << std::endl;
-        Model best_guess = method_min(objective, guess);
-        Hessian = compute_hessian(objective, best_guess);
+        // TODO need a method for this
+        std::vector<volatile real_t*> params = {&start_point.m_migr[0][2], /*rloh*/
+                                   &start_point.m_migr[0][1], /*mu*/
+                                   &start_point.m_birth[1], /*fitness1*/
+                                   &start_point.m_birth[2]  /*fitness2*/
+                                  };
+        *params[q_axis] += stddev * 1.0;
 
-        // Annealing now complete. Print guess:
-        std::cout << "Best guesses:" << std::endl;
-        print_model(best_guess);
-
-
-        std::cout << "H = " << std::endl;
-        std::cout << "[rloh, mu, s1, s2]" << std::endl;
-        std::cout << Hessian << std::endl;
-
-        printf("\n");
-
-        // Invert Hessian to get covariance matrix:
-        std::cout << "cov = H^-1 = " << std::endl;
-        std::cout << Hessian.inverse() << std::endl;
-
-        // Compute confidence intervals:
-        std::cout << "Standard deviations:" << std::endl;
-        int param = 0;
-        for (int param = 0; param < 4; ++param) {
-            double estimate;
-            // TODO disgusting:
-            if (param == 0) estimate = best_guess.m_migr[0][2];
-            if (param == 1) estimate = best_guess.m_migr[0][1];
-            if (param == 2) estimate = best_guess.m_birth[1];
-            if (param == 3) estimate = best_guess.m_birth[2];
-            std::cout << estimate << " +/- ";
-            std::cout << sqrt(Hessian.inverse()(param, param)) << std::endl;
-        }
+        draw_level_sets(objective, start_point, q_axis, p_axis);
     }
 }
 
-Model get_estimate(real_t binwidth, size_t reference_pop,
+Estimate get_estimate(real_t binwidth, size_t reference_pop,
                    std::map<size_t, std::vector<size_t>> incidence,
                    Model (*method_min)(std::function<real_t(Model&)>, Model)) {
     std::cout << "--------------" << std::endl;
@@ -891,9 +945,6 @@ Model get_estimate(real_t binwidth, size_t reference_pop,
 
     Model guess = instantiate_model(rloh, mu, fitness1, fitness2, initialpop);
 
-    // Get and return Hessian:
-    Eigen::MatrixXd Hessian;
-
     // Minimise the -log likelihood:
     std::function<real_t(Model&)> objective = [&](Model& model) {
         return loglikelihood_hist_both(model, binwidth,
@@ -901,39 +952,16 @@ Model get_estimate(real_t binwidth, size_t reference_pop,
     };
 
     // Try out simulated annealing:
+
     std::cout << "Starting minimisation..." << std::endl;
     Model best_guess = method_min(objective, guess);
-    Hessian = compute_hessian(objective, best_guess);
+    // Get and return Hessian:
+    Eigen::MatrixXd Hessian = compute_hessian(objective, best_guess);
 
-    // Annealing now complete. Print guess:
-    std::cout << "Best guesses:" << std::endl;
-    print_model(best_guess);
+    Estimate estimate(best_guess);
+    estimate.Hessian = Hessian;
 
-    std::cout << "H = " << std::endl;
-    std::cout << "[rloh, mu, s1, s2]" << std::endl;
-    std::cout << Hessian << std::endl;
-
-    printf("\n");
-
-    // Invert Hessian to get covariance matrix:
-    std::cout << "cov = H^-1 = " << std::endl;
-    std::cout << Hessian.inverse() << std::endl;
-
-    // Compute confidence intervals:
-    std::cout << "Standard deviations:" << std::endl;
-    int param = 0;
-    for (int param = 0; param < 4; ++param) {
-        double estimate;
-        // TODO disgusting:
-        if (param == 0) estimate = best_guess.m_migr[0][2];
-        if (param == 1) estimate = best_guess.m_migr[0][1];
-        if (param == 2) estimate = best_guess.m_birth[1];
-        if (param == 3) estimate = best_guess.m_birth[2];
-        std::cout << estimate << " +/- ";
-        std::cout << sqrt(Hessian.inverse()(param, param)) << std::endl;
-    }
-
-    return best_guess;
+    return estimate;
 }
 
 void guess_parameters(Model &ground_truth, GuesserConfig options,
@@ -959,14 +987,13 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
     real_t max_age = save_data_compute_maximum(all_times);
 
     // Convert age data to histogram:
-    size_t reference_pop = all_times.size(); /* NB: with germline this is 1/2
-        the previous value */
+    size_t reference_pop = all_times.size();
     real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
     //real_t binwidth = 10.0;
     std::cout << "max age = " << max_age;
     std::cout << "\n bin width = " << binwidth << std::endl;
 
-    std::map<size_t, std::vector<size_t>> incidence, incidence_germline;
+    std::map<size_t, std::vector<size_t>> incidence;
 
     for (auto &end_node : end_nodes) {
         incidence[end_node] = convert_to_histogram(all_times, binwidth,
@@ -981,20 +1008,40 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
                                    incidence));
 
     // Get the main un-resampled best parameter estimate:
-    Model best_guess = get_estimate(binwidth, reference_pop, incidence,
-                                    method_min);
+    Estimate estimate = get_estimate(binwidth, reference_pop, incidence,
+                                            method_min);
+
+    // Annealing now complete. Print guess:
+    print_best_guess(estimate);
 
     // Jack-knife resampling of incidence:
     if (options.resample_after) {
         // TODO currently jackknife_and_save only uses annealing
         jackknife_and_save(incidence, reference_pop, binwidth, end_nodes,
-                           best_guess);
+                           estimate.best_guess);
     }
 
     // Draw level sets: TODO
     if (options.level_sets) {
-        1 + 1;//draw_level_sets(); // TODO get_estimate needs to return the
-        // Hessian too
+        std::cout << "Tracing level sets..." << std::endl;
+        std::function<real_t(Model&)> objective = [&](Model& model) {
+            return loglikelihood_hist_both(model, binwidth,
+                                           reference_pop, incidence);
+        };
+        // choose a starting point from the best guess and local hessian:
+        Model start_point = estimate.best_guess;
+        int q_axis = 1, p_axis = 0; // mu (1) vs rloh (0)
+        real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
+
+        // TODO need a method for this
+        std::vector<real_t*> params = {&start_point.m_migr[0][2], /*rloh*/
+                                   &start_point.m_migr[0][1], /*mu*/
+                                   &start_point.m_birth[1], /*fitness1*/
+                                   &start_point.m_birth[2]  /*fitness2*/
+                                  };
+        *params[q_axis] += stddev * 1.0;
+
+        draw_level_sets(objective, start_point, q_axis, p_axis);
     }
 }
 
