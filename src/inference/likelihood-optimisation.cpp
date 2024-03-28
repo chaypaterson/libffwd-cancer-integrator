@@ -714,10 +714,10 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     // create a mutable copy inside this function.
     // We will need to translate between different coordinate axes and Model
     // parameters, so here is a vector of pointers to parameters:
-    std::vector<real_t*> params = {&(point.m_migr[0][2]), /*rloh*/
-                                   &(point.m_migr[0][1]), /*mu*/
-                                   &(point.m_birth[1]), /*fitness1*/
-                                   &(point.m_birth[2])  /*fitness2*/
+    std::vector<real_t*> params = {&point.m_migr[0][2], /*rloh*/
+                                   &point.m_migr[0][1], /*mu*/
+                                   &point.m_birth[1], /*fitness1*/
+                                   &point.m_birth[2]  /*fitness2*/
                                   };
     // Create the paper:
     std::ofstream drawing;
@@ -742,14 +742,15 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         real_t dq = +gradient(p_axis) * dt;
 
         // remember that gradient_log works in log space:
-        dp /= *(pencil.q), dq /= *(pencil.p);
+        //dp /= pencil.q, dq /= pencil.p; // try also
+        dp *= *pencil.p, dq *= *pencil.q;
 
-        *(pencil.p) += dp, *(pencil.q) += dq; // this updates point too
+        *pencil.p += dp, *pencil.q += dq; // this updates point too
 
         pencil.time += dt;
 
         // draw:
-        drawing << *(pencil.q) << "," << *(pencil.p) << "," << std::endl;
+        drawing << *pencil.q << "," << *pencil.p << "," << std::endl;
     }
 
     drawing.close();
