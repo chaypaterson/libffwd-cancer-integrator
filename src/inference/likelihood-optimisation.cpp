@@ -268,37 +268,6 @@ Model get_neighbour(Model& model, double w) {
                              new_fitness2, new_inipop);
 }
 
-real_t estimate_error(Model& old_model, Model& new_model) {
-    // TODO delete, unused
-    // TODO this function is ugly
-    // There should be a nice internal method in the Model class for iterating
-    // over parameters TODO implement this
-    // compute the square % difference in model parameters
-    real_t error = 0;
-    if (old_model.m_stages != new_model.m_stages) return error;
-    for (size_t v_in = 0; v_in < old_model.m_stages; ++v_in) {
-        for (size_t v_out = 0; v_out < old_model.m_stages; ++v_out) {
-            real_t diff = log(old_model.m_migr[v_in][v_out]) -
-                          log(new_model.m_migr[v_in][v_out]);
-            if (std::isfinite(diff)) error += diff * diff;
-        }
-
-        real_t diff = log(old_model.m_birth[v_in]) -
-                      log(new_model.m_birth[v_in]);
-        if (std::isfinite(diff)) error += diff * diff;
-
-        diff = log(old_model.m_death[v_in]) -
-               log(new_model.m_death[v_in]);
-        if (std::isfinite(diff)) error += diff * diff;
-
-        diff = log(old_model.m_initial_pops[v_in]) -
-               log(new_model.m_initial_pops[v_in]);
-        if (std::isfinite(diff)) error += diff * diff;
-    }
-
-    return sqrt(error);
-}
-
 /* MAYBE TODO define a class that we can use to "capture" or hide the extraneous
  * arguments like the underlying data and parameters of the histogram. We should
  * be able to pass one object into annealing_min and call it like a function
@@ -731,12 +700,16 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     pencil.p = params[p_axis], pencil.q = params[q_axis], pencil.time = 0;
 
     // draw initial point:
-    drawing << *pencil.q << "," << *pencil.p << "," << std::endl;
+    drawing << *pencil.q << "," << *pencil.p << ",";
+    drawing << objective(point) << ",";
+    drawing << std::endl;
 
     // Trace a level set of the objective function using
     // Hamilton's equations:
-    real_t dt = 0.1;
-    real_t tmax = 100; // TODO find a smarter way to exit the loop
+    real_t dt = 0.10;
+    real_t tmax = 200; // TODO find a smarter way to exit the loop
+    // TODO more explicit checks about whether the energy is in fact constant!
+    real_t energy_level = objective(point);
     while (pencil.time < tmax) {
         Eigen::MatrixXd gradient = gradient_log(objective, point);
         /* Hamilton's equations:
@@ -748,15 +721,23 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         real_t dq = +gradient(p_axis) * dt;
 
         // remember that gradient_log works in log space:
-        dp *= *pencil.p, dq *= *pencil.q;
-
         // move the pencil:
-        *pencil.p += dp, *pencil.q += dq; // this updates point too
+        *pencil.p *= exp(dp), *pencil.q *= exp(dq); // this updates point too
+
+        // if we have over or undershot our target energy level, seek it out
+        // again:
+        real_t energy_diff = objective(point) - energy_level;
+        dp = -energy_diff * gradient(p_axis) / (gradient(p_axis) * gradient(p_axis) + gradient(q_axis) * gradient(q_axis));
+        dq = -energy_diff * gradient(q_axis) / (gradient(p_axis) * gradient(p_axis) + gradient(q_axis) * gradient(q_axis));
+        // move the pencil again:
+        *pencil.p *= exp(dp), *pencil.q *= exp(dq);
 
         pencil.time += dt;
 
         // draw:
-        drawing << *pencil.q << "," << *pencil.p << "," << std::endl;
+        drawing << *pencil.q << "," << *pencil.p << ",";
+        drawing << objective(point) << ",";
+        drawing << std::endl;
     }
 
     drawing.close();
@@ -909,6 +890,7 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
 
     // Draw level sets: TODO
     if (options.level_sets) {
+        std::cout << "Tracing level sets..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
             return loglikelihood_hist_both(model, binwidth,
                                            reference_pop, incidence,
@@ -916,7 +898,7 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
         };
         // choose a starting point from the best guess and local hessian:
         Model start_point = estimate.best_guess;
-        int q_axis = 1, p_axis = 0; // mu (1) vs rloh (0)
+        int q_axis = 0, p_axis = 1; // mu (1) vs rloh (0)
         real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
 
         // TODO need a method for this
@@ -925,7 +907,7 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
                                    &start_point.m_birth[1], /*fitness1*/
                                    &start_point.m_birth[2]  /*fitness2*/
                                   };
-        *params[q_axis] += stddev * 1.0;
+        *params[q_axis] += stddev * 0.1;
 
         draw_level_sets(objective, start_point, q_axis, p_axis);
     }
@@ -1030,7 +1012,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         };
         // choose a starting point from the best guess and local hessian:
         Model start_point = estimate.best_guess;
-        int q_axis = 1, p_axis = 0; // mu (1) vs rloh (0)
+        int q_axis = 0, p_axis = 1; // mu (1) vs rloh (0)
         real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
 
         // TODO need a method for this
@@ -1039,7 +1021,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
                                    &start_point.m_birth[1], /*fitness1*/
                                    &start_point.m_birth[2]  /*fitness2*/
                                   };
-        *params[q_axis] += stddev * 1.0;
+        *params[q_axis] += stddev * 5.0;
 
         draw_level_sets(objective, start_point, q_axis, p_axis);
     }
