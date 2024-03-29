@@ -434,6 +434,8 @@ Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
         }
     }
 
+    //return Hessian; //?
+    // TODO reconsider what units to output the hessian in
     // Raw Hessian (in nice units):
     std::cout << "H = " << std::endl;
     std::cout << "[rloh, mu, s1, s2]" << std::endl;
@@ -676,7 +678,7 @@ real_t save_data_compute_maximum(epidata_t &all_times) {
 }
 
 void draw_level_sets(std::function<real_t(Model &model)> objective,
-                    Model point, int q_axis, int p_axis) {
+                    Model point, int q_axis, int p_axis, real_t freq=1.0f) {
     // This function will visualise a level set of the negative log likelihood
     // function in a chosen parameter plane. It does this by drawing a curve
     // with a "pencil" that follows Hamilton's equations. The "pencil"
@@ -706,31 +708,32 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
 
     // Trace a level set of the objective function using
     // Hamilton's equations:
-    real_t dt = 0.10;
-    real_t tmax = 200; // TODO find a smarter way to exit the loop
-    // TODO more explicit checks about whether the energy is in fact constant!
-    real_t energy_level = objective(point);
+    real_t dt = 0.05;
+    real_t tmax = 2 * M_PI / freq;
     while (pencil.time < tmax) {
         Eigen::MatrixXd gradient = gradient_log(objective, point);
         /* Hamilton's equations:
          * dp / dt = - dH / dq
          * dq / dt = + dH / dp
+         *
+         * Use kick-drift-kick (Verlet) instead of Euler integration:
          */
 
-        real_t dp = -gradient(q_axis) * dt;
-        real_t dq = +gradient(p_axis) * dt;
-
+        // kick:
+        real_t dp = -gradient(q_axis) * dt * 0.5;
         // remember that gradient_log works in log space:
         // move the pencil:
-        *pencil.p *= exp(dp), *pencil.q *= exp(dq); // this updates point too
+        *pencil.p *= exp(dp);
 
-        // if we have over or undershot our target energy level, seek it out
-        // again:
-        real_t energy_diff = objective(point) - energy_level;
-        dp = -energy_diff * gradient(p_axis) / (gradient(p_axis) * gradient(p_axis) + gradient(q_axis) * gradient(q_axis));
-        dq = -energy_diff * gradient(q_axis) / (gradient(p_axis) * gradient(p_axis) + gradient(q_axis) * gradient(q_axis));
-        // move the pencil again:
-        *pencil.p *= exp(dp), *pencil.q *= exp(dq);
+        // drift:
+        gradient = gradient_log(objective, point);
+        real_t dq = +gradient(p_axis) * dt;
+        *pencil.q *= exp(dq);
+
+        // kick:
+        gradient = gradient_log(objective, point);
+        dp = -gradient(q_axis) * dt * 0.5;
+        *pencil.p *= exp(dp); 
 
         pencil.time += dt;
 
@@ -907,7 +910,7 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
                                    &start_point.m_birth[1], /*fitness1*/
                                    &start_point.m_birth[2]  /*fitness2*/
                                   };
-        *params[q_axis] += stddev * 0.1;
+        *params[q_axis] += stddev * 2;
 
         draw_level_sets(objective, start_point, q_axis, p_axis);
     }
@@ -1009,11 +1012,14 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         std::function<real_t(Model&)> objective = [&](Model& model) {
             return loglikelihood_hist_both(model, binwidth,
                                            reference_pop, incidence);
+            // Sanity check test function:
+            //real_t dx = log(model.m_migr[0][2] / ground_truth.m_migr[0][2]);
+            //real_t dy = log(model.m_migr[0][1] / ground_truth.m_migr[0][1]);
+            //return dx * dx + dy * dy;
         };
         // choose a starting point from the best guess and local hessian:
         Model start_point = estimate.best_guess;
         int q_axis = 0, p_axis = 1; // mu (1) vs rloh (0)
-        real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
 
         // TODO need a method for this
         std::vector<real_t*> params = {&start_point.m_migr[0][2], /*rloh*/
@@ -1021,7 +1027,16 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
                                    &start_point.m_birth[1], /*fitness1*/
                                    &start_point.m_birth[2]  /*fitness2*/
                                   };
-        *params[q_axis] += stddev * 5.0;
+
+        // get an approximate frequency from the Hessian:
+        real_t freq = sqrt(std::real(estimate.Hessian(q_axis,q_axis)) *
+            std::real(estimate.Hessian(p_axis,p_axis)));
+        freq *= *params[q_axis] * *params[p_axis];
+
+        real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
+        *params[q_axis] += stddev * 2.0;
+
+        std::cout << "approx. freq. = " << freq << std::endl;
 
         draw_level_sets(objective, start_point, q_axis, p_axis);
     }
