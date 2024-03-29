@@ -711,23 +711,24 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     real_t dt = 0.05;
     real_t tmax = 2 * M_PI / freq;
     while (pencil.time < tmax) {
-        Eigen::MatrixXd gradient = gradient_log(objective, point);
         /* Hamilton's equations:
          * dp / dt = - dH / dq
          * dq / dt = + dH / dp
          *
          * Use kick-drift-kick (Verlet) instead of Euler integration:
          */
+        Eigen::MatrixXd gradient = gradient_log(objective, point);
+        real_t dp, dq;
 
         // kick:
-        real_t dp = -gradient(q_axis) * dt * 0.5;
+        dp = -gradient(q_axis) * dt * 0.5;
         // remember that gradient_log works in log space:
         // move the pencil:
         *pencil.p *= exp(dp);
 
         // drift:
         gradient = gradient_log(objective, point);
-        real_t dq = +gradient(p_axis) * dt;
+        dq = +gradient(p_axis) * dt;
         *pencil.q *= exp(dq);
 
         // kick:
@@ -1028,15 +1029,8 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
                                    &start_point.m_birth[2]  /*fitness2*/
                                   };
 
-        // get an approximate frequency from the Hessian:
-        real_t freq = sqrt(std::real(estimate.Hessian(q_axis,q_axis)) *
-            std::real(estimate.Hessian(p_axis,p_axis)));
-        freq *= *params[q_axis] * *params[p_axis];
-
         real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
         *params[q_axis] += stddev * 2.0;
-
-        std::cout << "approx. freq. = " << freq << std::endl;
 
         draw_level_sets(objective, start_point, q_axis, p_axis);
     }
