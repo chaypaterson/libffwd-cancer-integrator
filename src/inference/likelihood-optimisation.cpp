@@ -747,6 +747,39 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     drawing.close();
 }
 
+void draw_3dsurface(std::function<real_t(Model &model)> objective,
+                    Model origin, int x_axis, int y_axis, 
+                    real_t x_range=10.0f, real_t y_range=10.0f,
+                    size_t lines=16) {
+    /* This function samples the objective function in a neighbourhood around
+     * the origin point. It then outputs a CSV of the form
+     * x, y, z,
+     * where z = objective(x, y)
+     */
+    std::ofstream drawing;
+    char filename[14];
+    std::snprintf(filename, sizeof(filename), "mesh_%d_%d.csv", x_axis, y_axis);
+    drawing.open(filename);
+    // We will need to translate between different coordinate axes and Model
+    // parameters, so here is a vector of pointers to parameters:
+    std::vector<volatile real_t*> params = {&origin.m_migr[0][2], /*rloh*/
+                                   &origin.m_migr[0][1], /*mu*/
+                                   &origin.m_birth[1], /*fitness1*/
+                                   &origin.m_birth[2]  /*fitness2*/
+                                   };
+    /* ...
+    * sample points on a logarithmic scale from origin[x]/x_range to
+    * origin[x]*x_range and the same for y.
+    */
+    for (int x_tap = 0; x_tap < lines; ++x_tap) {
+        for (int y_tap = 0; y_tap < lines; ++y_tap) {
+            real_t x_value = *params[x_axis];
+            real_t y_value = *params[y_axis];
+        }
+    }
+    drawing.close();
+}
+
 struct Estimate {
     Model best_guess;
     Eigen::MatrixXd Hessian;
@@ -1007,7 +1040,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
                            estimate.best_guess);
     }
 
-    // Draw level sets: TODO
+    // Draw level sets:
     if (options.level_sets) {
         std::cout << "Tracing level sets..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
@@ -1055,16 +1088,22 @@ int main(int argc, char* argv[]) {
                                            1e6);
 
     // the default minimisation method is annealing:
-    Model (*method_min)(std::function<real_t(Model&)>, Model) = annealing_min;
+    typedef Model (*Minimiser_t)(std::function<real_t(Model&)>, Model);
+    Minimiser_t method_min = annealing_min;
     // but:
-    if (options.minimise_with == GRADIENT) method_min = gradient_min;
+    if (options.minimise_with == GRADIENT) 
+        method_min = gradient_min;
 
-    if (options.include_germline) {
-        guess_parameters_germline(ground_truth, options, method_min);
-        return 0;
-    }
+    // The inference harness itself:
+    void (*guessing_harness)(Model &ground_truth, GuesserConfig options, 
+                             Minimiser_t method_min);
+    guessing_harness = guess_parameters; // default value
 
-    guess_parameters(ground_truth, options, method_min);
+    if (options.include_germline)
+        guessing_harness = guess_parameters_germline;
+
+    // run the inference harness:
+    guessing_harness(ground_truth, options, method_min);
 
     return 0;
 }
