@@ -40,6 +40,8 @@ using clonal_expansion::GuesserConfig;
 
 typedef std::vector<std::pair<double, int>> epidata_t;
 
+// Statistical functions:
+
 real_t logsurvival(Model& params, int node) {
     // return the survival probability for this node:
     double psurv;
@@ -193,6 +195,26 @@ Model instantiate_model(real_t rloh, real_t mu, real_t fitness1,
     params.m_death = {0, 0, 0, 0, 0};
     params.m_initial_pops = {initialpop, 0, 0, 0, 0};
 
+    return params;
+}
+
+std::vector<real_t> model_params_pure(Model point) {
+    // return a vector of values that summarise the model parameters
+    std::vector<real_t> params = {point.m_migr[0][2] /*rloh*/,
+                                 point.m_migr[0][1] /*mu*/,
+                                 point.m_birth[1]   /*fitness1*/,
+                                 point.m_birth[2]   /*fitness2*/
+                                };
+    return params;
+}
+
+std::vector<volatile real_t*> model_params_raw(Model point) {
+    // return a vector of raw pointers to the model parameters
+    std::vector<volatile real_t*> params = {&point.m_migr[0][2] /*rloh*/,
+                                 &point.m_migr[0][1] /*mu*/,
+                                 &point.m_birth[1]   /*fitness1*/,
+                                 &point.m_birth[2]   /*fitness2*/
+                                };
     return params;
 }
 
@@ -407,7 +429,7 @@ Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
                                  point.m_migr[0][1] /*mu*/,
                                  point.m_birth[1]   /*fitness1*/,
                                  point.m_birth[2]   /*fitness2*/
-                                };
+                                }; //TODO needs a method
 
     // Pre-compute a stencil and weights to use for finite differencing:
     std::vector<std::vector<double>> stencil;
@@ -474,7 +496,7 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
                                      best_guess.m_migr[0][1] /*mu*/,
                                      best_guess.m_birth[1]   /*fitness1*/,
                                      best_guess.m_birth[2]   /*fitness2*/
-                                    };
+                                    }; // TODO needs a method
 
         // update the current best guess by -learning_rate * gradient
         std::vector<real_t> Delta(dim, 0);
@@ -766,7 +788,7 @@ void draw_3dsurface(std::function<real_t(Model &model)> objective,
                                    &origin.m_migr[0][1], /*mu*/
                                    &origin.m_birth[1], /*fitness1*/
                                    &origin.m_birth[2]  /*fitness2*/
-                                   };
+                                   }; // TODO needs a method
     /* ...
     * sample points on a logarithmic scale from origin[x]/x_range to
     * origin[x]*x_range and the same for y.
@@ -808,7 +830,7 @@ void print_best_guess(Estimate estimate) {
                                  estimate.best_guess.m_migr[0][1] /*mu*/,
                                  estimate.best_guess.m_birth[1]   /*fitness1*/,
                                  estimate.best_guess.m_birth[2]   /*fitness2*/
-                                };
+                                }; // TODO needs a method
     for (int param = 0; param < Theta.size(); ++param) {
         std::cout << Theta[param] << " +/- ";
         std::cout << sqrt(estimate.Hessian.inverse()(param, param));
