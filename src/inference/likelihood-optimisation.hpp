@@ -11,13 +11,17 @@ namespace clonal_expansion {
 class GuesserConfig 
 {
 public:
+    // FLAG AND ARGUMENT OPTIONS:
     size_t seed;
     size_t dataset_size;
+    // TODO load histogram from file
+    // SINGLE FLAG OPTIONS:
     bool include_germline = false; // mixed germline/sporadic study or not (default not)
     bool resample_after   = false; // resample or not (default not)
+    // what minimisation method to use (default annealing, can do gradient)
     enum Minimise minimise_with = ANNEALING; // TODO could just be a bool
     bool level_sets       = false; // whether or not to draw with level sets
-    // what minimisation method to use (default annealing, can do gradient)
+    bool draw_mesh        = false; // whether or not to draw 3d plots of the likelihood
 
     GuesserConfig(int argc, char* argv[])
     {
@@ -35,6 +39,7 @@ public:
             if (!strcmp(argv[arg], "--annealing")) minimise_with = ANNEALING;
             if (!strcmp(argv[arg], "--gradient")) minimise_with = GRADIENT;
             if (!strcmp(argv[arg], "--draw_level_sets")) level_sets = true;
+            if (!strcmp(argv[arg], "--draw_3d_meshes")) draw_mesh = true;
         }
     }
 private:

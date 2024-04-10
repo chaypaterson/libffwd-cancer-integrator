@@ -730,7 +730,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         // remember that gradient_log works in log space:
         // move the pencil:
         Delta[p_axis] = pencil.p * (exp(dp) - 1);
-        differ_model(point, Delta); // p += dp
+        point = differ_model(point, Delta); // p += dp
         pencil.p *= exp(dp);
         Delta[p_axis] = 0;
 
@@ -738,7 +738,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         gradient = gradient_log(objective, point);
         dq = +gradient(p_axis) * dt;
         Delta[q_axis] = pencil.q * (exp(dq) - 1);
-        differ_model(point, Delta); // q += dq
+        point = differ_model(point, Delta); // q += dq
         pencil.q *= exp(dq);
         Delta[q_axis] = 0;
 
@@ -746,7 +746,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         gradient = gradient_log(objective, point);
         dp = -gradient(q_axis) * dt * 0.5;
         Delta[p_axis] = pencil.p * (exp(dp) - 1);
-        differ_model(point, Delta); // p += dp
+        point = differ_model(point, Delta); // p += dp
         pencil.p *= exp(dp);
         Delta[p_axis] = 0;
 
@@ -796,9 +796,7 @@ void draw_3dsurface(std::function<real_t(Model &model)> objective,
             std::vector<real_t> Delta(4,0);
             Delta[x_axis] = dx, Delta[y_axis] = dy;
 
-            // TODO this could probably be done more efficiently:
-            Model sample_point = origin;
-            differ_model(sample_point, Delta);
+            Model sample_point = differ_model(origin, Delta);
 
             real_t z_value = objective(sample_point);
 
@@ -991,8 +989,6 @@ Estimate get_estimate(real_t binwidth, size_t reference_pop,
                                        reference_pop, incidence);
     };
 
-    // Try out simulated annealing:
-
     std::cout << "Starting minimisation..." << std::endl;
     Model best_guess = method_min(objective, guess);
     // Get and return Hessian:
@@ -1085,6 +1081,21 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         differ_model(start_point, Delta);
 
         draw_level_sets(objective, start_point, q_axis, p_axis);
+    }
+
+    // Draw 3d plot:
+    if (options.draw_mesh) {
+        int dim = 4;
+        std::cout << "Sampling likelihood function..." << std::endl;
+        std::function<real_t(Model&)> objective = [&](Model& model) {
+            return loglikelihood_hist_both(model, binwidth,
+                                           reference_pop, incidence);
+        };
+        for (int x_axis = 0; x_axis < dim; ++x_axis) {
+            for (int y_axis = x_axis + 1; y_axis < dim; ++y_axis) {
+                draw_3dsurface(objective, estimate.best_guess, x_axis, y_axis);
+            }
+        }
     }
 }
 
