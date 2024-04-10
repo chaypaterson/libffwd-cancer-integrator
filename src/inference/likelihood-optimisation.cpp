@@ -236,7 +236,7 @@ Model instantiate_model_germline(real_t rloh, real_t mu, real_t fitness1,
     return params;
 }
 
-Model differ_model(Model& params, real_t drloh, real_t dmu, real_t dfitness1,
+Model shifted_model(Model& params, real_t drloh, real_t dmu, real_t dfitness1,
                    real_t dfitness2, real_t dinitialpop) {
     Model dmodel = params;
     dmodel.m_migr[0][1] += dmu;
@@ -252,8 +252,8 @@ Model differ_model(Model& params, real_t drloh, real_t dmu, real_t dfitness1,
     return dmodel;
 }
 
-Model differ_model(Model& params, std::vector<real_t> Delta) {
-    return differ_model(params, Delta[0], Delta[1], Delta[2], Delta[3], 0);
+Model shifted_model(Model& params, std::vector<real_t> Delta) {
+    return shifted_model(params, Delta[0], Delta[1], Delta[2], Delta[3], 0);
 }
 
 // SIMULATED ANNEALING STUFF:
@@ -394,7 +394,7 @@ Eigen::MatrixXd gradient_log(std::function<real_t(Model&)> objective,
         for (int tap = 0, step = -radius; tap < weights.size(); ++tap, ++step) {
             std::vector<real_t> Delta(dim, 0);
             Delta[axis] = epsilon * Theta[axis] * step;
-            Model dmodel = differ_model(point, Delta);
+            Model dmodel = shifted_model(point, Delta);
             diff += weights[tap] * objective(dmodel) / epsilon;
         }
 
@@ -435,7 +435,7 @@ Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
                 std::vector<real_t> Delta(dim, 0);
                 Delta[x] += epsilon * Theta[x] * tap[1];
                 Delta[y] += epsilon * Theta[y] * tap[2];
-                Model dmodel = differ_model(point, Delta);
+                Model dmodel = shifted_model(point, Delta);
                 diff += tap[0] * objective(dmodel) / epsilon;
             }
             // Scale diff appropriately to get second derivative:
@@ -489,7 +489,7 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
             Delta[axis] = Theta[axis] * (exp(-learning_rate * gradient(axis)) - 1);
         }
 
-        best_guess = differ_model(best_guess, Delta);
+        best_guess = shifted_model(best_guess, Delta);
 
         // we want the percentage-change in all coefficients to be lower than
         // tolerance:
@@ -730,7 +730,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         // remember that gradient_log works in log space:
         // move the pencil:
         Delta[p_axis] = pencil.p * (exp(dp) - 1);
-        point = differ_model(point, Delta); // p += dp
+        point = shifted_model(point, Delta); // p += dp
         pencil.p *= exp(dp);
         Delta[p_axis] = 0;
 
@@ -738,7 +738,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         gradient = gradient_log(objective, point);
         dq = +gradient(p_axis) * dt;
         Delta[q_axis] = pencil.q * (exp(dq) - 1);
-        point = differ_model(point, Delta); // q += dq
+        point = shifted_model(point, Delta); // q += dq
         pencil.q *= exp(dq);
         Delta[q_axis] = 0;
 
@@ -746,7 +746,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         gradient = gradient_log(objective, point);
         dp = -gradient(q_axis) * dt * 0.5;
         Delta[p_axis] = pencil.p * (exp(dp) - 1);
-        point = differ_model(point, Delta); // p += dp
+        point = shifted_model(point, Delta); // p += dp
         pencil.p *= exp(dp);
         Delta[p_axis] = 0;
 
@@ -796,7 +796,7 @@ void draw_3dsurface(std::function<real_t(Model &model)> objective,
             std::vector<real_t> Delta(4,0);
             Delta[x_axis] = dx, Delta[y_axis] = dy;
 
-            Model sample_point = differ_model(origin, Delta);
+            Model sample_point = shifted_model(origin, Delta);
 
             real_t z_value = objective(sample_point);
 
@@ -1075,10 +1075,10 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         std::vector<real_t> params = model_params_pure(start_point);
 
         real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
-        // use differ_model not params_raw
+        // use shifted_model not params_raw
         std::vector<real_t> Delta(4,0);
         Delta[q_axis] = stddev * 4.0;
-        differ_model(start_point, Delta);
+        shifted_model(start_point, Delta);
 
         draw_level_sets(objective, start_point, q_axis, p_axis);
     }
