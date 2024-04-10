@@ -386,13 +386,7 @@ Eigen::MatrixXd gradient_log(std::function<real_t(Model&)> objective,
     int radius = (weights.size() - 1) / 2; // NB: weights.size must be odd
 
     // vector of parameter values:
-    std::vector<real_t> Theta = {point.m_migr[0][2] /*rloh*/,
-                                 point.m_migr[0][1] /*mu*/,
-                                 point.m_birth[1]   /*fitness1*/,
-                                 point.m_birth[2]   /*fitness2*/
-                                };
-    // TODO really Theta should be a callable method of Model: calling it like
-    // point.vec_theta() --> std::vector<real_t> {the above ...};
+    std::vector<real_t> Theta = model_params_pure(point);
 
     for (int axis = 0; axis < dim; ++axis) {
         /* Compute the derivative along each axis using a finite difference
@@ -425,11 +419,7 @@ Eigen::MatrixXd compute_hessian(std::function<real_t(Model&)> objective,
      * - Chay
      */
     // vector of parameter values:
-    std::vector<real_t> Theta = {point.m_migr[0][2] /*rloh*/,
-                                 point.m_migr[0][1] /*mu*/,
-                                 point.m_birth[1]   /*fitness1*/,
-                                 point.m_birth[2]   /*fitness2*/
-                                }; //TODO needs a method
+    std::vector<real_t> Theta = model_params_pure(point);
 
     // Pre-compute a stencil and weights to use for finite differencing:
     std::vector<std::vector<double>> stencil;
@@ -492,11 +482,7 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
         // compute the gradient at the current best guess
         Eigen::MatrixXd gradient = gradient_log(objective, best_guess);
 
-        std::vector<real_t> Theta = {best_guess.m_migr[0][2] /*rloh*/,
-                                     best_guess.m_migr[0][1] /*mu*/,
-                                     best_guess.m_birth[1]   /*fitness1*/,
-                                     best_guess.m_birth[2]   /*fitness2*/
-                                    }; // TODO needs a method
+        std::vector<real_t> Theta = model_params_pure(best_guess);
 
         // update the current best guess by -learning_rate * gradient
         std::vector<real_t> Delta(dim, 0);
@@ -710,11 +696,8 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     // create a mutable copy inside this function.
     // We will need to translate between different coordinate axes and Model
     // parameters, so here is a vector of pointers to parameters:
-    std::vector<volatile real_t*> params = {&point.m_migr[0][2], /*rloh*/
-                                   &point.m_migr[0][1], /*mu*/
-                                   &point.m_birth[1], /*fitness1*/
-                                   &point.m_birth[2]  /*fitness2*/
-                                  };
+    std::vector<volatile real_t*> params = model_params_raw(point);
+
     // Create the paper:
     std::ofstream drawing;
     drawing.open("level_set.csv");
@@ -784,11 +767,8 @@ void draw_3dsurface(std::function<real_t(Model &model)> objective,
     drawing.open(filename);
     // We will need to translate between different coordinate axes and Model
     // parameters, so here is a vector of pointers to parameters:
-    std::vector<volatile real_t*> params = {&origin.m_migr[0][2], /*rloh*/
-                                   &origin.m_migr[0][1], /*mu*/
-                                   &origin.m_birth[1], /*fitness1*/
-                                   &origin.m_birth[2]  /*fitness2*/
-                                   }; // TODO needs a method
+    Model sample_point = origin;
+    std::vector<volatile real_t*> params = model_params_raw(sample_point);
     /* ...
     * sample points on a logarithmic scale from origin[x]/x_range to
     * origin[x]*x_range and the same for y.
@@ -826,11 +806,7 @@ void print_best_guess(Estimate estimate) {
 
     // Compute confidence intervals:
     std::cout << "Standard deviations:" << std::endl;
-    std::vector<real_t> Theta = {estimate.best_guess.m_migr[0][2] /*rloh*/,
-                                 estimate.best_guess.m_migr[0][1] /*mu*/,
-                                 estimate.best_guess.m_birth[1]   /*fitness1*/,
-                                 estimate.best_guess.m_birth[2]   /*fitness2*/
-                                }; // TODO needs a method
+    std::vector<real_t> Theta = model_params_pure(estimate.best_guess);
     for (int param = 0; param < Theta.size(); ++param) {
         std::cout << Theta[param] << " +/- ";
         std::cout << sqrt(estimate.Hessian.inverse()(param, param));
@@ -960,12 +936,7 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
         int q_axis = 0, p_axis = 1; // mu (1) vs rloh (0)
         real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
 
-        // TODO need a method for this
-        std::vector<volatile real_t*> params = {&start_point.m_migr[0][2], /*rloh*/
-                                   &start_point.m_migr[0][1], /*mu*/
-                                   &start_point.m_birth[1], /*fitness1*/
-                                   &start_point.m_birth[2]  /*fitness2*/
-                                  };
+        std::vector<volatile real_t*> params = model_params_raw(start_point);
         *params[q_axis] += stddev * 2;
 
         draw_level_sets(objective, start_point, q_axis, p_axis);
@@ -1077,12 +1048,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         Model start_point = estimate.best_guess;
         int q_axis = 0, p_axis = 1; // mu (1) vs rloh (0)
 
-        // TODO need a method for this
-        std::vector<real_t*> params = {&start_point.m_migr[0][2], /*rloh*/
-                                   &start_point.m_migr[0][1], /*mu*/
-                                   &start_point.m_birth[1], /*fitness1*/
-                                   &start_point.m_birth[2]  /*fitness2*/
-                                  };
+        std::vector<volatile real_t*> params = model_params_raw(start_point);
 
         real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
         *params[q_axis] += stddev * 2.0;
