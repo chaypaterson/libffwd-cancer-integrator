@@ -232,7 +232,6 @@ Model instantiate_model_germline(real_t rloh, real_t mu, real_t fitness1,
     // TODO maybe fitness1 should be 0 for this model? discuss w colleagues
     params.m_death = {0, 0, 0, 0, 0};
     params.m_initial_pops = {0, initialpop, 0, 0, 0};
-    // TODO germline mutations: which initial node? i think 1?
 
     return params;
 }
@@ -695,19 +694,19 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     // Note that the model "point" is deliberately passed by value to
     // create a mutable copy inside this function.
     // We will need to translate between different coordinate axes and Model
-    // parameters, so here is a vector of pointers to parameters:
-    std::vector<volatile real_t*> params = model_params_raw(point);
+    // parameters, so here is a vector of parameter values:
+    std::vector<real_t> params = model_params_pure(point);
 
     // Create the paper:
     std::ofstream drawing;
     drawing.open("level_set.csv");
 
     // Create the pencil:
-    struct {volatile real_t* p; volatile real_t* q; real_t time; } pencil;
+    struct {real_t p; real_t q; real_t time; } pencil;
     pencil.p = params[p_axis], pencil.q = params[q_axis], pencil.time = 0;
 
     // draw initial point:
-    drawing << *pencil.q << "," << *pencil.p << ",";
+    drawing << pencil.q << "," << pencil.p << ",";
     drawing << objective(point) << ",";
     drawing << std::endl;
 
@@ -722,6 +721,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
          *
          * Use kick-drift-kick (Verlet) instead of Euler integration:
          */
+        std::vector<real_t> Delta(4, 0);
         Eigen::MatrixXd gradient = gradient_log(objective, point);
         real_t dp, dq;
 
@@ -729,22 +729,31 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         dp = -gradient(q_axis) * dt * 0.5;
         // remember that gradient_log works in log space:
         // move the pencil:
-        *pencil.p *= exp(dp);
+        Delta[p_axis] = pencil.p * (exp(dp) - 1);
+        differ_model(point, Delta); // p += dp
+        pencil.p *= exp(dp);
+        Delta[p_axis] = 0;
 
         // drift:
         gradient = gradient_log(objective, point);
         dq = +gradient(p_axis) * dt;
-        *pencil.q *= exp(dq);
+        Delta[q_axis] = pencil.q * (exp(dq) - 1);
+        differ_model(point, Delta); // q += dq
+        pencil.q *= exp(dq);
+        Delta[q_axis] = 0;
 
         // kick:
         gradient = gradient_log(objective, point);
         dp = -gradient(q_axis) * dt * 0.5;
-        *pencil.p *= exp(dp); 
+        Delta[p_axis] = pencil.p * (exp(dp) - 1);
+        differ_model(point, Delta); // p += dp
+        pencil.p *= exp(dp);
+        Delta[p_axis] = 0;
 
         pencil.time += dt;
 
         // draw:
-        drawing << *pencil.q << "," << *pencil.p << ",";
+        drawing << pencil.q << "," << pencil.p << ",";
         drawing << objective(point) << ",";
         drawing << std::endl;
     }
@@ -767,16 +776,35 @@ void draw_3dsurface(std::function<real_t(Model &model)> objective,
     drawing.open(filename);
     // We will need to translate between different coordinate axes and Model
     // parameters, so here is a vector of pointers to parameters:
-    Model sample_point = origin;
-    std::vector<volatile real_t*> params = model_params_raw(sample_point);
+    std::vector<real_t> orig_params = model_params_pure(origin);
     /* ...
     * sample points on a logarithmic scale from origin[x]/x_range to
     * origin[x]*x_range and the same for y.
     */
     for (int x_tap = 0; x_tap < lines; ++x_tap) {
         for (int y_tap = 0; y_tap < lines; ++y_tap) {
-            real_t x_value = *params[x_axis];
-            real_t y_value = *params[y_axis];
+            // compute new parameters in log grid:
+            real_t x_value = orig_params[x_axis] / std::sqrt(x_range);
+            real_t y_value = orig_params[y_axis] / std::sqrt(y_range);
+            x_value *= exp(log(x_range) * 2 * (real_t)x_tap / (real_t)lines);
+            y_value *= exp(log(y_range) * 2 * (real_t)y_tap / (real_t)lines);
+
+            // compute differences:
+            real_t dx, dy;
+            dx = x_value - orig_params[x_axis];
+            dy = y_value - orig_params[y_axis];
+            std::vector<real_t> Delta(4,0);
+            Delta[x_axis] = dx, Delta[y_axis] = dy;
+
+            // TODO this could probably be done more efficiently:
+            Model sample_point = origin;
+            differ_model(sample_point, Delta);
+
+            real_t z_value = objective(sample_point);
+
+            // write out values:
+            drawing << x_value << "," << y_value << "," << z_value << ",";
+            drawing << std::endl;
         }
     }
     drawing.close();
@@ -1048,10 +1076,13 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         Model start_point = estimate.best_guess;
         int q_axis = 0, p_axis = 1; // mu (1) vs rloh (0)
 
-        std::vector<volatile real_t*> params = model_params_raw(start_point);
+        std::vector<real_t> params = model_params_pure(start_point);
 
         real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
-        *params[q_axis] += stddev * 2.0;
+        // use differ_model not params_raw
+        std::vector<real_t> Delta(4,0);
+        Delta[q_axis] = stddev * 4.0;
+        differ_model(start_point, Delta);
 
         draw_level_sets(objective, start_point, q_axis, p_axis);
     }
