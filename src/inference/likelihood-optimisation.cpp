@@ -774,6 +774,7 @@ void draw_3dsurface(std::function<real_t(Model &model)> objective,
     char filename[14];
     std::snprintf(filename, sizeof(filename), "mesh_%d_%d.csv", x_axis, y_axis);
     drawing.open(filename);
+    drawing << "x,y,z," << std::endl;
     // We will need to translate between different coordinate axes and Model
     // parameters, so here is a vector of pointers to parameters:
     std::vector<real_t> orig_params = model_params_pure(origin);
