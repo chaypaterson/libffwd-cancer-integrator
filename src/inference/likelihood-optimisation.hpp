@@ -14,6 +14,7 @@ public:
     // FLAG AND ARGUMENT OPTIONS:
     size_t seed;
     size_t dataset_size;
+    size_t mesh_lines;
     // TODO load histogram from file
     // SINGLE FLAG OPTIONS:
     bool include_germline = false; // mixed germline/sporadic study or not (default not)
@@ -31,6 +32,8 @@ public:
                 seed = atoi(argv[arg + 1]);
             if (!strcmp(argv[arg], "--sample_size"))
                 dataset_size = atoi(argv[arg + 1]);
+            if (!strcmp(argv[arg], "--mesh_lines"))
+                mesh_lines = atoi(argv[arg + 1]);
         }
         // for arguments that are just isolated flags: "--annealing" etc.
         for (int arg = 1; arg < argc; ++arg) {

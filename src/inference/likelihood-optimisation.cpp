@@ -702,10 +702,12 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     drawing.open("level_set.csv");
 
     // Create the pencil:
-    struct {real_t p; real_t q; real_t time; } pencil;
+    struct {real_t p; real_t q; real_t time; real_t angle; } pencil;
     pencil.p = params[p_axis], pencil.q = params[q_axis], pencil.time = 0;
+    pencil.angle = 0;
 
     // draw initial point:
+    drawing << "x,y,z," << std::endl;
     drawing << pencil.q << "," << pencil.p << ",";
     drawing << objective(point) << ",";
     drawing << std::endl;
@@ -714,7 +716,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     // Hamilton's equations:
     real_t dt = 0.05;
     real_t tmax = 2 * M_PI / freq;
-    while (pencil.time < tmax) {
+    while (pencil.angle < 2 * M_PI) {
         /* Hamilton's equations:
          * dp / dt = - dH / dq
          * dq / dt = + dH / dp
@@ -724,6 +726,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         std::vector<real_t> Delta(4, 0);
         Eigen::MatrixXd gradient = gradient_log(objective, point);
         real_t dp, dq;
+        real_t angle;
 
         // kick:
         dp = -gradient(q_axis) * dt * 0.5;
@@ -733,6 +736,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         point = shifted_model(point, Delta); // p += dp
         pencil.p *= exp(dp);
         Delta[p_axis] = 0;
+        angle = dp;
 
         // drift:
         gradient = gradient_log(objective, point);
@@ -750,7 +754,11 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
         pencil.p *= exp(dp);
         Delta[p_axis] = 0;
 
+        angle -= dp;
+        angle /= dq;
+
         pencil.time += dt;
+        pencil.angle += angle;
 
         // draw:
         drawing << pencil.q << "," << pencil.p << ",";
@@ -785,8 +793,8 @@ void draw_3dsurface(std::function<real_t(Model &model)> objective,
     for (int x_tap = 0; x_tap < lines; ++x_tap) {
         for (int y_tap = 0; y_tap < lines; ++y_tap) {
             // compute new parameters in log grid:
-            real_t x_value = orig_params[x_axis] / std::sqrt(x_range);
-            real_t y_value = orig_params[y_axis] / std::sqrt(y_range);
+            real_t x_value = orig_params[x_axis] / x_range;
+            real_t y_value = orig_params[y_axis] / y_range;
             x_value *= exp(log(x_range) * 2 * (real_t)x_tap / (real_t)lines);
             y_value *= exp(log(y_range) * 2 * (real_t)y_tap / (real_t)lines);
 
@@ -1092,9 +1100,15 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
             return loglikelihood_hist_both(model, binwidth,
                                            reference_pop, incidence);
         };
+
+        // for each combination of parameters:
         for (int x_axis = 0; x_axis < dim; ++x_axis) {
             for (int y_axis = x_axis + 1; y_axis < dim; ++y_axis) {
-                draw_3dsurface(objective, estimate.best_guess, x_axis, y_axis);
+                int lines = 16;
+                if (options.mesh_lines) lines = options.mesh_lines;
+
+                draw_3dsurface(objective, estimate.best_guess, x_axis, y_axis,
+                               10.0f, 10.0f, lines);
             }
         }
     }
