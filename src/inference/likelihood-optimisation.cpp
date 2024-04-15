@@ -539,7 +539,7 @@ void write_model_line(std::ofstream& file, Model &model) {
 }
 
 void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
-                    std::vector<size_t>& end_nodes,
+                    const std::vector<size_t>& end_nodes,
                     std::map<size_t, std::vector<size_t>>& incidence,
                     std::string filename) {
     std::ofstream fakedata;
@@ -559,8 +559,9 @@ void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
 }
 
 void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
-                    std::vector<size_t>& end_nodes,
+                    const std::vector<size_t>& end_nodes,
                     std::map<size_t, std::vector<size_t>>& incidence) {
+    // save with a default filename:
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence,
                    "syntheticdata_hist.csv");
 }
@@ -1009,6 +1010,37 @@ Estimate get_estimate(real_t binwidth, size_t reference_pop,
     return estimate;
 }
 
+void generate_histogram(Model &ground_truth, size_t seed, size_t dataset_size,
+        const std::vector<size_t> &end_nodes,
+        real_t &max_age, size_t &reference_pop,
+        real_t &binwidth, std::map<size_t, std::vector<size_t>> &incidence) {
+    // simulate some data that could be collected by a longitudinal study:
+    std::cout << "Generating synthetic dataset..." << std::endl;
+    // sporadic cases only (default)
+    epidata_t all_times = generate_dataset(ground_truth, seed, dataset_size);
+
+    std::cout << "Done. Saving..." << std::endl;
+
+    // compute maximum age and save the all_times data:
+    max_age = save_data_compute_maximum(all_times);
+
+    // Convert age data to histogram:
+    reference_pop = all_times.size();
+    binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
+    //real_t binwidth = 10.0;
+    std::cout << "max age = " << max_age;
+    std::cout << "\n bin width = " << binwidth << std::endl;
+
+    // set the incidence for each karyotype:
+    for (auto &end_node : end_nodes) {
+        incidence[end_node] = convert_to_histogram(all_times, binwidth,
+                              end_node);
+    }
+
+    // Save the histogram:
+    save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
+}
+
 void guess_parameters(Model &ground_truth, GuesserConfig options,
                       Model (*method_min)(std::function<real_t(Model&)>, Model)) {
     // The main test harness for statistical inference:
@@ -1020,33 +1052,14 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
     size_t seed = options.seed;
     size_t dataset_size = options.dataset_size;
 
-    // simulate some data that could be collected by a longitudinal study:
-    std::cout << "Generating synthetic dataset..." << std::endl;
-    // sporadic cases only (default)
-    epidata_t all_times = generate_dataset(ground_truth, seed, dataset_size);
-
     std::vector<size_t> end_nodes = {3,4};
-    std::cout << "Done. Saving..." << std::endl;
-
-    // compute maximum age and save the all_times data:
-    real_t max_age = save_data_compute_maximum(all_times);
-
-    // Convert age data to histogram:
-    size_t reference_pop = all_times.size();
-    real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
-    //real_t binwidth = 10.0;
-    std::cout << "max age = " << max_age;
-    std::cout << "\n bin width = " << binwidth << std::endl;
-
     std::map<size_t, std::vector<size_t>> incidence;
+    real_t binwidth, max_age;
+    size_t reference_pop;
 
-    for (auto &end_node : end_nodes) {
-        incidence[end_node] = convert_to_histogram(all_times, binwidth,
-                              end_node);
-    }
-
-    // Save the histogram:
-    save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
+    generate_histogram(ground_truth, seed, dataset_size, end_nodes,
+                       max_age, reference_pop, binwidth, incidence);
+    // TODO loadable histograms?
 
     printf("Target likelihood:\n-log L = %g\n",
            loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
@@ -1104,11 +1117,10 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         // for each combination of parameters:
         for (int x_axis = 0; x_axis < dim; ++x_axis) {
             for (int y_axis = x_axis + 1; y_axis < dim; ++y_axis) {
-                int lines = 16;
-                if (options.mesh_lines) lines = options.mesh_lines;
-
                 draw_3dsurface(objective, estimate.best_guess, x_axis, y_axis,
-                               10.0f, 10.0f, lines);
+                               options.mesh_x_range, 
+                               options.mesh_y_range,
+                               options.mesh_lines);
             }
         }
     }
