@@ -38,8 +38,7 @@ using clonal_expansion::real_t;
 using clonal_expansion::Model;
 using clonal_expansion::GuesserConfig;
 
-typedef std::vector<std::pair<double, int>> Epidata_t;
-typedef std::map<size_t, std::vector<size_t>> Histogram_t;
+typedef std::vector<std::pair<double, int>> epidata_t;
 
 // Statistical functions:
 
@@ -104,7 +103,7 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
 
 real_t loglikelihood_hist_both(Model& params, real_t binwidth,
                                size_t ref_population,
-                               Histogram_t histos) {
+                               std::map<size_t, std::vector<size_t>> histos) {
     // Histogram version of the -log likelihood
     // Applied to a set of histograms of cancer incidence with given types
     // The data structure maps the type to a histogram that gives age incidence
@@ -124,8 +123,8 @@ real_t loglikelihood_hist_both(Model& params, real_t binwidth,
 
 real_t loglikelihood_hist_both(Model& params, real_t binwidth,
                                size_t ref_population,
-                               Histogram_t histos_sporadic,
-                               Histogram_t histos_germline) {
+                               std::map<size_t, std::vector<size_t>> histos_sporadic,
+                               std::map<size_t, std::vector<size_t>> histos_germline) {
     // this version includes two separate sporadic and germline incidence curves.
     real_t mlogl = 0;
 
@@ -146,7 +145,7 @@ real_t loglikelihood_hist_both(Model& params, real_t binwidth,
     return mlogl;
 }
 
-std::vector<size_t> convert_to_histogram(const Epidata_t& all_times,
+std::vector<size_t> convert_to_histogram(const epidata_t& all_times,
         real_t binwidth,
         size_t node) {
     real_t max_age = 0;
@@ -170,12 +169,12 @@ std::vector<size_t> convert_to_histogram(const Epidata_t& all_times,
 
 // Gillespie algorithm functions:
 
-Epidata_t generate_dataset(Model& model, int seed, int runs) {
+epidata_t generate_dataset(Model& model, int seed, int runs) {
     std::vector<int> final_vertices = {3, 4};
 
     // run some simulations and store the time and final node in
     // all_times:
-    Epidata_t all_times;
+    epidata_t all_times;
     times_to_final_vertices(model, seed, runs, final_vertices, all_times);
     // TODO this is a natural candidate for parallelisation
 
@@ -202,20 +201,20 @@ Model instantiate_model(real_t rloh, real_t mu, real_t fitness1,
 std::vector<real_t> model_params_pure(Model point) {
     // return a vector of values that summarise the model parameters
     std::vector<real_t> params = {point.m_migr[0][2] /*rloh*/,
-                                  point.m_migr[0][1] /*mu*/,
-                                  point.m_birth[1]   /*fitness1*/,
-                                  point.m_birth[2]   /*fitness2*/
-                                 };
+                                 point.m_migr[0][1] /*mu*/,
+                                 point.m_birth[1]   /*fitness1*/,
+                                 point.m_birth[2]   /*fitness2*/
+                                };
     return params;
 }
 
 std::vector<volatile real_t*> model_params_raw(Model point) {
     // return a vector of raw pointers to the model parameters
     std::vector<volatile real_t*> params = {&point.m_migr[0][2] /*rloh*/,
-                                            &point.m_migr[0][1] /*mu*/,
-                                            &point.m_birth[1]   /*fitness1*/,
-                                            &point.m_birth[2]   /*fitness2*/
-                                           };
+                                 &point.m_migr[0][1] /*mu*/,
+                                 &point.m_birth[1]   /*fitness1*/,
+                                 &point.m_birth[2]   /*fitness2*/
+                                };
     return params;
 }
 
@@ -238,7 +237,7 @@ Model instantiate_model_germline(real_t rloh, real_t mu, real_t fitness1,
 }
 
 Model shifted_model(Model& params, real_t drloh, real_t dmu, real_t dfitness1,
-                    real_t dfitness2, real_t dinitialpop) {
+                   real_t dfitness2, real_t dinitialpop) {
     Model dmodel = params;
     dmodel.m_migr[0][1] += dmu;
     dmodel.m_migr[0][2] += drloh;
@@ -373,7 +372,7 @@ std::vector<std::vector<double>> StencilLP16() {
 }
 
 Eigen::MatrixXd gradient_log(std::function<real_t(Model&)> objective,
-                             Model point) {
+                                 Model point) {
     // Compute the gradient of the objective function at a point with respect to
     // the logs of the model parameters:
     int dim = 4;
@@ -541,7 +540,7 @@ void write_model_line(std::ofstream& file, Model &model) {
 
 void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
                     const std::vector<size_t>& end_nodes,
-                    Histogram_t& incidence,
+                    std::map<size_t, std::vector<size_t>>& incidence,
                     std::string filename) {
     std::ofstream fakedata;
     fakedata.open(filename);
@@ -561,37 +560,19 @@ void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
 
 void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
                     const std::vector<size_t>& end_nodes,
-                    Histogram_t& incidence) {
+                    std::map<size_t, std::vector<size_t>>& incidence) {
     // save with a default filename:
     save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence,
                    "syntheticdata_hist.csv");
 }
 
-void load_histogram(real_t& binwidth, real_t& max_age, size_t& reference_pop,
-                    const std::vector<size_t>& end_nodes,
-                    Histogram_t& incidence,
-                    std::string filename) {
-    std::ifstream histogram;
-    histogram.open(filename);
-    for (std::string line; std::getline(histogram, line); ) {
-        int posn = line.find("bin width = ");
-        if (posn != std::string::npos) {
-            int start = line.find(" = ") + 3; // because length = 3
-            int end = line.find("\n");
-            //binwidth = std::atof( // TODO
-        }
-    }
-    //histogram >> "bin width = " >> binwidth;
-    //histogram >> "max age = " >> max_age;
-    //histogram >> "ref population = " >> reference_pop;
-
-    histogram.close();
-}
-
-Histogram_t jackknife_incidence(size_t index, const Histogram_t& histogram,
-                                std::vector<size_t> end_nodes) {
+std::map<size_t, std::vector<size_t>> jackknife_incidence(
+                                       size_t index,
+                                       const std::map<size_t, std::vector<size_t>>
+                                       &histogram,
+                                       std::vector<size_t> end_nodes) {
     // delete the index-th entry in the histogram
-    Histogram_t new_incidence = histogram;
+    std::map<size_t, std::vector<size_t>> new_incidence = histogram;
     // first we have to find the indexth person
     size_t count = 0;
     for (auto& end_node : end_nodes) {
@@ -611,13 +592,13 @@ Histogram_t jackknife_incidence(size_t index, const Histogram_t& histogram,
 }
 
 void resample_incidence(
-    const Histogram_t *incidence,
+    const std::map<size_t, std::vector<size_t>> *incidence,
     size_t reference_pop, size_t start, size_t end, std::vector<size_t> end_nodes,
     real_t binwidth, Model *initial_guess, std::vector<Model> *resampled_estimates) {
 
     for (unsigned tries = start; tries < end; ++tries) {
         // Resample the incidence:
-        Histogram_t resampled_incidence;
+        std::map<size_t, std::vector<size_t>> resampled_incidence;
         resampled_incidence = jackknife_incidence(tries, *incidence, end_nodes);
 
         std::cout << "Resampling..." << std::endl;
@@ -636,7 +617,7 @@ void resample_incidence(
     }
 }
 
-void jackknife_and_save(Histogram_t &incidence,
+void jackknife_and_save(std::map<size_t, std::vector<size_t>> &incidence,
                         size_t reference_pop, real_t binwidth,
                         std::vector<size_t> end_nodes, Model &initial_guess,
                         size_t n_child_threads = 0) {
@@ -689,7 +670,7 @@ void jackknife_and_save(Histogram_t &incidence,
     estimates_by_row.close();
 }
 
-real_t save_data_compute_maximum(Epidata_t &all_times) {
+real_t save_data_compute_maximum(epidata_t &all_times) {
     // compute the maximum age and save the all_times data:
     real_t max_age = 0;
 
@@ -705,7 +686,7 @@ real_t save_data_compute_maximum(Epidata_t &all_times) {
 }
 
 void draw_level_sets(std::function<real_t(Model &model)> objective,
-                     Model point, int q_axis, int p_axis, real_t freq=1.0f) {
+                    Model point, int q_axis, int p_axis, real_t freq=1.0f) {
     // This function will visualise a level set of the negative log likelihood
     // function in a chosen parameter plane. It does this by drawing a curve
     // with a "pencil" that follows Hamilton's equations. The "pencil"
@@ -722,12 +703,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     drawing.open("level_set.csv");
 
     // Create the pencil:
-    struct {
-        real_t p;
-        real_t q;
-        real_t time;
-        real_t angle;
-    } pencil;
+    struct {real_t p; real_t q; real_t time; real_t angle; } pencil;
     pencil.p = params[p_axis], pencil.q = params[q_axis], pencil.time = 0;
     pencil.angle = 0;
 
@@ -795,7 +771,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
 }
 
 void draw_3dsurface(std::function<real_t(Model &model)> objective,
-                    Model origin, int x_axis, int y_axis,
+                    Model origin, int x_axis, int y_axis, 
                     real_t x_range=10.0f, real_t y_range=10.0f,
                     size_t lines=16) {
     /* This function samples the objective function in a neighbourhood around
@@ -875,9 +851,9 @@ void print_best_guess(Estimate estimate) {
 }
 
 Estimate get_estimate_germline(real_t binwidth, size_t reference_pop,
-                               Histogram_t incidence,
-                               Histogram_t incidence_germline,
-                               Model (*method_min)(std::function<real_t(Model&)>, Model)) {
+                    std::map<size_t, std::vector<size_t>> incidence,
+                    std::map<size_t, std::vector<size_t>> incidence_germline,
+                    Model (*method_min)(std::function<real_t(Model&)>, Model)) {
     std::cout << "--------------" << std::endl;
     std::cout << "Best estimate:" << std::endl;
     // Guess some initial model parameters:
@@ -910,49 +886,6 @@ Estimate get_estimate_germline(real_t binwidth, size_t reference_pop,
     return estimate;
 }
 
-void generate_histogram_germline(Model &ground_truth,
-                        Model &ground_truth_germline,
-                        size_t seed, size_t dataset_size,
-                        const std::vector<size_t> &end_nodes,
-                        real_t &max_age, size_t &reference_pop,
-                        real_t &binwidth,
-                        Histogram_t &incidence,
-                        Histogram_t &incidence_germline) {
-    Epidata_t all_times =
-        generate_dataset(ground_truth, seed, dataset_size / 2);
-    // to include germline mutations:
-    // vary the initial populations so that instead of node 0 the cells are
-    // initially on node 1
-    Epidata_t all_times_germline =
-        generate_dataset(ground_truth_germline, seed, dataset_size / 2);
-
-    std::cout << "Done. Saving..." << std::endl;
-
-    // compute maximum age and save the all_times data:
-    max_age = save_data_compute_maximum(all_times);
-
-    // Convert age data to histogram:
-    reference_pop = all_times.size(); /* NB: with germline this is 1/2
-    the previous value */
-    binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
-    std::cout << "max age = " << max_age;
-    std::cout << "\n bin width = " << binwidth << std::endl;
-
-    for (auto &end_node : end_nodes) {
-        incidence[end_node] = convert_to_histogram(all_times, binwidth,
-                              end_node);
-        incidence_germline[end_node] = convert_to_histogram(
-                                           all_times_germline, binwidth,
-                                           end_node);
-    }
-
-    // Save the histogram:
-    save_histogram(binwidth, max_age, reference_pop, end_nodes,
-                   incidence, "syntheticdata_hist_sporadic.csv");
-    save_histogram(binwidth, max_age, reference_pop, end_nodes,
-                   incidence_germline, "syntheticdata_hist_germline.csv");
-}
-
 void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
                                Model (*method_min)(std::function<real_t(Model&)>, Model)) {
     // The main test harness for statistical inference:
@@ -974,15 +907,43 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
     printf("Ground truth (germline):\n");
     print_model(ground_truth_germline);
 
-    std::vector<size_t> end_nodes = {3,4};
-    Histogram_t incidence, incidence_germline;
-    real_t binwidth, max_age;
-    size_t reference_pop;
+    {
+    epidata_t all_times =
+        generate_dataset(ground_truth, seed, dataset_size / 2);
+    // to include germline mutations:
+    // vary the initial populations so that instead of node 0 the cells are
+    // initially on node 1
+    epidata_t all_times_germline =
+        generate_dataset(ground_truth_germline, seed, dataset_size / 2);
 
-    generate_histogram_germline(ground_truth, ground_truth_germline,
-                       seed, dataset_size, end_nodes, max_age, reference_pop,
-                       binwidth, incidence, incidence_germline);
-    // TODO timing and loadable histograms?
+    std::vector<size_t> end_nodes = {3,4};
+    std::cout << "Done. Saving..." << std::endl;
+
+    // compute maximum age and save the all_times data:
+    real_t max_age = save_data_compute_maximum(all_times);
+
+    // Convert age data to histogram:
+    size_t reference_pop = all_times.size(); /* NB: with germline this is 1/2
+        the previous value */
+    real_t binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
+    std::cout << "max age = " << max_age;
+    std::cout << "\n bin width = " << binwidth << std::endl;
+
+    std::map<size_t, std::vector<size_t>> incidence, incidence_germline;
+
+    for (auto &end_node : end_nodes) {
+        incidence[end_node] = convert_to_histogram(all_times, binwidth,
+                              end_node);
+        incidence_germline[end_node] = convert_to_histogram(
+                                           all_times_germline, binwidth,
+                                           end_node);
+    }
+    }
+
+    // Save the histogram:
+    save_histogram(binwidth, max_age, reference_pop, end_nodes, incidence);
+    save_histogram(binwidth, max_age, reference_pop, end_nodes,
+                   incidence_germline, "syntheticdata_hist_germline.csv");
 
     // Get the main un-resampled estimate with simulated annealing:
     printf("Target likelihood:\n-log L = %g\n",
@@ -990,7 +951,7 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
                                    incidence, incidence_germline));
 
     Estimate estimate = get_estimate_germline(binwidth, reference_pop,
-                        incidence, incidence_germline, method_min);
+                    incidence, incidence_germline, method_min);
 
     // Annealing now complete. Print guess:
     print_best_guess(estimate);
@@ -1021,8 +982,8 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
 }
 
 Estimate get_estimate(real_t binwidth, size_t reference_pop,
-                      Histogram_t incidence,
-                      Model (*method_min)(std::function<real_t(Model&)>, Model)) {
+                   std::map<size_t, std::vector<size_t>> incidence,
+                   Model (*method_min)(std::function<real_t(Model&)>, Model)) {
     std::cout << "--------------" << std::endl;
     std::cout << "Best estimate:" << std::endl;
     // Guess some initial model parameters:
@@ -1052,13 +1013,13 @@ Estimate get_estimate(real_t binwidth, size_t reference_pop,
 }
 
 void generate_histogram(Model &ground_truth, size_t seed, size_t dataset_size,
-                        const std::vector<size_t> &end_nodes,
-                        real_t &max_age, size_t &reference_pop,
-                        real_t &binwidth, Histogram_t &incidence) {
+        const std::vector<size_t> &end_nodes,
+        real_t &max_age, size_t &reference_pop,
+        real_t &binwidth, std::map<size_t, std::vector<size_t>> &incidence) {
     // simulate some data that could be collected by a longitudinal study:
     std::cout << "Generating synthetic dataset..." << std::endl;
     // sporadic cases only (default)
-    Epidata_t all_times = generate_dataset(ground_truth, seed, dataset_size);
+    epidata_t all_times = generate_dataset(ground_truth, seed, dataset_size);
 
     std::cout << "Done. Saving..." << std::endl;
 
@@ -1094,7 +1055,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
     size_t dataset_size = options.dataset_size;
 
     std::vector<size_t> end_nodes = {3,4};
-    Histogram_t incidence;
+    std::map<size_t, std::vector<size_t>> incidence;
     real_t binwidth, max_age;
     size_t reference_pop;
 
@@ -1108,7 +1069,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
 
     // Get the main un-resampled best parameter estimate:
     Estimate estimate = get_estimate(binwidth, reference_pop, incidence,
-                                     method_min);
+                                            method_min);
 
     // Annealing now complete. Print guess:
     print_best_guess(estimate);
@@ -1159,7 +1120,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         for (int x_axis = 0; x_axis < dim; ++x_axis) {
             for (int y_axis = x_axis + 1; y_axis < dim; ++y_axis) {
                 draw_3dsurface(objective, estimate.best_guess, x_axis, y_axis,
-                               options.mesh_x_range,
+                               options.mesh_x_range, 
                                options.mesh_y_range,
                                options.mesh_lines);
             }
@@ -1192,7 +1153,7 @@ int main(int argc, char* argv[]) {
     if (options.minimise_with_gradient) method_min = gradient_min;
 
     // The inference harness itself:
-    void (*guessing_harness)(Model &ground_truth, GuesserConfig options,
+    void (*guessing_harness)(Model &ground_truth, GuesserConfig options, 
                              Minimiser_t method_min);
     guessing_harness = guess_parameters; // default value
 

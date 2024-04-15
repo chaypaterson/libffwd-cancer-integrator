@@ -48,7 +48,6 @@ public:
         // for arguments that are just isolated flags: "--annealing" etc.
         for (char* *cmdarg = argv; cmdarg < argv + argc; ++cmdarg) {
             set_bool(cmdarg, "--with_germline", include_germline);
-            set_bool(cmdarg, "--with_germline", include_germline);
             set_bool(cmdarg, "--resample", resample_after);
             set_bool(cmdarg, "--gradient", minimise_with_gradient);
             set_bool(cmdarg, "--draw_level_sets", level_sets);
