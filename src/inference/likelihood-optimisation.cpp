@@ -1148,8 +1148,7 @@ int main(int argc, char* argv[]) {
     typedef Model (*Minimiser_t)(std::function<real_t(Model&)>, Model);
     Minimiser_t method_min = annealing_min;
     // but:
-    if (options.minimise_with == GRADIENT) 
-        method_min = gradient_min;
+    if (options.minimise_with_gradient) method_min = gradient_min;
 
     // The inference harness itself:
     void (*guessing_harness)(Model &ground_truth, GuesserConfig options, 

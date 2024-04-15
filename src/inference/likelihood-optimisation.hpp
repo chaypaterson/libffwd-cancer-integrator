@@ -4,18 +4,15 @@
 #include <cstdlib>
 #include <cstring>
 
-enum Minimise {ANNEALING, GRADIENT};
-
 namespace clonal_expansion {
 
 /* GuesserConfig interprets command-line arguments as configuration options.
  * To add a command-line argument:
  * 1. add a public member variable to GuesserConfig
  * 2. make sure the member variable has a default value
- * 3. add the matching "if (match) variable = ...;" to the constructor below
- *
- * TODO a better way of iterating over the variable-string pairs would be
- * good
+ * 3. add the matching setter:
+ *       set_...(cmdarg, "--...", ...); 
+ *    to the constructor below
  */
 
 class GuesserConfig 
@@ -33,7 +30,7 @@ public:
     bool include_germline = false; // mixed germline/sporadic study or not (default not)
     bool resample_after   = false; // resample or not (default not)
     // what minimisation method to use (default annealing, can do gradient)
-    enum Minimise minimise_with = ANNEALING; // TODO could just be a bool
+    bool minimise_with_gradient = false;
     bool level_sets       = false; // whether or not to draw with level sets
     bool draw_mesh        = false; // whether or not to draw 3d plots of the likelihood
 
@@ -41,30 +38,40 @@ public:
     inline GuesserConfig(int argc, char* argv[])
     {
         // for arguments that come in pairs: " --seed 5 " etc.
-        for (int arg = 1; arg < argc - 1; ++arg) {
-            if (!strcmp(argv[arg], "--seed"))
-                seed = atoi(argv[arg + 1]);
-            if (!strcmp(argv[arg], "--sample_size"))
-                dataset_size = atoi(argv[arg + 1]);
-            if (!strcmp(argv[arg], "--mesh_lines"))
-                mesh_lines = atoi(argv[arg + 1]);
-            if (!strcmp(argv[arg], "--mesh_x_range")) 
-                mesh_x_range = atof(argv[arg + 1]);
-            if (!strcmp(argv[arg], "--mesh_y_range")) 
-                mesh_y_range = atof(argv[arg + 1]);
+        for (char* *cmdarg = argv; cmdarg < argv + argc - 1; ++cmdarg) {
+            set_pair(cmdarg, "--seed", seed);
+            set_pair(cmdarg, "--sample_size", dataset_size);
+            set_pair(cmdarg, "--mesh_lines", mesh_lines);
+            set_pair(cmdarg, "--mesh_x_range", mesh_x_range);
+            set_pair(cmdarg, "--mesh_y_range", mesh_y_range);
         }
         // for arguments that are just isolated flags: "--annealing" etc.
-        for (int arg = 1; arg < argc; ++arg) {
-            if (!strcmp(argv[arg], "--with_germline")) include_germline = true;
-            if (!strcmp(argv[arg], "--resample")) resample_after = true;
-            if (!strcmp(argv[arg], "--annealing")) minimise_with = ANNEALING;
-            if (!strcmp(argv[arg], "--gradient")) minimise_with = GRADIENT;
-            if (!strcmp(argv[arg], "--draw_level_sets")) level_sets = true;
-            if (!strcmp(argv[arg], "--draw_3d_meshes")) draw_mesh = true;
+        for (char* *cmdarg = argv; cmdarg < argv + argc; ++cmdarg) {
+            set_bool(cmdarg, "--with_germline", include_germline);
+            set_bool(cmdarg, "--with_germline", include_germline);
+            set_bool(cmdarg, "--resample", resample_after);
+            set_bool(cmdarg, "--gradient", minimise_with_gradient);
+            set_bool(cmdarg, "--draw_level_sets", level_sets);
+            set_bool(cmdarg, "--draw_3d_meshes", draw_mesh);
         }
     }
 private:
+    inline void set_pair(char* *cmdarg, const char key[], size_t &member);
+    inline void set_pair(char* *cmdarg, const char key[], double &member);
+    inline void set_bool(char* *cmdarg, const char key[], bool &member);
 };
+
+inline void GuesserConfig::set_pair(char* *cmdarg, const char key[], size_t &member) {
+    if (!strcmp(*cmdarg, key)) member = atoi(cmdarg[1]);
+}
+
+inline void GuesserConfig::set_pair(char* *cmdarg, const char key[], double &member) {
+    if (!strcmp(*cmdarg, key)) member = atof(cmdarg[1]);
+}
+
+inline void GuesserConfig::set_bool(char* *cmdarg, const char key[], bool &member) {
+    if (!strcmp(*cmdarg, key)) member = true;
+}
 
 } // namespace clonal_expansion
 
