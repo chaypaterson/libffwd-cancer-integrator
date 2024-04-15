@@ -1013,8 +1013,12 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
         int q_axis = 0, p_axis = 1; // mu (1) vs rloh (0)
         real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
 
-        std::vector<volatile real_t*> params = model_params_raw(start_point);
-        *params[q_axis] += stddev * 2;
+        std::vector<real_t> params = model_params_pure(start_point);
+
+        // use shifted_model not params_raw
+        std::vector<real_t> Delta(4,0);
+        Delta[q_axis] = stddev * 4.0;
+        start_point = shifted_model(start_point, Delta);
 
         draw_level_sets(objective, start_point, q_axis, p_axis);
     }
