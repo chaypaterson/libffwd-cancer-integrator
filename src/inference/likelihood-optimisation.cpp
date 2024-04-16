@@ -573,17 +573,25 @@ void load_histogram(real_t& binwidth, real_t& max_age, size_t& reference_pop,
                     std::string filename) {
     std::ifstream histogram;
     histogram.open(filename);
+
     for (std::string line; std::getline(histogram, line); ) {
-        int posn = line.find("bin width = ");
+        // TODO EVENTUALLY improve this unpleasant boilerplate
+        int posn = line.find("bin width");
         if (posn != std::string::npos) {
-            int start = line.find(" = ") + 3; // because length = 3
-            int end = line.find("\n");
-            //binwidth = std::atof( // TODO
+            binwidth = std::stod(line.substr(line.find("=") + 1));
+        }
+        posn = line.find("max age");
+        if (posn != std::string::npos) {
+            max_age = std::stod(line.substr(line.find("=") + 1));
+        }
+        posn = line.find("ref population");
+        if (posn != std::string::npos) {
+            reference_pop = std::stoi(line.substr(line.find("=") + 1));
         }
     }
-    //histogram >> "bin width = " >> binwidth;
-    //histogram >> "max age = " >> max_age;
-    //histogram >> "ref population = " >> reference_pop;
+
+    // read in bars from histogram:
+    // ...
 
     histogram.close();
 }
@@ -705,7 +713,7 @@ real_t save_data_compute_maximum(Epidata_t &all_times) {
 }
 
 void draw_level_sets(std::function<real_t(Model &model)> objective,
-                     Model point, int q_axis, int p_axis, real_t freq=1.0f) {
+                     Model point, int q_axis, int p_axis) {
     // This function will visualise a level set of the negative log likelihood
     // function in a chosen parameter plane. It does this by drawing a curve
     // with a "pencil" that follows Hamilton's equations. The "pencil"
@@ -740,7 +748,6 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     // Trace a level set of the objective function using
     // Hamilton's equations:
     real_t dt = 0.05;
-    real_t tmax = 2 * M_PI / freq;
     while (pencil.angle < 2 * M_PI) {
         /* Hamilton's equations:
          * dp / dt = - dH / dq
@@ -1121,7 +1128,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
     if (options.resample_after) {
         // TODO currently jackknife_and_save only uses annealing
         jackknife_and_save(incidence, reference_pop, binwidth, end_nodes,
-                           estimate.best_guess);
+                           estimate.best_guess, options.num_child_threads);
     }
 
     // Draw level sets:

@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 namespace clonal_expansion {
 
@@ -17,16 +18,24 @@ namespace clonal_expansion {
 
 class GuesserConfig 
 {
+private:
+    // factory for string arguments:
+    std::string to_string(int argc, char* *argv, const char key[]);
 public:
     // FLAG AND ARGUMENT OPTIONS (paired options):
+    // integer options:
     size_t seed = 1; // RNG seed
     size_t dataset_size = 10; // sample size
     size_t mesh_lines = 16; // resolution of the heatmap plot of the likelihood
+    size_t num_child_threads = 0; // parallelisation in jackknife_and_save
+    // float options:
     // the heatmap plot will run from best_guess/these to best_guess * these:
     double mesh_x_range = 10.0f; 
     double mesh_y_range = 10.0f;
-    char histogram_file[40] = {false}; // TODO load histogram from file
-    // TODO needs better safety before actual use
+    // string options:
+    // NB the defaults for all string options are empty (""), this is set in the
+    // to_string factory below.
+    std::string histogram_file; // load histogram from file
 
     // SINGLE FLAG OPTIONS (boolean options):
     bool include_germline = false; // mixed germline/sporadic study or not (default not)
@@ -37,16 +46,17 @@ public:
     bool draw_mesh        = false; // whether or not to draw 3d plots of the likelihood
 
     // The constructor:
-    inline GuesserConfig(int argc, char* argv[])
+    inline GuesserConfig(int argc, char* argv[]) :
+        histogram_file(to_string(argc, argv, "--load_histogram"))
     {
         // for arguments that come in pairs: " --seed 5 " etc.
         for (char* *cmdarg = argv; cmdarg < argv + argc - 1; ++cmdarg) {
             set_pair(cmdarg, "--seed", seed);
             set_pair(cmdarg, "--sample_size", dataset_size);
+            set_pair(cmdarg, "--child_threads", num_child_threads);
             set_pair(cmdarg, "--mesh_lines", mesh_lines);
             set_pair(cmdarg, "--mesh_x_range", mesh_x_range);
             set_pair(cmdarg, "--mesh_y_range", mesh_y_range);
-            set_pair(cmdarg, "--load_histogram", histogram_file);
         }
         // for arguments that are just isolated flags: "--annealing" etc.
         for (char* *cmdarg = argv; cmdarg < argv + argc; ++cmdarg) {
@@ -60,9 +70,19 @@ public:
 private:
     inline void set_pair(char* *cmdarg, const char key[], size_t &member);
     inline void set_pair(char* *cmdarg, const char key[], double &member);
-    inline void set_pair(char* *cmdarg, const char key[], char (&member)[]);
     inline void set_bool(char* *cmdarg, const char key[], bool &member);
 };
+
+inline std::string GuesserConfig::to_string(int argc, char* *argv, const char key[]) {
+    for (char* *cmdarg = argv; cmdarg < argv + argc - 1; ++cmdarg) {
+        if (!strcmp(*cmdarg, key)) {
+            std::string outstring(cmdarg[1]);
+            return outstring;
+        }
+    }
+    // else:
+    return ""; // empty string
+}
 
 inline void GuesserConfig::set_pair(char* *cmdarg, const char key[], size_t &member) {
     if (!strcmp(*cmdarg, key)) member = atoi(cmdarg[1]);
@@ -70,13 +90,6 @@ inline void GuesserConfig::set_pair(char* *cmdarg, const char key[], size_t &mem
 
 inline void GuesserConfig::set_pair(char* *cmdarg, const char key[], double &member) {
     if (!strcmp(*cmdarg, key)) member = atof(cmdarg[1]);
-}
-
-inline void GuesserConfig::set_pair(char* *cmdarg, const char key[], char (&member)[]) {
-    if (!strcmp(*cmdarg, key)) {
-        char* string = *(cmdarg + 1);
-        std::strcpy(member, string);
-    }
 }
 
 inline void GuesserConfig::set_bool(char* *cmdarg, const char key[], bool &member) {
