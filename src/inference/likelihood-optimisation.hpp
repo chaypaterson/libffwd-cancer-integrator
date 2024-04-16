@@ -10,7 +10,7 @@ namespace clonal_expansion {
 /* GuesserConfig interprets command-line arguments as configuration options.
  * To add a command-line argument:
  * 1. add a public member variable to GuesserConfig
- * 2. make sure the member variable has a default value
+ * 2. make sure the member variable has a default value (unless it's a string)
  * 3. add the matching setter:
  *       set_...(cmdarg, "--...", ...); 
  *    to the constructor below
