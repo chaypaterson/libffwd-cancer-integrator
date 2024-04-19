@@ -574,24 +574,38 @@ void load_histogram(real_t& binwidth, real_t& max_age, size_t& reference_pop,
     std::ifstream histogram;
     histogram.open(filename);
 
+    auto findset = [](std::string line, const char* match, auto& varbl) {
+        int posn = line.find(match);
+        if (posn != std::string::npos) {
+            varbl = std::stod(line.substr(line.find("=") + 1));
+            // TODO check stoi/stod behaviour is correct
+        }
+    };
+
     for (std::string line; std::getline(histogram, line); ) {
-        // TODO EVENTUALLY improve this unpleasant boilerplate
-        int posn = line.find("bin width");
-        if (posn != std::string::npos) {
-            binwidth = std::stod(line.substr(line.find("=") + 1));
-        }
-        posn = line.find("max age");
-        if (posn != std::string::npos) {
-            max_age = std::stod(line.substr(line.find("=") + 1));
-        }
-        posn = line.find("ref population");
-        if (posn != std::string::npos) {
-            reference_pop = std::stoi(line.substr(line.find("=") + 1));
-        }
+        findset(line, "bin width", binwidth);
+        findset(line, "max age", max_age);
+        findset(line, "ref population", reference_pop);
     }
 
     // read in bars from histogram:
-    // ...
+    for (auto &end_node : end_nodes) {
+        // ...
+        std::string line;
+        std::getline(histogram, line);
+        std::stringstream ss(line);
+
+        /* TODO not functional
+        if (ss.peek() == "[") ss.ignore();
+        for (int count; ss >> count; ) {
+            incidence[end_node].push_back(count);
+            if ((ss.peek() == ",") ||
+                (ss.peek() == " ") ||
+                (ss.peek() == "]")) {
+                ss.ignore();
+            }
+        }*/
+    }
 
     histogram.close();
 }
