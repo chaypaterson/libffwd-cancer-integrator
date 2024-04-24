@@ -115,5 +115,5 @@ Whole project is in C++ (with some Shell wrappers).
 
 Compiles under both G++ and Clang. 
 
-Requires [GSL](https://www.gnu.org/software/gsl/), which the Mac subsection of
-the Makefile assumes depends on Homebrew.
+Requires [GSL](https://www.gnu.org/software/gsl/) and Eigen 3.0 or better. The Mac subsection of
+the Makefile assumes these are installed under Homebrew.
