@@ -7,22 +7,6 @@ define a birth-death-mutation process on an arbitrary directed graph
 (representing mutations), and generate survival curves using both Gillespie algorithm simulations and
 fast direct integration of the Kolmogorov forward equations (a "fast forward" method).
 
-Sources: 
-
- * R. Meza PNAS 2008; 
- * K.S. Crump, Risk Analysis, Vol. 25, No. 4, 2005
- * E.G. Luebeck et al 2012, doi: 10.1158/0008-5472.CAN-12-2198
- * D. Quinn, Risk Analysis, Vol. 9, Issue 3, 1989, doi: 10.1111/j.1539-6924.1989.tb01006.x
-
-We should see an initial Armitage-Doll type curve with $p \sim t^n$, then a
-mean-field regime like $p \sim t^k e^{s t}$ (source: Ivana and me 2020, also Armitage
-and Doll 1958, the less famous one), and then after a sojourn time
-
-$$T_s \sim \frac{\ln(s / \mu)}{s}$$
-
-we should see a transition region, followed by an exponential tail (source:
-Georg Luebeck 2008).
-
 Integration methods
 -------------------
 
@@ -85,12 +69,13 @@ in only one pass, eliminating half of the operations, and uses a better
 time-stepping scheme. These optimisations make the method much more efficient
 than earlier approaches.  The error scales as $\epsilon = O(\Delta t^{2})$
 for error tolerance $\epsilon$, and this new method therefore has a time complexity of $T = O(\Delta t^{-1}) = O(\epsilon^{-1/2})$.
+
 As it is based on Kolmogorov forward equations rather than Kolmogorov backward
 equations, and is noticeably faster than Gillespie, we have named it the ''fast
 forward'' method. Other related ''fast forward'' methods may be possible, e.g.
 with multiple passes, or higher order Runge-Kutta steppers. 
 
-A ''fast forward'' method is one that 
+Another ''fast forward'' method is one that 
 
 1. solves the Komogorov forward equations by numerically integrating the characteristics, and 
 2. is strictly faster than $O(\epsilon^{-2})$ in the global error $\epsilon$ (as
@@ -103,30 +88,56 @@ see Sanyi Tang et al. 2023. Dennis Quinn's
 algorithm is much more closely related to the experimental algorithm here, but
 we have found some radical improvements.
 
-What the test cases should be of:
----------------------------------
+Programs this project builds:
+-----------------------------
 
-Simulate models on graphs with both methods (Gillespie and fast forward). Need a convenient way to implement Kronecker products
-(TODO).
+Various programs simulate models on graphs with both methods (Gillespie and fast forward).
 
-Outputs:
+  * Unit tests for the core library
+  * Programs to generate survival probability curves in two ways:
+    * Survival probabilities for Gillespie algorithm. Generate these using Kaplan-Meier plots
+    * Corresponding survival curves from the generating function
+  * Programs to estimate numerical errors in both the Gillespie algorithm and
+    the new method (under src/errors)
+  * A program that demonstrates the use of fast forward integration for
+    statistical inference: simulating a clinical study with random sampling, and
+    then learns the parameters used to generate this study with maximum
+    likelihood estimation. All under src/inference.
 
-  * Survival probabilities for Gillespie algorithm. Generate these using Kaplan-Meier
-    plots
-  * Corresponding survival curves from the generating function
+Project structure:
+------------------
 
-These are both in CSV format, with a layout mirroring Ruibo Zhang et al. 2022.
+ * `src`: contains source code
+ * `src/core`: the core library
+ * `src/errors`: programs used to measure numerical error in the new method
+ * `src/inference`: the statistical inference harness
+ * `include`: headers defining the API for the core library
+
+Building:
+---------
+
+Currently just `make` and a manually maintained Makefile. I am working on a
+branch with GNU autotools and `configure`.
 
 Requirements:
 -------------
 
-Whole project is in C++ (with some Shell wrappers).
-
-Compiles under both G++ and Clang. 
+Whole project is in C++ (with some Shell wrappers). Compiles under both G++ and Clang. 
 
 Requires 
- * C++17 or newer
+ * C++17 or newer (was 14 but newer versions of Eigen expect 17)
  * [GSL](https://www.gnu.org/software/gsl/)
  * [Eigen 3](https://eigen.tuxfamily.org/index.php?title=Main_Page) 
+ * make
 
 The Mac subsection of the Makefile assumes GSL and Eigen are installed under Homebrew.
+
+Sources: 
+--------
+
+ * R. Meza PNAS 2008; 
+ * K.S. Crump, Risk Analysis, Vol. 25, No. 4, 2005
+ * E.G. Luebeck et al 2012, doi: 10.1158/0008-5472.CAN-12-2198
+ * D. Quinn, Risk Analysis, Vol. 9, Issue 3, 1989, doi: 10.1111/j.1539-6924.1989.tb01006.x
+
+
