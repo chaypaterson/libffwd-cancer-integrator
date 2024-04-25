@@ -5,7 +5,7 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
-#include "graph-model-spec.hpp"
+#include <graph-model-spec.hpp>
 #ifndef GILLESPIE_DEF
 #define GILLESPIE_DEF
 

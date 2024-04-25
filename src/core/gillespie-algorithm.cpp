@@ -4,8 +4,8 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
-#include "graph-model-spec.hpp"
-#include "gillespie-algorithm.hpp"
+#include <graph-model-spec.hpp>
+#include <gillespie-algorithm.hpp>
 
 /* Methods for the gillespie_instance class, which represents a dynamical state
  * of a birth-death process on a graph, as simulated by the Gillespie

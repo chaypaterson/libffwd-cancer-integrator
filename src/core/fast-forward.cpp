@@ -2,8 +2,8 @@
 #include <map>
 #include <cmath>
 
-#include "graph-model-spec.hpp"
-#include "fast-forward.hpp"
+#include <graph-model-spec.hpp>
+#include <fast-forward.hpp>
 
 /* Fast forward integration
  * This is a method for calculating survival and extinction probabilities of

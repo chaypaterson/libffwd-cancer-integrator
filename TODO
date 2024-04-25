@@ -75,3 +75,23 @@ Fri  1 Mar 18:18:20 GMT 2024
 
 Format with:
     astyle --style=google
+
+Fri  8 Mar 17:55:07 GMT 2024
+Still studying identifiability, trying to speed up inference by using
+parallelisation. Could parallelise generate_data by running replicates on new
+cores?
+
+Can I identify a symmetry that would make the model structurally unidentifiable?
+
+Thu 28 Mar 19:19:47 GMT 2024
+should make a method for accessing the parameter vector as it is a common idiom.
+
+bind the likelihood to a function evaluation and just try to make a heatmap in
+the python notebook???? use Josh's notes
+
+the whole point is it's cheap to evaluate now
+
+Mon  8 Apr 14:49:44 BST 2024
+
+TODO: yes to heatmap
+reruns with s2 pinned?
