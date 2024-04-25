@@ -119,6 +119,16 @@ Building:
 Currently just `make` and a manually maintained Makefile. I am working on a
 branch with GNU autotools and `configure`.
 
+Now:
+
+    mkdir build
+    cd build
+    ../configure --prefix=[...your install location here...]
+    make
+    make install
+
+`configure` will throw errors if the system dependencies are not met.
+
 Requirements:
 -------------
 
@@ -126,7 +136,7 @@ Whole project is in C++ (with some Shell wrappers). Compiles under both G++ and 
 
 Requires 
  * C++17 or newer (was 14 but newer versions of Eigen expect 17)
- * [GSL](https://www.gnu.org/software/gsl/)
+ * [GSL 2.7](https://www.gnu.org/software/gsl/)
  * [Eigen 3](https://eigen.tuxfamily.org/index.php?title=Main_Page) 
  * make
 
