@@ -4,8 +4,8 @@
 #include <vector>
 #include <cmath>
 
-#include "graph-model-spec.hpp"
-#include "fast-forward.hpp"
+#include <graph-model-spec.hpp>
+#include <fast-forward.hpp>
 
 /* A fast forward method simulation of tumour suppressor loss
  * This program estimates the global error with Richardson extrapolation.

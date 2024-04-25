@@ -5,7 +5,7 @@ Simulates survival curves in generalised multi-stage clonal expansion models of
 Moolgavkar-Vernon-Knudsen type. This project allows us to
 define a birth-death-mutation process on an arbitrary directed graph
 (representing mutations), and generate survival curves using both Gillespie algorithm simulations and
-fast direct integration of the characteristics.
+fast direct integration of the Kolmogorov forward equations (a "fast forward" method).
 
 Sources: 
 
@@ -35,19 +35,23 @@ The two methods:
 1. Use the Gillespie algorithm for many stochastic, "exact" samples of the
 master equation. e.g. for the two-hit model:
 
-$$\Gamma = \mu_0 * N_0 + (\mu_1 + s) * N_1$$
+$$\Gamma = \sum_{events} rate(event)$$
 
 $$x = Unif(0,\Gamma)$$
 
-$$Pr(mut0) = (\mu_0 * N_0) / \Gamma$$
+    choose event from $x$ so that
 
-$$Pr(birth) = (s * N_1) / \Gamma$$
-
-$$Pr(mut1) = (\mu_1 * N_1) / \Gamma $$
+$$Pr(event) = rate(event) / \Gamma$$
 
 $$t += Exp(0, 1/\Gamma)$$
 
 Repeat while $t < $ maximum time.
+
+Suppose we want to estimate the probability of an outcome using random sampling.
+The error $\epsilon$ in our estimate will scale with the square root of number of simulations
+$N$ we run, so $\epsilon = O(N^{-1/2})$. Since the total run time is
+proportional to N, even if we parallelise and optimise the algorithm further,
+the time complexity of random sampling will be $T = O(\epsilon^{-2})$.
 
 2. Use the method of characteristics to numerically integrate the generating function:
   * Generating function $\Psi =$ the Fourier transform of the probability
@@ -59,7 +63,7 @@ $$\frac{\partial\Psi}{\partial t} = \vec{X} \cdot \nabla_{\vec{q}} \Psi + Y(\vec
 with $X_j(q)$ determined by the reaction rates and stoichiometry. (The absorption
 term $Y(q)$ due to immigration is not currently implemented.)
 
-  * Evolve the conjugate coordinates $q_j$ along the flow $X_j$ in Fourier space
+  * Evolve the characteristics $q_j$ along the flow $X_j$ in Fourier space
     implied by the reaction kinetics using Heun's method, a numerical
     time-stepping procedure.
 
@@ -69,19 +73,24 @@ Suresh Moolgavkar in the 1980s and Dennis Quinn 1989, and performs a direct
 numerical integration of a transformed version of the chemical master
 equation/Kolmogorov forward equation. The previous work on characteristics used
 a two-pass approach for non-constant coefficients, and used Euler integration.
-This meant the asymptotic complexity was $O(\Delta t^{-2}) = O(\epsilon^{-2})$
-for error tolerance $\epsilon$. 
+The time complexity of these earlier methods was $T = O(\epsilon^{-2})$, no
+better than random sampling.
 
-This new algorithm is optimised for constant coefficients and uses Heun's
-method, and it has an asymptotic complexity of $O(\Delta t^{-1}) = O(\epsilon^{-1/2})$ .
+
+This new algorithm is optimised for constant coefficients, and uses Heun's method/improved Euler instead of Euler
+integration. 
 It shares a similar approach to Quinn's algorithm, by integrating characteristic
-curves in the conjugate coordinates using a time-stepping procedure, but does so
-in only one pass. 
+curves using a time-stepping procedure, but does so
+in only one pass, eliminating half of the operations, and uses a better
+time-stepping scheme. These optimisations make the method much more efficient
+than earlier approaches.  The error scales as $\epsilon = O(\Delta t^{2})$
+for error tolerance $\epsilon$, and this new method therefore has a time complexity of $T = O(\Delta t^{-1}) = O(\epsilon^{-1/2})$.
 As it is based on Kolmogorov forward equations rather than Kolmogorov backward
-equations, and is noticeably faster than Gillespie, I have named it the ''fast
+equations, and is noticeably faster than Gillespie, we have named it the ''fast
 forward'' method. Other related ''fast forward'' methods may be possible, e.g.
-with multiple passes, or higher order Runge-Kutta steps. A ''fast forward''
-method is one that 
+with multiple passes, or higher order Runge-Kutta steppers. 
+
+A ''fast forward'' method is one that 
 
 1. solves the Komogorov forward equations by numerically integrating the characteristics, and 
 2. is strictly faster than $O(\epsilon^{-2})$ in the global error $\epsilon$ (as
@@ -108,12 +117,16 @@ Outputs:
 
 These are both in CSV format, with a layout mirroring Ruibo Zhang et al. 2022.
 
-Prerequisites:
---------------
+Requirements:
+-------------
 
 Whole project is in C++ (with some Shell wrappers).
 
 Compiles under both G++ and Clang. 
 
-Requires [GSL](https://www.gnu.org/software/gsl/), which the Mac subsection of
-the Makefile assumes depends on Homebrew.
+Requires 
+ * C++17 or newer
+ * [GSL](https://www.gnu.org/software/gsl/)
+ * [Eigen 3](https://eigen.tuxfamily.org/index.php?title=Main_Page) 
+
+The Mac subsection of the Makefile assumes GSL and Eigen are installed under Homebrew.

@@ -11,9 +11,10 @@
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 
-#include "graph-model-spec.hpp"
-#include "fast-forward.hpp"
-#include "gillespie-algorithm.hpp"
+#include <graph-model-spec.hpp>
+#include <fast-forward.hpp>
+#include <gillespie-algorithm.hpp>
+
 #include "likelihood-optimisation.hpp"
 
 /* Max. likelihood program:
