@@ -1,26 +1,30 @@
+AUTOMAKE_OPTIONS = subdir-objects foreign
 dist_doc_DATA = README.md
 
 STD = --std=c++17
 OPT1 = -O3
 
-AM_CPPFLAGS = -I$(top_srcdir)/core/
+AM_CPPFLAGS = -I$(src_topdir)../include
 
-bin_PROGRAMS = gillespie_unit_test likelihood_unit_test
-gillespie_unit_test_SOURCES = src/tests/gillespie-sampler.cpp
-gillespie_unit_test_CPPFLAGS = -Isrc/core
-gillespie_unit_test_CXXFLAGS = -lgsl -lgslcblas -pthread $STD $OPT1
-gillespie_unit_test_LDADD = libgillespie.la
+## Core libraries:
+lib_LTLIBRARIES = libffwd.la
+libffwd_la_SOURCES = src/core/fast-forward.cpp
+libffwd_la_LDFLAGS = -version-info 0:0:0
 
-likelihood_unit_test_SOURCES = src/tests/likelihood-unit-test.cpp
-likelihood_unit_test_LDADD = libffwd.la
+## Unit tests:
+bin_PROGRAMS = unittest
+unittest_SOURCES = src/tests/likelihood-unit-test.cpp
+unittest_LDADD = libffwd.la
+unittest_CPPFLAGS = $(AM_CPPFLAGS)
 
-lib_LTLIBRARIES = libffwd.la libgillespie.la
-include_HEADERS = src/core/fast-forward.hpp src/core/graph-model-spec.hpp src/core/gillespie-algorithm.hpp
+## Error estimation:
 
-libffwd_la_SOURCES = src/core/fast-forward.cpp src/core/fast-forward.hpp src/core/graph-model-spec.hpp
-libffwd_la_CPPFLAGS = -Isrc/core
-libffwd_la_CXXFLAGS = $STD $OPT1
+## Inference harness:
 
-libgillespie_la_SOURCES = src/core/gillespie-algorithm.cpp
-libgillespie_la_LIBADD = -lgsl -lgslcblas
-
+## Quality of life:
+clean-local:
+	@rm config.status configure config.log
+	@rm Makefile
+	@rm -r autom4te.cache/
+	@rm aclocal.m4
+	@rm compile install-sh missing Makefile.in
