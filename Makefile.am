@@ -2,7 +2,6 @@ AUTOMAKE_OPTIONS = subdir-objects foreign
 dist_doc_DATA = README.md
 
 AM_CPPFLAGS = -I$(src_topdir)../include
-AM_CXXFLAGS = --std=c++17 -O3
 
 ## Core libraries:
 lib_LTLIBRARIES = libffwd.la libgillespie.la

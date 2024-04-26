@@ -3,6 +3,7 @@ AC_INIT([cancer-integrator],[0.8],[chay.paterson@manchester.ac.uk])
 
 ## Set the language to C++:
 AC_LANG_PUSH([C++])
+: ${CXXFLAGS="-O3 --std=c++17"}
 
 ## Check for dependencies:
 ## Check for GSL functions:
@@ -30,9 +31,13 @@ AC_CHECK_HEADERS([gsl/gsl_rng.h gsl/gsl_randist.h], [], [
 ])
 
 ## Check for Eigen headers:
+AC_ARG_WITH([eigen], AS_HELP_STRING([--with-eigen=...], [path to Eigen 3]),
+CPPFLAGS="-I$with_eigen",
+[])
+
 ## (NB Eigen is a header-only library)
-AC_CHECK_HEADERS([eigen3/Eigen/Dense eigen3/Eigen/Eigenvalues], [], [
-    AC_MSG_ERROR([Required Eigen headers not found: is Eigen 3 installed?])
+AC_CHECK_HEADERS([Eigen/Dense Eigen/Eigenvalues], [], [
+    AC_MSG_ERROR([Required Eigen headers not found: is Eigen 3 installed? Check config.log for details.])
 ])
 AC_LANG_POP([C++])
 

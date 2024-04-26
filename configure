@@ -789,6 +789,7 @@ am__quote'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+with_eigen
 enable_dependency_tracking
 enable_silent_rules
 enable_shared
@@ -1456,6 +1457,7 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-eigen=...        path to Eigen 3
   --with-pic[=PKGS]       try to use only PIC/non-PIC objects [default=use
                           both]
   --with-aix-soname=aix|svr4|both
@@ -2901,6 +2903,7 @@ ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
+: ${CXXFLAGS="-O3 --std=c++17"}
 
 ## Check for dependencies:
 ## Check for GSL functions:
@@ -3860,8 +3863,16 @@ fi
 done
 
 ## Check for Eigen headers:
+
+# Check whether --with-eigen was given.
+if test ${with_eigen+y}
+then :
+  withval=$with_eigen; CPPFLAGS="-I$with_eigen"
+fi
+
+
 ## (NB Eigen is a header-only library)
-       for ac_header in eigen3/Eigen/Dense eigen3/Eigen/Eigenvalues
+       for ac_header in Eigen/Dense Eigen/Eigenvalues
 do :
   as_ac_Header=`printf "%s\n" "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_cxx_check_header_compile "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -3873,7 +3884,7 @@ _ACEOF
 
 else $as_nop
 
-    as_fn_error $? "Required Eigen headers not found: is Eigen 3 installed?" "$LINENO" 5
+    as_fn_error $? "Required Eigen headers not found: is Eigen 3 installed? Check config.log for details." "$LINENO" 5
 
 fi
 
