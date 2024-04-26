@@ -116,9 +116,6 @@ Project structure:
 Building:
 ---------
 
-Currently just `make` and a manually maintained Makefile. I am working on a
-branch with GNU autotools and `configure`.
-
 Now:
 
     mkdir build
@@ -133,6 +130,10 @@ Mac users may also need to pass flags for their installation of GSL and Eigen.
 e.g.
 
 	../configure CPPFLAGS="-I/opt/homebrew/include -I/path/to/eigen3" LDLIBS="-L/opt/homebrew/lib"
+
+Alternatively, a hand-writted Makefile is provided as Makefile.old. This is the
+original but is not machine agnostic, and only targetted 3 machines: my
+workstation, my MacBook, and the [CSF](https://ri.itservices.manchester.ac.uk/csf3/).
 
 Requirements:
 -------------
