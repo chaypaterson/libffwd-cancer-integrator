@@ -129,6 +129,11 @@ Now:
 
 `configure` will throw errors if the system dependencies are not met.
 
+Mac users may also need to pass flags for their installation of GSL and Eigen.
+e.g.
+
+	../configure CPPFLAGS="-I/opt/homebrew/include -I/path/to/eigen3" LDLIBS="-L/opt/homebrew/lib"
+
 Requirements:
 -------------
 
@@ -140,7 +145,7 @@ Requires
  * [Eigen 3](https://eigen.tuxfamily.org/index.php?title=Main_Page) 
  * make
 
-The Mac subsection of the Makefile assumes GSL and Eigen are installed under Homebrew.
+The Mac subsection of Makefile.old assumes GSL and Eigen are installed under Homebrew.
 
 Sources: 
 --------
