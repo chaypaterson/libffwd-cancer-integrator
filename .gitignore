@@ -20,7 +20,6 @@ data
 build/
 config.guess
 config.sub
-configure
 configure.ac~
 configure~
 ltmain.sh
