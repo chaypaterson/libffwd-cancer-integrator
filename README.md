@@ -116,7 +116,7 @@ Project structure:
 Building:
 ---------
 
-Now:
+From a tarball:
 
     mkdir build
     cd build
@@ -126,14 +126,15 @@ Now:
 
 `configure` will throw errors if the system dependencies are not met.
 
-Mac users may also need to pass flags for their installation of GSL and Eigen.
-e.g.
+Mac users will also need to pass flags for their installation of GSL. e.g.
 
-	../configure ... CPPFLAGS="-I/opt/homebrew/include" LDLIBS="-L/opt/homebrew/lib"
+	../configure [...] CPPFLAGS="-I/opt/homebrew/include" LDLIBS="-L/opt/homebrew/lib"
+
+Without a tarball:
 
 Alternatively, a hand-writted Makefile is provided as Makefile.old. This is the
-original but is not machine agnostic, and only targetted 3 machines: my
-workstation, my MacBook, and the [CSF](https://ri.itservices.manchester.ac.uk/csf3/).
+original but is not machine agnostic, and only targetted 4 machines: my
+workstation, my development box at the WMIC, my MacBook, and the [CSF](https://ri.itservices.manchester.ac.uk/csf3/).
 
 Requirements:
 -------------
