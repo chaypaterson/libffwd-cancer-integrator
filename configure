@@ -3867,7 +3867,7 @@ done
 # Check whether --with-eigen was given.
 if test ${with_eigen+y}
 then :
-  withval=$with_eigen; CPPFLAGS="-I$with_eigen"
+  withval=$with_eigen; CPPFLAGS="$CPPFLAGS -I$with_eigen"
 fi
 
 

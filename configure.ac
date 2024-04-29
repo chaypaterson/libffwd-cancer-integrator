@@ -32,7 +32,7 @@ AC_CHECK_HEADERS([gsl/gsl_rng.h gsl/gsl_randist.h], [], [
 
 ## Check for Eigen headers:
 AC_ARG_WITH([eigen], AS_HELP_STRING([--with-eigen=...], [path to Eigen 3]),
-CPPFLAGS="-I$with_eigen",
+CPPFLAGS="$CPPFLAGS -I$with_eigen",
 [])
 
 ## (NB Eigen is a header-only library)

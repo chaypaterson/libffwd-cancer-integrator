@@ -5,9 +5,13 @@ AM_CPPFLAGS = -I$(src_topdir)../include
 
 ## Core libraries:
 lib_LTLIBRARIES = libffwd.la libgillespie.la
-libffwd_la_SOURCES = src/core/fast-forward.cpp
+libffwd_la_SOURCES = src/core/fast-forward.cpp \
+                     $(src_topdir)../include/graph-model-spec.hpp \
+                     $(src_topdir)../include/fast-forward.hpp
 libffwd_la_LDFLAGS = -version-info 0:0:0
-libgillespie_la_SOURCES = src/core/gillespie-algorithm.cpp
+libgillespie_la_SOURCES = src/core/gillespie-algorithm.cpp \
+                          $(src_topdir)../include/graph-model-spec.hpp \
+                          $(src_topdir)../include/gillespie-algorithm.hpp
 libgillespie_la_LDFLAGS = -version-info 0:0:0
 
 ## Unit tests:
