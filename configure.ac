@@ -7,24 +7,15 @@ AC_LANG_PUSH([C++])
 
 ## Check for dependencies:
 ## Check for GSL functions:
-AC_CHECK_LIB([gsl], [gsl_rng_alloc], [], [
+AC_CHECK_LIB([gsl], [gsl_rng_alloc], [
+    GSL_LIBS="-lgsl -lgslcblas -pthread"
+    echo "$GSL_LIBS"
+    AC_SUBST(GSL_LIBS)
+    ], [
     AC_MSG_ERROR([gsl_rng_alloc not found: is GSL installed?])
-])
-AC_CHECK_LIB([gsl], [gsl_rng_env_setup], [], [
-    AC_MSG_ERROR([gsl_rng_env_setup not found: is GSL installed?])
-])
-AC_CHECK_LIB([gsl], [gsl_ran_exponential], [], [
-    AC_MSG_ERROR([gsl_ran_exponential not found: is GSL installed?])
-])
-AC_CHECK_LIB([gsl], [gsl_ran_flat], [], [
-    AC_MSG_ERROR([gsl_ran_flat not found: is GSL installed?])
-])
-AC_CHECK_LIB([gsl], [gsl_rng_free], [], [
-    AC_MSG_ERROR([gsl_rng_free not found: is GSL installed?])
-])
-AC_CHECK_LIB([gsl], [gsl_rng_set], [], [
-    AC_MSG_ERROR([gsl_rng_set not found: is GSL installed?])
-])
+    ],
+    [])
+
 ## Check for GSL headers:
 AC_CHECK_HEADERS([gsl/gsl_rng.h gsl/gsl_randist.h], [], [
     AC_MSG_ERROR([Required GSL RNG headers not found: is GSL installed?])
