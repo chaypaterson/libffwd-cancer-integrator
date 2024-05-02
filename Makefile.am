@@ -47,10 +47,3 @@ guesser_SOURCES = src/inference/likelihood-optimisation.cpp \
                   src/inference/likelihood-optimisation.hpp
 guesser_LDADD = libffwd.la libgillespie.la
 guesser_CPPFLAGS = $(AM_CPPFLAGS)
-
-## Clean the build directory:
-clean-local:
-	@rm Makefile
-	@rm -r autom4te.cache/
-	@rm aclocal.m4
-	@rm compile install-sh missing Makefile.in
