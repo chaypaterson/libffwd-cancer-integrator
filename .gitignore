@@ -7,7 +7,6 @@ parameter_inference
 ruibo
 Makefile.in
 autom4te.cache
-install-sh
 aclocal.m4
 *.log
 *.deps
