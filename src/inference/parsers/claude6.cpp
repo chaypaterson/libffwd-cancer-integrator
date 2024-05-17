@@ -1,26 +1,17 @@
 #include <iostream>
 #include <vector>
-#include <string>
 #include <sstream>
+#include <string>
 
 std::vector<size_t> parseStringToVector(const std::string& str) {
     std::vector<size_t> result;
     std::stringstream ss(str);
     char c;
 
-    while (ss.good()) {
-        std::string numStr;
-        ss >> c;
-
-        if (c == '[') continue; // Skip '['
-        if (c == ']') break; // Stop at ']'
-
-        while (c != ',' && c != ']') {
-            numStr += c;
-            ss >> c;
-        }
-
-        result.push_back(std::stoul(numStr));
+    while (ss >> c && c != ']') {
+        size_t num;
+        ss >> num;
+        result.push_back(num);
     }
 
     return result;
@@ -28,6 +19,7 @@ std::vector<size_t> parseStringToVector(const std::string& str) {
 
 int main() {
     std::string str = "[7, 48, 0, 13, 2]";
+
     std::vector<size_t> vect = parseStringToVector(str);
 
     for (size_t num : vect) {
