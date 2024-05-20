@@ -656,6 +656,7 @@ void resample_incidence(
     size_t reference_pop, size_t start, size_t end, std::vector<size_t> end_nodes,
     real_t binwidth, Model *initial_guess, std::vector<Model> *resampled_estimates) {
 
+    // TODO multithread?
     for (unsigned tries = start; tries < end; ++tries) {
         // Resample the incidence:
         Histogram_t resampled_incidence;
