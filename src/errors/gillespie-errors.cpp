@@ -10,7 +10,7 @@
 #include <thread>
 #include <algorithm>
 
-#include "gillespie-algorithm.hpp"
+#include <gillespie-algorithm.hpp>
 
 // A Gillespie algorithm simulation of tumour suppressor loss
 // This program returns expected errors in the Gillespie simulation

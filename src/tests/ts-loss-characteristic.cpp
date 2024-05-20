@@ -4,8 +4,8 @@
 #include <vector>
 #include <cmath>
 
-#include "graph-model-spec.hpp"
-#include "fast-forward.hpp"
+#include <graph-model-spec.hpp>
+#include <fast-forward.hpp>
 
 // A conjugate characteristics simulation of tumour suppressor loss
 

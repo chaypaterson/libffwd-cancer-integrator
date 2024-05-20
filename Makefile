@@ -7,7 +7,7 @@ NUMER = src/errors
 LEARN = src/inference
 STD = --std=c++17
 OPT1 = -O3
-INCLUDE = -I$(CORE)
+INCLUDE = -Iinclude
 FLAGS = $(STD) $(OPT1) $(INCLUDE)
 LIBFFWD = $(LIBDIR)/libffwd.so
 LIBGILL = $(LIBDIR)/libgillespie.so

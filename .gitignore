@@ -16,3 +16,6 @@ aclocal.m4
 ar-lib
 compile
 config.status
+build
+dist
+configure~

@@ -2,7 +2,7 @@
 #include <map>
 #include <cmath>
 
-#include "graph-model-spec.hpp"
+#include <graph-model-spec.hpp>
 #ifndef FLYING_DEF
 #define FLYING_DEF
 

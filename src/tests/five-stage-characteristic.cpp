@@ -3,8 +3,8 @@
 #include <vector>
 #include <cmath>
 
-#include "graph-model-spec.hpp"
-#include "fast-forward.hpp"
+#include <graph-model-spec.hpp>
+#include <fast-forward.hpp>
 
 // A numerical integrator for a four-step branching process model of colorectal
 // cancer initiation from Zhang et al. 2022. 

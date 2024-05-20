@@ -1,7 +1,7 @@
 #include <vector>
 #include <map>
 
-#include "graph-model-spec.hpp"
+#include <graph-model-spec.hpp>
 // A class for containing a specification of a birth-death-mutation-immigration
 // process on a graph.
 // This file contains a unit test.

@@ -8,7 +8,7 @@
 #include <thread>
 #include <algorithm>
 
-#include "gillespie-algorithm.hpp"
+#include <gillespie-algorithm.hpp>
 
 // A Gillespie algorithm simulation of a birth-death-mutation process
 // Also a two-hit model of cancer initiation
