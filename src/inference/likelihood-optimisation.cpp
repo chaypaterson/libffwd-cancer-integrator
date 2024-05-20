@@ -278,7 +278,6 @@ Model get_neighbour(Model& model, double w) {
     // TODO try pinning some values and fitting others
     real_t new_mu = logcauchyv(model.m_migr[0][1], w);
     real_t new_rloh = logcauchyv(model.m_migr[0][2], w);
-    // results are very sensitive to fitness values (so use a narrower distribution):
     real_t new_fitness1 = logcauchyv(model.m_birth[1], 0.10 * w);
     real_t new_fitness2 = logcauchyv(model.m_birth[2], 0.10 * w);
     // force the fitnesses to be positive (negative values are meaningless in this context)
