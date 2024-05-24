@@ -12,7 +12,7 @@ FLAGS = $(STD) $(OPT1) $(INCLUDE)
 LIBFFWD = $(LIBDIR)/libffwd.so
 LIBGILL = $(LIBDIR)/libgillespie.so
 GILLFLAGS = $(FLAGS) -lgsl -lgslcblas -pthread
-EIGEN = /mnt/iusers01/dw01/m38254cp/projects/eigen #/usr/include/eigen3
+EIGEN = /usr/include/eigen3
 
 OS = $(shell uname)
 ifeq ($(OS),Darwin)
