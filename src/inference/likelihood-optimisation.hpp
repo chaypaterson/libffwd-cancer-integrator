@@ -16,6 +16,8 @@ namespace clonal_expansion {
  *    to the constructor below
  */
 
+/* TODO use inheritance to make the basic/private methods agnostic to the
+   program? */
 class GuesserConfig 
 {
 private:

@@ -13,8 +13,7 @@ aclocal.m4
 ar-lib
 config.status
 data
-build/
-configure.ac~
-configure~
-
+build
 dist
+configure~
+configure.ac~

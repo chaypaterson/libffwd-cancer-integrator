@@ -278,7 +278,6 @@ Model get_neighbour(Model& model, double w) {
     // TODO try pinning some values and fitting others
     real_t new_mu = logcauchyv(model.m_migr[0][1], w);
     real_t new_rloh = logcauchyv(model.m_migr[0][2], w);
-    // results are very sensitive to fitness values (so use a narrower distribution):
     real_t new_fitness1 = logcauchyv(model.m_birth[1], 0.10 * w);
     real_t new_fitness2 = logcauchyv(model.m_birth[2], 0.10 * w);
     // force the fitnesses to be positive (negative values are meaningless in this context)
@@ -568,6 +567,29 @@ void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
                    "syntheticdata_hist.csv");
 }
 
+std::vector<size_t> parseStringToVector(const std::string& str) {
+    std::vector<size_t> result;
+    std::stringstream ss(str);
+    char c;
+
+    while (ss.good()) {
+        std::string numStr;
+        ss >> c;
+
+        if (c == '[') continue; // Skip '['
+        if (c == ']') break; // Stop at ']'
+
+        while (c != ',' && c != ']') {
+            numStr += c;
+            ss >> c;
+        }
+
+        result.push_back(std::stoul(numStr));
+    }
+
+    return result;
+}
+
 void load_histogram(real_t& binwidth, real_t& max_age, size_t& reference_pop,
                     const std::vector<size_t>& end_nodes,
                     Histogram_t& incidence,
@@ -583,29 +605,24 @@ void load_histogram(real_t& binwidth, real_t& max_age, size_t& reference_pop,
         }
     };
 
-    for (std::string line; std::getline(histogram, line); ) {
+    std::string line;
+    // read the first three lines of the file and use them to set the three
+    // scalar variables:
+    for (size_t linenr = 0; linenr < 3; ++linenr) {
+        std::getline(histogram, line);
         findset(line, "bin width", binwidth);
         findset(line, "max age", max_age);
         findset(line, "ref population", reference_pop);
     }
+    std::cout << "bin width = " << binwidth << std::endl;
+    std::cout << "max age = " << max_age << std::endl;
+    std::cout << "ref population = " << reference_pop << std::endl;
 
-    // read in bars from histogram:
+    // then read in bars from histogram:
     for (auto &end_node : end_nodes) {
-        // ...
-        std::string line;
         std::getline(histogram, line);
-        std::stringstream ss(line);
-
-        /* TODO not functional
-        if (ss.peek() == "[") ss.ignore();
-        for (int count; ss >> count; ) {
-            incidence[end_node].push_back(count);
-            if ((ss.peek() == ",") ||
-                (ss.peek() == " ") ||
-                (ss.peek() == "]")) {
-                ss.ignore();
-            }
-        }*/
+        std::cout << line << std::endl;
+        incidence[end_node] = parseStringToVector(line);
     }
 
     histogram.close();
@@ -638,6 +655,7 @@ void resample_incidence(
     size_t reference_pop, size_t start, size_t end, std::vector<size_t> end_nodes,
     real_t binwidth, Model *initial_guess, std::vector<Model> *resampled_estimates) {
 
+    // TODO multithread?
     for (unsigned tries = start; tries < end; ++tries) {
         // Resample the incidence:
         Histogram_t resampled_incidence;
@@ -1022,7 +1040,7 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
         std::cout << std::endl;
     }
 
-    // Draw level sets: TODO
+    // Draw level sets:
     if (options.level_sets) {
         std::cout << "Tracing level sets..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
@@ -1124,9 +1142,15 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
     real_t binwidth, max_age;
     size_t reference_pop;
 
-    generate_histogram(ground_truth, seed, dataset_size, end_nodes,
-                       max_age, reference_pop, binwidth, incidence);
     // TODO loadable histograms?
+    if (!options.histogram_file.empty()) {
+        std::cout << options.histogram_file << std::endl;
+        load_histogram(binwidth, max_age, reference_pop, end_nodes, incidence,
+                       options.histogram_file);
+    } else {
+        generate_histogram(ground_truth, seed, dataset_size, end_nodes,
+                           max_age, reference_pop, binwidth, incidence);
+    }
 
     printf("Target likelihood:\n-log L = %g\n",
            loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
