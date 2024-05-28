@@ -52,6 +52,11 @@ Thu 19 Oct 23:36:30 BST 2023
 
 eigendecomposition of cov matrix!
 
+Sun 18 Feb 16:48:26 GMT 2024
+bin_PROGRAMS = gillespie_unit_test likelihood_unit_test
+gillespie_unit_test_SOURCES = src/tests/gillespie-sampler.cpp
+likelihood_unit_test_SOURCES = src/tests/likelihood-unit-test.cpp
+
 Tue 20 Feb 16:35:24 GMT 2024
 study germline mutations, see if identifiability improves
 

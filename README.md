@@ -116,8 +116,25 @@ Project structure:
 Building:
 ---------
 
-Currently just `make` and a manually maintained Makefile. I am working on a
-branch with GNU autotools and `configure`.
+From a tarball:
+
+    mkdir build
+    cd build
+    ../configure --prefix=[...your install location here...] --with-eigen="/path/to/eigen3"
+    make
+    make install
+
+`configure` will throw errors if the system dependencies are not met.
+
+Mac users will also need to pass flags for their installation of GSL. e.g.
+
+	../configure [...] CPPFLAGS="-I/opt/homebrew/include" LDLIBS="-L/opt/homebrew/lib"
+
+Without a tarball:
+
+Alternatively, a hand-writted Makefile is provided as Makefile.old. This is the
+original but is not machine agnostic, and only targetted 4 machines: my
+workstation, my development box at the WMIC, my MacBook, and the [CSF](https://ri.itservices.manchester.ac.uk/csf3/).
 
 Requirements:
 -------------
@@ -126,11 +143,11 @@ Whole project is in C++ (with some Shell wrappers). Compiles under both G++ and 
 
 Requires 
  * C++17 or newer (was 14 but newer versions of Eigen expect 17)
- * [GSL](https://www.gnu.org/software/gsl/)
+ * [GSL 2.7](https://www.gnu.org/software/gsl/)
  * [Eigen 3](https://eigen.tuxfamily.org/index.php?title=Main_Page) 
  * make
 
-The Mac subsection of the Makefile assumes GSL and Eigen are installed under Homebrew.
+The Mac subsection of Makefile.old assumes GSL and Eigen are installed under Homebrew.
 
 Sources: 
 --------

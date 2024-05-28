@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
     int runs = atoi(argv[2]);
 
     std::map<int,std::vector<double>> all_times_1 = generate_dataset(seed, runs);
-    std::map<int,std::vector<double>> all_times_2 = generate_dataset(++seed, runs);
+    std::map<int,std::vector<double>> all_times_2 = generate_dataset(seed + runs, runs);
 
     // compute maximum age in either dataset, and sort both datasets:
     double age_max = 0;
@@ -92,8 +92,11 @@ int main(int argc, char* argv[]) {
     for (double age = 0; age <= age_max; age += dt) {
         double toterr = 0;
         for (int type = 3; type < 5; ++type) {
-            real_t s1 = surv_kaplan_meier(age, all_times_1[type], reference_pop_1);
-            real_t s2 = surv_kaplan_meier(age, all_times_2[type], reference_pop_2);
+            real_t s1 = 1, s2 = 1;
+            if (all_times_1[type].size())
+                s1 = surv_kaplan_meier(age, all_times_1[type], reference_pop_1);
+            if (all_times_2[type].size())
+                s2 = surv_kaplan_meier(age, all_times_2[type], reference_pop_2);
             real_t error = s1 - s2;
             error *= error;
             toterr += error;
