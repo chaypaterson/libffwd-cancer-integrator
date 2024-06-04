@@ -663,6 +663,7 @@ Histogram_t jackknife_incidence(size_t index, const Histogram_t& histogram,
 }
 
 void resample_incidence(
+    Model (*method_min)(std::function<real_t(Model&)>, Model),
     const Histogram_t *incidence,
     size_t reference_pop, size_t start, size_t end, std::vector<size_t> end_nodes,
     real_t binwidth, Model *initial_guess, std::vector<Model> *resampled_estimates) {
@@ -679,9 +680,9 @@ void resample_incidence(
             // the histogram version
         };
 
-        // TODO pass arbitrary method_min
-        Model best_guess = annealing_min(objective, *initial_guess);
-        // Annealing now complete. Print guess:
+        // use a chosen method_min method to minimise the objective:
+        Model best_guess = method_min(objective, *initial_guess);
+        // Minimisation now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
         print_model(best_guess);
         // Annealing now complete. Store guessed model parameters:
@@ -689,7 +690,8 @@ void resample_incidence(
     }
 }
 
-void jackknife_and_save(Histogram_t &incidence,
+void jackknife_and_save(Model (*method_min)(std::function<real_t(Model&)>, Model),
+                        Histogram_t &incidence,
                         size_t reference_pop, real_t binwidth,
                         std::vector<size_t> end_nodes, Model &initial_guess,
                         size_t n_child_threads = 0) {
@@ -715,12 +717,15 @@ void jackknife_and_save(Histogram_t &incidence,
         end = start + runs_per_thr;
 
         child_threads.push_back(std::thread(resample_incidence,
-                                            &incidence, reference_pop, start, end, end_nodes, binwidth,
+                                            method_min,
+                                            &incidence, reference_pop,
+                                            start, end, end_nodes, binwidth,
                                             &initial_guess, &results[thread]));
     }
 
     // run runs_per_thr + remainder in this, the parent thread:
-    resample_incidence(&incidence, reference_pop, reference_pop - runs_per_thr - remainder,
+    resample_incidence(method_min, &incidence, reference_pop,
+                       reference_pop - runs_per_thr - remainder,
                        reference_pop, end_nodes, binwidth,
                        &initial_guess, &results[n_child_threads]);
 
@@ -1177,8 +1182,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
 
     // Jack-knife resampling of incidence:
     if (options.resample_after) {
-        // TODO currently jackknife_and_save only uses annealing
-        jackknife_and_save(incidence, reference_pop, binwidth, end_nodes,
+        jackknife_and_save(method_min, incidence, reference_pop, binwidth, end_nodes,
                            estimate.best_guess, options.num_child_threads);
     }
 
