@@ -309,7 +309,6 @@ Model annealing_min(std::function<real_t(Model &model)> objective,
     const double delta = 0.98; // The rate of temperature drop
     const double min_width = 1e-2; // min scale of the log-cauchy step
     const double smoothing_factor = 0.82; // for smoothing of width
-    const unsigned int iter_max = 2e4;
 
     // Initialise variables:
     Model best_guess = initial_guess;
@@ -323,7 +322,7 @@ Model annealing_min(std::function<real_t(Model &model)> objective,
     // Simulated annealing process:
     double Temp = best_y;      // Initial temperature
     unsigned int iter = 0;  // count iterations
-    unsigned int reheating_tries = 6;
+    unsigned int reheating_tries = 12;
 
     while (Temp > Tmin) {
         Model new_guess = get_neighbour(best_guess, w);
@@ -346,14 +345,14 @@ Model annealing_min(std::function<real_t(Model &model)> objective,
 
         Temp *= delta;
         ++iter;
-        if ((iter >= iter_max) || (Temp <= Tmin)) {
+
+        if (Temp <= Tmin) {
             if (reheating_tries == 0) {
                 break;
             } else {
                 /* reheat: */
                 Temp = 1.0;
                 w = log(2);
-                iter = 0;
                 --reheating_tries;
             }
         }
