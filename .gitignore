@@ -17,5 +17,3 @@ build
 dist
 configure~
 configure.ac~
-missing
-compile

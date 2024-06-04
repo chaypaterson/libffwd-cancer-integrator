@@ -290,16 +290,18 @@ Model get_neighbour(Model& model, double w) {
                              new_fitness2, new_inipop);
 }
 
-/* MAYBE TODO define a class that we can use to "capture" or hide the extraneous
- * arguments like the underlying data and parameters of the histogram. We should
- * be able to pass one object into annealing_min and call it like a function
- * with "objective(model);". This should make the signature of annealing_min
- *      Model annealing_min(ObjectiveFunc objective, Model initial_guess);
- *
- * CURRENTLY I am passing a closure to this object -- this allows the other
+/* Valid method_min methods have the signature:
+ *  Model method_min(std::function<real_t(Model &model)> objective,
+ *                   Model  initial_guess);
+ * The first argument is a closure to this object -- this allows the other
  * parameters of the log-likelihood objective function to be "bound" in the
- * context.
+ * context. We then vary with regards to the (Model) guess to find the
+ * best_guess.
+ *
+ * The signature of the minimisation method is independent of the specific
+ * algorithm used.
  */
+
 Model annealing_min(std::function<real_t(Model &model)> objective,
                     Model initial_guess) {
     // Function reads a set of datum points and returns a set of model
@@ -309,34 +311,34 @@ Model annealing_min(std::function<real_t(Model &model)> objective,
     const double delta = 0.98; // The rate of temperature drop
     const double min_width = 1e-2; // min scale of the log-cauchy step
     const double smoothing_factor = 0.82; // for smoothing of width
-    const unsigned int iter_max = 2e4;
 
     // Initialise variables:
     Model best_guess = initial_guess;
-    double best_y = objective(best_guess);
+    double best_score = objective(best_guess);
 
     // Width of neighbourhood:
     double w = log(2); // initial width for log-cauchy variates
 
-    printf("Initial likelihood:\n-log L = %g\n", best_y);
+    printf("Initial likelihood:\n-log L = %g\n", best_score);
 
     // Simulated annealing process:
-    double Temp = best_y;      // Initial temperature
+    double Temp = best_score;      // Initial temperature
     unsigned int iter = 0;  // count iterations
+    unsigned int reheating_tries = 12;
 
-    while ((++iter < iter_max) && (Temp > Tmin)) {
+    while (Temp > Tmin) {
         Model new_guess = get_neighbour(best_guess, w);
 
-        double y_new = objective(new_guess);
+        double score_new = objective(new_guess);
 
-        if (std::isnan(y_new)) continue;
+        if (std::isnan(score_new)) continue;
 
-        double delta_y = y_new - best_y;
+        double delta_score = score_new - best_score;
 
-        if ((delta_y < 0) || ((rand() / (RAND_MAX + 1.0)) < exp(-delta_y / Temp))) {
+        if ((delta_score < 0) || ((rand() / (RAND_MAX + 1.0)) < exp(-delta_score / Temp))) {
             // Update best guess:
             best_guess = new_guess;
-            best_y = y_new;
+            best_score = score_new;
 
             /* Shrink the width: */
             w *= 1.0 - smoothing_factor;
@@ -344,10 +346,88 @@ Model annealing_min(std::function<real_t(Model &model)> objective,
         }
 
         Temp *= delta;
+        ++iter;
+
+        if (Temp <= Tmin) {
+            if (reheating_tries == 0) {
+                break;
+            } else {
+                /* reheat: */
+                Temp = 1.0;
+                w = log(2);
+                --reheating_tries;
+            }
+        }
     }
 
     printf("System fully cooled after %d iterations\n", iter);
-    printf("-log L = %.8g\n", best_y);
+    printf("-log L = %.8g\n", best_score);
+    return best_guess;
+}
+
+Model brute_force_min(std::function<real_t(Model &model)> objective,
+                      Model initial_guess) {
+    // the brute force method samples every value in a cuboid neighbourhood of
+    // the initial guess (in log space) and returns the lowest candidate.
+    const double length = 10.0f; // side length of the cube: +-sqrt(this)
+    const int resolution = 16; // samples per side of cube
+
+    // Initialise parameters
+    Model best_guess = initial_guess;
+    std::vector<real_t> params = model_params_pure(best_guess);
+    int dim = params.size();
+
+    // find the starting corner of the cube
+    double loglength = log(length);
+    std::vector<real_t> Delta(dim,0);
+    for (size_t index = 0; index < dim; ++index) {
+        Delta[index] = params[index] * (exp(-loglength/2) - 1);
+    }
+
+    Model start_corner = shifted_model(best_guess, Delta);
+    double best_score = objective(start_corner);
+
+    // distance between samples in log space
+    real_t epsilon = loglength / resolution;
+    printf("tol: %.8f\n", epsilon / 2);
+
+    // find the volume of the giant cube
+    size_t volume = 1;
+    for (size_t index = 0; index < dim; ++index) {
+        volume *= resolution;
+    }
+    // volume is now about a million if resolution is 32
+    // NB: volume will be limited by the max value of size_t
+
+    // for samples from 0 to ... volume,
+    for (size_t sample = 0; sample < volume; ++sample) {
+        // map this sample to a unique point in the cube
+        size_t axis_tap = sample % resolution;
+        size_t next_tap = sample / resolution;
+        // we now have the tap (along the edge of the cube) for the first axis.
+        std::vector<real_t> sample_coord(dim,0);
+        for (size_t axis = 0; axis < dim; ++axis) {
+            sample_coord[axis] = params[axis] * (exp(axis_tap * epsilon) - 1);
+            // Repeatedly divide by resolution to get the next one:
+            axis_tap = next_tap % resolution;
+            next_tap = next_tap / resolution;
+        }
+        // sample_coord now contains the coordinates of the new guess relative
+        // to the starting corner (conceptually at [0,0,0,...]).
+
+        Model new_guess = shifted_model(start_corner, sample_coord);
+        double new_score = objective(new_guess);
+        if (new_score < best_score) {
+            best_guess = new_guess;
+            best_score = new_score;
+        }
+
+        // and just keep going until the end. don't break, check them all.
+    }
+
+    printf("Sampling complete after %d samples\n", volume);
+    printf("-log L = %.8g\n", objective(best_guess));
+
     return best_guess;
 }
 
@@ -471,7 +551,7 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
 
     // Initialise variables:
     Model best_guess = initial_guess;
-    double best_y = objective(best_guess);
+    double best_score = objective(best_guess);
 
     int dim = 4;
     double learning_rate = 1e-4;
@@ -652,11 +732,11 @@ Histogram_t jackknife_incidence(size_t index, const Histogram_t& histogram,
 }
 
 void resample_incidence(
+    Model (*method_min)(std::function<real_t(Model&)>, Model),
     const Histogram_t *incidence,
     size_t reference_pop, size_t start, size_t end, std::vector<size_t> end_nodes,
     real_t binwidth, Model *initial_guess, std::vector<Model> *resampled_estimates) {
 
-    // TODO multithread?
     for (unsigned tries = start; tries < end; ++tries) {
         // Resample the incidence:
         Histogram_t resampled_incidence;
@@ -669,8 +749,9 @@ void resample_incidence(
             // the histogram version
         };
 
-        Model best_guess = annealing_min(objective, *initial_guess);
-        // Annealing now complete. Print guess:
+        // use a chosen method_min method to minimise the objective:
+        Model best_guess = method_min(objective, *initial_guess);
+        // Minimisation now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
         print_model(best_guess);
         // Annealing now complete. Store guessed model parameters:
@@ -678,7 +759,8 @@ void resample_incidence(
     }
 }
 
-void jackknife_and_save(Histogram_t &incidence,
+void jackknife_and_save(Model (*method_min)(std::function<real_t(Model&)>, Model),
+                        Histogram_t &incidence,
                         size_t reference_pop, real_t binwidth,
                         std::vector<size_t> end_nodes, Model &initial_guess,
                         size_t n_child_threads = 0) {
@@ -704,12 +786,15 @@ void jackknife_and_save(Histogram_t &incidence,
         end = start + runs_per_thr;
 
         child_threads.push_back(std::thread(resample_incidence,
-                                            &incidence, reference_pop, start, end, end_nodes, binwidth,
+                                            method_min,
+                                            &incidence, reference_pop,
+                                            start, end, end_nodes, binwidth,
                                             &initial_guess, &results[thread]));
     }
 
     // run runs_per_thr + remainder in this, the parent thread:
-    resample_incidence(&incidence, reference_pop, reference_pop - runs_per_thr - remainder,
+    resample_incidence(method_min, &incidence, reference_pop,
+                       reference_pop - runs_per_thr - remainder,
                        reference_pop, end_nodes, binwidth,
                        &initial_guess, &results[n_child_threads]);
 
@@ -1166,8 +1251,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
 
     // Jack-knife resampling of incidence:
     if (options.resample_after) {
-        // TODO currently jackknife_and_save only uses annealing
-        jackknife_and_save(incidence, reference_pop, binwidth, end_nodes,
+        jackknife_and_save(method_min, incidence, reference_pop, binwidth, end_nodes,
                            estimate.best_guess, options.num_child_threads);
     }
 
@@ -1241,6 +1325,7 @@ int main(int argc, char* argv[]) {
     Minimiser_t method_min = annealing_min;
     // but:
     if (options.minimise_with_gradient) method_min = gradient_min;
+    if (options.minimise_brute_force) method_min = brute_force_min;
 
     // The inference harness itself:
     void (*guessing_harness)(Model &ground_truth, GuesserConfig options,
