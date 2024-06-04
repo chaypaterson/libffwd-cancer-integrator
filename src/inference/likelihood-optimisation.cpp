@@ -323,8 +323,9 @@ Model annealing_min(std::function<real_t(Model &model)> objective,
     // Simulated annealing process:
     double Temp = best_y;      // Initial temperature
     unsigned int iter = 0;  // count iterations
+    unsigned int reheating_tries = 6;
 
-    while ((++iter < iter_max) && (Temp > Tmin)) {
+    while (Temp > Tmin) {
         Model new_guess = get_neighbour(best_guess, w);
 
         double y_new = objective(new_guess);
@@ -344,6 +345,18 @@ Model annealing_min(std::function<real_t(Model &model)> objective,
         }
 
         Temp *= delta;
+        ++iter;
+        if ((iter >= iter_max) || (Temp <= Tmin)) {
+            if (reheating_tries == 0) {
+                break;
+            } else {
+                /* reheat: */
+                Temp = 1.0;
+                w = log(2);
+                iter = 0;
+                --reheating_tries;
+            }
+        }
     }
 
     printf("System fully cooled after %d iterations\n", iter);
@@ -655,7 +668,6 @@ void resample_incidence(
     size_t reference_pop, size_t start, size_t end, std::vector<size_t> end_nodes,
     real_t binwidth, Model *initial_guess, std::vector<Model> *resampled_estimates) {
 
-    // TODO multithread?
     for (unsigned tries = start; tries < end; ++tries) {
         // Resample the incidence:
         Histogram_t resampled_incidence;
@@ -668,6 +680,7 @@ void resample_incidence(
             // the histogram version
         };
 
+        // TODO pass arbitrary method_min
         Model best_guess = annealing_min(objective, *initial_guess);
         // Annealing now complete. Print guess:
         std::cout << "Best guesses:" << std::endl;
