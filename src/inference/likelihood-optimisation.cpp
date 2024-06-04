@@ -621,6 +621,7 @@ void load_histogram(real_t& binwidth, real_t& max_age, size_t& reference_pop,
     // then read in bars from histogram:
     for (auto &end_node : end_nodes) {
         std::getline(histogram, line);
+        std::cout << end_node << ": ";
         std::cout << line << std::endl;
         incidence[end_node] = parseStringToVector(line);
     }
@@ -849,7 +850,7 @@ void draw_3dsurface(std::function<real_t(Model &model)> objective,
     drawing.open(filename);
     drawing << "x,y,z," << std::endl;
     // We will need to translate between different coordinate axes and Model
-    // parameters, so here is a vector of pointers to parameters:
+    // parameters, so here is a vector of parameters:
     std::vector<real_t> orig_params = model_params_pure(origin);
     /* ...
     * sample points on a logarithmic scale from origin[x]/x_range to
