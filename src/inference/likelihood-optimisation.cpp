@@ -595,6 +595,14 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
     return best_guess;
 }
 
+Model mixed_min(std::function<real_t(Model& model)> objective,
+                Model initial_guess) {
+    // Minimisation method that follows one pass of brute-force search with one
+    // pass of gradient descent
+    Model better_guess = brute_force_min(objective, initial_guess);
+    return gradient_min(objective, better_guess);
+}
+
 // Methods to output data:
 
 void print_model(Model &model) {
@@ -1326,6 +1334,7 @@ int main(int argc, char* argv[]) {
     // but:
     if (options.minimise_with_gradient) method_min = gradient_min;
     if (options.minimise_brute_force) method_min = brute_force_min;
+    if (options.minimise_with_mixed) method_min = mixed_min;
 
     // The inference harness itself:
     void (*guessing_harness)(Model &ground_truth, GuesserConfig options,

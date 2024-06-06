@@ -45,6 +45,7 @@ public:
     // what minimisation method to use (default annealing, can do gradient):
     bool minimise_with_gradient = false;
     bool minimise_brute_force = false;
+    bool minimise_with_mixed = false;
     bool level_sets       = false; // whether or not to draw with level sets
     bool draw_mesh        = false; // whether or not to draw 3d plots of the likelihood
 
@@ -67,6 +68,7 @@ public:
             set_bool(cmdarg, "--resample", resample_after);
             set_bool(cmdarg, "--gradient", minimise_with_gradient);
             set_bool(cmdarg, "--with_brute_force", minimise_brute_force);
+            set_bool(cmdarg, "--mixed_min", minimise_with_mixed);
             set_bool(cmdarg, "--draw_level_sets", level_sets);
             set_bool(cmdarg, "--draw_3d_meshes", draw_mesh);
         }
