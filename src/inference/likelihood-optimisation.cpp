@@ -370,7 +370,7 @@ Model brute_force_min(std::function<real_t(Model &model)> objective,
     // the brute force method samples every value in a cuboid neighbourhood of
     // the initial guess (in log space) and returns the lowest candidate.
     const double length = 10.0f; // side length of the cube: +-sqrt(this)
-    const int resolution = 16; // samples per side of cube
+    const int resolution = 4; // samples per side of cube
 
     // Initialise parameters
     Model best_guess = initial_guess;
