@@ -6,7 +6,6 @@ errorpropagation
 parameter_inference
 ruibo
 autom4te.cache
-aclocal.m4
 *.log
 *.deps
 ar-lib
