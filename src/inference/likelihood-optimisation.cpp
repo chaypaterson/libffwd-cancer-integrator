@@ -366,11 +366,11 @@ Model annealing_min(std::function<real_t(Model &model)> objective,
 }
 
 Model brute_force_min(std::function<real_t(Model &model)> objective,
-                      Model initial_guess) {
+                      Model initial_guess, int resolution) {
     // the brute force method samples every value in a cuboid neighbourhood of
     // the initial guess (in log space) and returns the lowest candidate.
     const double length = 10.0f; // side length of the cube: +-sqrt(this)
-    const int resolution = 4; // samples per side of cube
+    // resolution is the number of taps along the side of the cube
 
     // Initialise parameters
     Model best_guess = initial_guess;
@@ -429,6 +429,11 @@ Model brute_force_min(std::function<real_t(Model &model)> objective,
     printf("-log L = %.8g\n", objective(best_guess));
 
     return best_guess;
+}
+
+Model brute_force_min(std::function<real_t(Model &model)> objective,
+                      Model initial_guess) {
+    return brute_force_min(objective, initial_guess, 4);
 }
 
 // Numerical analysis methods:
@@ -613,6 +618,18 @@ Model mixed_min(std::function<real_t(Model& model)> objective,
     // Minimisation method that follows one pass of brute-force search with one
     // pass of gradient descent
     Model better_guess = brute_force_min(objective, initial_guess);
+    return gradient_min(objective, better_guess);
+}
+
+Model mixed_min_8(std::function<real_t(Model& model)> objective,
+                Model initial_guess) {
+    Model better_guess = brute_force_min(objective, initial_guess, 8);
+    return gradient_min(objective, better_guess);
+}
+
+Model mixed_min_16(std::function<real_t(Model& model)> objective,
+                Model initial_guess) {
+    Model better_guess = brute_force_min(objective, initial_guess, 16);
     return gradient_min(objective, better_guess);
 }
 
@@ -1348,6 +1365,8 @@ int main(int argc, char* argv[]) {
     if (options.minimise_with_gradient) method_min = gradient_min;
     if (options.minimise_brute_force) method_min = brute_force_min;
     if (options.minimise_with_mixed) method_min = mixed_min;
+    if (options.minimise_with_mixed_8) method_min = mixed_min_8;
+    if (options.minimise_with_mixed_16) method_min = mixed_min_16;
 
     // The inference harness itself:
     void (*guessing_harness)(Model &ground_truth, GuesserConfig options,
