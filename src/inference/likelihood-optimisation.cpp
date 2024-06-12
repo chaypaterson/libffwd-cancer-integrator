@@ -555,7 +555,7 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
 
     int dim = 4;
     double learning_rate = 1e-4;
-    double tolerance = 1e-3; // % change tolerated in parameter estimates
+    double tolerance = 1e-3; // minimum "speed": % change tolerated in parameters
 
     // while the gradient is too large:
     while (1) {
@@ -570,10 +570,23 @@ Model gradient_min(std::function<real_t(Model& model)> objective,
             Delta[axis] = Theta[axis] * (exp(-learning_rate * gradient(axis)) - 1);
         }
 
-        best_guess = shifted_model(best_guess, Delta);
+        Model new_guess = shifted_model(best_guess, Delta);
 
-        // we want the percentage-change in all coefficients to be lower than
-        // tolerance:
+        // compute the change in score
+        double dscore = objective(new_guess) - best_score;
+        // the score should always decrease: if it increases we have overshot
+        // the minimum, and should try again with a smaller learning rate
+
+        if (dscore > 0) {
+            learning_rate *= 0.5;
+            continue;
+        }
+
+        best_guess = new_guess;
+        best_score = objective(best_guess);
+
+        // otherwise, we want the percentage-change in all coefficients to be
+        // lower than the tolerance:
 
         Eigen::MatrixXd Jacobian(dim,dim);
         double change = 0;
