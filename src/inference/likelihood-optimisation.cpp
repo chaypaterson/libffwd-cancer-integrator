@@ -1363,9 +1363,9 @@ int main(int argc, char* argv[]) {
     Minimiser_t method_min = annealing_min;
     // but:
     if (options.minimise_with_gradient) method_min = gradient_min;
-    if (options.minimise_brute_force) method_min = brute_force_min;
-    if (options.minimise_with_mixed) method_min = mixed_min;
-    if (options.minimise_with_mixed_8) method_min = mixed_min_8;
+    if (options.minimise_brute_force)   method_min = brute_force_min;
+    if (options.minimise_with_mixed)    method_min = mixed_min;
+    if (options.minimise_with_mixed_8)  method_min = mixed_min_8;
     if (options.minimise_with_mixed_16) method_min = mixed_min_16;
 
     // The inference harness itself:
