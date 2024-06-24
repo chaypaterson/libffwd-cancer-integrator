@@ -111,6 +111,7 @@ Project structure:
  * `src/core`: the core library
  * `src/errors`: programs used to measure numerical error in the new method
  * `src/inference`: the statistical inference harness
+ * `src/tests`: unit tests
  * `include`: headers defining the API for the core library
 
 Building:
@@ -132,7 +133,7 @@ Mac users will also need to pass flags for their installation of GSL. e.g.
 
 Without a tarball:
 
-Alternatively, a hand-writted Makefile is provided as Makefile.old. This is the
+Alternatively, a hand-written Makefile is provided as Makefile.old. This is the
 original but is not machine agnostic, and only targetted 4 machines: my
 workstation, my development box at the WMIC, my MacBook, and the [CSF](https://ri.itservices.manchester.ac.uk/csf3/).
 
