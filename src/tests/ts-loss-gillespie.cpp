@@ -84,6 +84,7 @@ int main(int argc, char* argv[]) {
 
     std::sort(all_times.begin(), all_times.end());
     size_t study_population = all_times.size();
+    double time_max = all_times.back().first;
 
     // Print results for both types:
     for (auto type : final_vertices) {
@@ -104,7 +105,7 @@ int main(int argc, char* argv[]) {
 
         // Kaplan-Meier plot:
         std::cout << "age, p1, p2," << std::endl;
-        print_kaplan_meier(380, mutant_times, study_population);
+        print_kaplan_meier(time_max, mutant_times, study_population);
 
         std::cout << std::endl;
     }
