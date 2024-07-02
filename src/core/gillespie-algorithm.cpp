@@ -137,6 +137,32 @@ std::pair<double,int> first_passage_time(gsl_rng *rng, const Model &params,
     return std::make_pair(this_run.m_time, ending_type);
 }
 
+double first_passage_time_poly(gsl_rng *rng, const Model &params,
+        const std::vector<int> final_vertices) {
+    // create an instance of a simulation state:
+    gillespie_instance this_run(params);
+
+    do {
+        // guard against global extinction:
+        int total_pop = 0;
+        for (auto& vertex_pop : this_run.m_pops)
+            total_pop += vertex_pop;
+        if (!total_pop) break;
+
+        // otherwise, time step:
+        this_run.gillespie_step(rng);
+
+        // check if both vertices are occupied
+        bool full = 1;
+        for (auto& final_vertex : final_vertices) {
+            full &= this_run.m_pops[final_vertex];
+        }
+        if (full) break;
+    } while (1);
+
+    return this_run.m_time;
+}
+
 void times_to_final_vertex(const Model &model, int seed,
                            int runs_per_thr, int final_vertex,
                            std::vector<double> &results) {
@@ -176,6 +202,27 @@ void times_to_final_vertices(const Model &model, int seed,
         std::pair<double,int> result =
             first_passage_time(r, model, final_vertices);
         if (result.first >= 0)
+            results.push_back(result);
+    }
+    gsl_rng_free(r);
+}
+
+void times_to_final_vertices_poly(const Model &model, int seed,
+                             int runs_per_thr, std::vector<int> final_vertices,
+                             std::vector<double> &results) {
+    const gsl_rng_type *T;
+    gsl_rng *r;
+
+    gsl_rng_env_setup();
+    T = gsl_rng_default;
+    r = gsl_rng_alloc(T);
+
+    // Seed RNG:
+    gsl_rng_set(r,seed);
+
+    for (int i = 0; i < runs_per_thr; ++i) {
+        double result = first_passage_time_poly(r, model, final_vertices);
+        if (result >= 0)
             results.push_back(result);
     }
     gsl_rng_free(r);

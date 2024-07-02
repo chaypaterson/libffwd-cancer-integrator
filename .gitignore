@@ -15,3 +15,4 @@ build
 dist
 configure~
 configure.ac~
+*.tar.xz
