@@ -871,6 +871,8 @@ real_t save_data_compute_maximum(Epidata_t &all_times) {
 
 void draw_level_sets(std::function<real_t(Model &model)> objective,
                      Model point, int q_axis, int p_axis) {
+    // TODO completely different level set function? to visualise confidence intervals.
+    // Solve objective = const., d obj / d marginal_variables = 0.
     // This function will visualise a level set of the negative log likelihood
     // function in a chosen parameter plane. It does this by drawing a curve
     // with a "pencil" that follows Hamilton's equations. The "pencil"
