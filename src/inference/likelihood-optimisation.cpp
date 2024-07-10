@@ -873,89 +873,22 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
                      Model point, int q_axis, int p_axis) {
     // TODO completely different level set function? to visualise confidence intervals.
     // Solve objective = const., d obj / d marginal_variables = 0.
-    // This function will visualise a level set of the negative log likelihood
-    // function in a chosen parameter plane. It does this by drawing a curve
-    // with a "pencil" that follows Hamilton's equations. The "pencil"
-    // automatically updates the point in the plane, as its coordinates are just
-    // pointers to the corresponding variables in the underlying model, "point".
-    // Note that the model "point" is deliberately passed by value to
-    // create a mutable copy inside this function.
-    // We will need to translate between different coordinate axes and Model
-    // parameters, so here is a vector of parameter values:
     std::vector<real_t> params = model_params_pure(point);
 
     // Create the paper:
     std::ofstream drawing;
     drawing.open("level_set.csv");
 
-    // Create the pencil:
-    struct {
-        real_t p;
-        real_t q;
-        real_t time;
-        real_t angle;
-    } pencil;
-    pencil.p = params[p_axis], pencil.q = params[q_axis], pencil.time = 0;
-    pencil.angle = 0;
-
-    // draw initial point:
-    drawing << "x,y,z," << std::endl;
-    drawing << pencil.q << "," << pencil.p << ",";
-    drawing << objective(point) << ",";
-    drawing << std::endl;
-
-    // Trace a level set of the objective function using
-    // Hamilton's equations:
-    real_t dt = 0.05;
-    while (pencil.angle < 2 * M_PI) {
-        /* Hamilton's equations:
-         * dp / dt = - dH / dq
-         * dq / dt = + dH / dp
-         *
-         * Use kick-drift-kick (Verlet) instead of Euler integration:
-         */
-        std::vector<real_t> Delta(4, 0);
-        Eigen::MatrixXd gradient = gradient_log(objective, point);
-        real_t dp, dq;
-        real_t angle;
-
-        // kick:
-        dp = -gradient(q_axis) * dt * 0.5;
-        // remember that gradient_log works in log space:
-        // move the pencil:
-        Delta[p_axis] = pencil.p * (exp(dp) - 1);
-        point = shifted_model(point, Delta); // p += dp
-        pencil.p *= exp(dp);
-        Delta[p_axis] = 0;
-        angle = dp;
-
-        // drift:
-        gradient = gradient_log(objective, point);
-        dq = +gradient(p_axis) * dt;
-        Delta[q_axis] = pencil.q * (exp(dq) - 1);
-        point = shifted_model(point, Delta); // q += dq
-        pencil.q *= exp(dq);
-        Delta[q_axis] = 0;
-
-        // kick:
-        gradient = gradient_log(objective, point);
-        dp = -gradient(q_axis) * dt * 0.5;
-        Delta[p_axis] = pencil.p * (exp(dp) - 1);
-        point = shifted_model(point, Delta); // p += dp
-        pencil.p *= exp(dp);
-        Delta[p_axis] = 0;
-
-        angle -= dp;
-        angle /= dq;
-
-        pencil.time += dt;
-        pencil.angle += angle;
-
-        // draw:
-        drawing << pencil.q << "," << pencil.p << ",";
-        drawing << objective(point) << ",";
-        drawing << std::endl;
-    }
+    // ...
+    // Check H < target level...
+    // 1. Choose a ray in the (p,q) plane
+    // 2. walk along this ray and in a direction in the normal space along which H increases the slowest
+    //    could we also try to minimise H along the normal directions?
+    //    because when H is minimised dH/dn = 0
+    //    So, could take a Newtonian step in the normal directions
+    // 3. until H = target level
+    //
+    // idea: increase H as slowly as possible until it reaches a target level
 
     drawing.close();
 }
