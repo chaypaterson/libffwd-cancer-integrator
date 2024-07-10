@@ -873,22 +873,23 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
                      Model point, int q_axis, int p_axis) {
     // TODO completely different level set function? to visualise confidence intervals.
     // Solve objective = const., d obj / d marginal_variables = 0.
+    // Use this function to draw realistic non-ellipsoidal likelihood intervals
     std::vector<real_t> params = model_params_pure(point);
 
     // Create the paper:
     std::ofstream drawing;
-    drawing.open("level_set.csv");
+    char filename[14];
+    std::snprintf(filename, sizeof(filename), "raster_intervals_%d_%d.csv", x_axis, y_axis);
+    drawing.open(filename);
 
-    // ...
-    // Check H < target level...
-    // 1. Choose a ray in the (p,q) plane
-    // 2. walk along this ray and in a direction in the normal space along which H increases the slowest
-    //    could we also try to minimise H along the normal directions?
+    //    try to minimise H along the normal directions
     //    because when H is minimised dH/dn = 0
-    //    So, could take a Newtonian step in the normal directions
-    // 3. until H = target level
-    //
-    // idea: increase H as slowly as possible until it reaches a target level
+    //    So, could take a Newtonian step in the normal directions (e.g.)
+
+    // idea: would a heatmap be better, analogous to the draw_3dsurface
+    // function?
+    // pick a pixel, and instead of sampling the objective function here, find
+    // the minimum in the normal directions.
 
     drawing.close();
 }
