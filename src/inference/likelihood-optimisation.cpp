@@ -870,26 +870,90 @@ real_t save_data_compute_maximum(Epidata_t &all_times) {
 }
 
 void draw_level_sets(std::function<real_t(Model &model)> objective,
-                     Model point, int q_axis, int p_axis) {
-    // TODO completely different level set function? to visualise confidence intervals.
-    // Solve objective = const., d obj / d marginal_variables = 0.
-    // Use this function to draw realistic non-ellipsoidal likelihood intervals
+                     Model point, int x_axis, int y_axis,
+                     real_t x_range=10.0f, real_t y_range=10.0f,
+                     size_t lines=16) {
+    // Use this function to draw realistic non-ellipsoidal likelihood intervals.
+    // We choose two axes, and want to know about the projection of a surface
+    // objective=const onto this plane. Along this surface, because we
+    // solve objective = const., d obj / d marginal_variables = 0.
     std::vector<real_t> params = model_params_pure(point);
 
     // Create the paper:
     std::ofstream drawing;
-    char filename[14];
+    char filename[25];
     std::snprintf(filename, sizeof(filename), "raster_intervals_%d_%d.csv", x_axis, y_axis);
     drawing.open(filename);
 
-    //    try to minimise H along the normal directions
-    //    because when H is minimised dH/dn = 0
-    //    So, could take a Newtonian step in the normal directions (e.g.)
+    drawing << "x,y,z*," << std::endl;
 
-    // idea: would a heatmap be better, analogous to the draw_3dsurface
-    // function?
+    // Re-use the same model object to avoid excessive minimisation:
+    Model sample_point = point;
+
     // pick a pixel, and instead of sampling the objective function here, find
     // the minimum in the normal directions.
+    //    we try to minimise H along the normal directions
+    //    because when H is minimised dH/dn = 0, and this is one of the
+    //    conditions of the projection.
+    for (int x_tap = 0; x_tap < lines; ++x_tap) {
+        for (int y_tap = 0; y_tap < lines; ++y_tap) {
+            // compute new parameters in log grid:
+            real_t x_value = params[x_axis] / x_range;
+            real_t y_value = params[y_axis] / y_range;
+            x_value *= exp(log(x_range) * 2 * (real_t)x_tap / (real_t)lines);
+            y_value *= exp(log(y_range) * 2 * (real_t)y_tap / (real_t)lines);
+
+            // store current parameters:
+            std::vector<real_t> sample_params = model_params_pure(sample_point);
+
+            // compute differences:
+            real_t dx, dy;
+            dx = x_value - sample_params[x_axis];
+            dy = y_value - sample_params[y_axis];
+            std::vector<real_t> Delta(4,0);
+            Delta[x_axis] = dx, Delta[y_axis] = dy;
+
+            // Move the sample point to have the right x- and y-values:
+            sample_point = shifted_model(sample_point, Delta);
+
+            real_t z_value = objective(sample_point);
+
+            // instead of just sampling the objective at this point, minimise it
+            // with respect to the normal directions (the parameters we are
+            // ignoring)
+            double learning_rate = 1e-3;
+            int dim = 4;
+
+            while (1) {
+                // Just minimise it with gradient descent in a stupid way.
+                // Newtonian steps would be better but I'm not sure how to
+                // condition on not changing x and y.
+                Eigen::MatrixXd gradient = gradient_log(objective, sample_point);
+                // do not change the position in the chosen projection axes:
+                gradient(x_axis) = 0; gradient(y_axis) = 0;
+
+                // Update the guess:
+                std::vector<real_t> Delta(dim, 0);
+                for (int axis = 0; axis < dim; ++axis) {
+                    Delta[axis] = params[axis] * (exp(-learning_rate * gradient(axis)) - 1);
+                }
+
+                Model new_point = shifted_model(sample_point, Delta);
+
+                // quit when we start to go uphill:
+                real_t new_z_value = objective(new_point);
+
+                if (new_z_value > z_value) break;
+
+                sample_point = new_point;
+                z_value = new_z_value;
+            }
+
+            // write out values:
+            drawing << x_value << "," << y_value << "," << z_value << ",";
+            drawing << std::endl;
+        }
+    }
 
     drawing.close();
 }
@@ -1102,6 +1166,7 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
 
     // Draw level sets:
     if (options.level_sets) {
+        int dim = 4;
         std::cout << "Tracing level sets..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
             return loglikelihood_hist_both(model, binwidth,
@@ -1110,17 +1175,13 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
         };
         // choose a starting point from the best guess and local hessian:
         Model start_point = estimate.best_guess;
-        int q_axis = 0, p_axis = 1; // mu (1) vs rloh (0)
-        real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
 
-        std::vector<real_t> params = model_params_pure(start_point);
-
-        // use shifted_model not params_raw
-        std::vector<real_t> Delta(4,0);
-        Delta[q_axis] = stddev * 4.0;
-        start_point = shifted_model(start_point, Delta);
-
-        draw_level_sets(objective, start_point, q_axis, p_axis);
+        // for each combination of parameters:
+        for (int x_axis = 0; x_axis < dim; ++x_axis) {
+            for (int y_axis = x_axis + 1; y_axis < dim; ++y_axis) {
+                draw_level_sets(objective, start_point, x_axis, y_axis);
+            }
+        }
     }
 }
 
@@ -1231,6 +1292,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
 
     // Draw level sets:
     if (options.level_sets) {
+        int dim = 4;
         std::cout << "Tracing level sets..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
             return loglikelihood_hist_both(model, binwidth,
@@ -1242,17 +1304,13 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         };
         // choose a starting point from the best guess and local hessian:
         Model start_point = estimate.best_guess;
-        int q_axis = 0, p_axis = 1; // mu (1) vs rloh (0)
 
-        std::vector<real_t> params = model_params_pure(start_point);
-
-        real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
-        // use shifted_model not params_raw
-        std::vector<real_t> Delta(4,0);
-        Delta[q_axis] = stddev * 4.0;
-        start_point = shifted_model(start_point, Delta);
-
-        draw_level_sets(objective, start_point, q_axis, p_axis);
+        // for each combination of parameters:
+        for (int x_axis = 0; x_axis < dim; ++x_axis) {
+            for (int y_axis = x_axis + 1; y_axis < dim; ++y_axis) {
+                draw_level_sets(objective, start_point, x_axis, y_axis);
+            }
+        }
     }
 
     // Draw 3d plot:
