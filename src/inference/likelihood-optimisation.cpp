@@ -873,6 +873,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
                      Model point, int x_axis, int y_axis,
                      real_t x_range=10.0f, real_t y_range=10.0f,
                      size_t lines=16) {
+    using Eigen::all;
     // Use this function to draw realistic non-ellipsoidal likelihood intervals.
     // We choose two axes, and want to know about the projection of a surface
     // objective=const onto this plane. Along this surface, because we
@@ -895,6 +896,20 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
     //    we try to minimise H along the normal directions
     //    because when H is minimised dH/dn = 0, and this is one of the
     //    conditions of the projection.
+    // Store the normal directions for later (the ones that are not chosen):
+    std::vector<int> normal_dirs{0,1,2,3};
+    for (auto dir = normal_dirs.begin(); dir != normal_dirs.end();) {
+        if ((*dir == x_axis) || (*dir == y_axis)) {
+            normal_dirs.erase(dir);
+            continue;
+        } else {
+            ++dir;
+        }
+    }
+    std::cout << "(";
+    for (auto& elem : normal_dirs) std::cout << elem << " ";
+    std::cout << ")" <<std::endl;
+
     for (int x_tap = 0; x_tap < lines; ++x_tap) {
         for (int y_tap = 0; y_tap < lines; ++y_tap) {
             // compute new parameters in log grid:
@@ -921,29 +936,47 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
             // instead of just sampling the objective at this point, minimise it
             // with respect to the normal directions (the parameters we are
             // ignoring)
-            double learning_rate = 1e-3;
             int dim = 4;
+            double learning_rate = 1;
+            // Cap the number of newton's method iterations at 4
+            int max_iter = 4; 
 
-            while (1) {
-                // Just minimise it with gradient descent in a stupid way.
-                // Newtonian steps would be better but I'm not sure how to
-                // condition on not changing x and y.
+            for (int iter = 0; iter < max_iter; ++iter) {
+                // Minimise it with Newton's method
                 Eigen::MatrixXd gradient = gradient_log(objective, sample_point);
-                // do not change the position in the chosen projection axes:
-                gradient(x_axis) = 0; gradient(y_axis) = 0;
+                Eigen::MatrixXd normal_gradient = gradient(normal_dirs, all);
+                std::cout << "(" << normal_gradient << ")" << std::endl;
+
+                // Get Hessian for newtonian steps:
+                Eigen::MatrixXd hessian = compute_hessian(objective, sample_point);
+                Eigen::MatrixXd normal_hessian = hessian(normal_dirs, normal_dirs);
+                std::cout << normal_hessian << std::endl;
+                std::cout << normal_hessian.inverse() << std::endl;
+
+                // Compute Newtonian step:
+                Eigen::MatrixXd newt_step = normal_hessian.inverse() * normal_gradient;
+                newt_step = newt_step * -1 * learning_rate;
 
                 // Update the guess:
-                std::vector<real_t> Delta(dim, 0);
-                for (int axis = 0; axis < dim; ++axis) {
-                    Delta[axis] = params[axis] * (exp(-learning_rate * gradient(axis)) - 1);
+                std::vector<real_t> Step(dim, 0);
+                std::cout << "(";
+                sample_params = model_params_pure(sample_point);
+                for (int axis = 0; axis < 2; ++axis) {
+                    Step[normal_dirs[axis]] = newt_step(axis);
+                    Step[normal_dirs[axis]] /= sample_params[normal_dirs[axis]];
+                    std::cout << Step[normal_dirs[axis]] << " ";
                 }
+                std::cout << ")";
+                std::cout << std::endl;
 
-                Model new_point = shifted_model(sample_point, Delta);
+                Model new_point = shifted_model(sample_point, Step);
 
                 // quit when we start to go uphill:
                 real_t new_z_value = objective(new_point);
+                std::cout << "z* = " << new_z_value << std::endl;
 
                 if (new_z_value > z_value) break;
+                if (std::isnan(new_z_value)) break;
 
                 sample_point = new_point;
                 z_value = new_z_value;
