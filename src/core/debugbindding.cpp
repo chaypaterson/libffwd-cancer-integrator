@@ -7,6 +7,7 @@
 namespace py = pybind11;
 using namespace clonal_expansion;
 
+
 PYBIND11_MODULE(pybinding, m) {
     m.doc() = "Pybindings for ff";
 
@@ -22,10 +23,17 @@ PYBIND11_MODULE(pybinding, m) {
             [](const Model &m) { return m.m_migr; },
             [](Model &m, const std::vector<std::map<int, real_t>> &migr) { m.m_migr = migr; }
         );
-    //test binding
-     
-    m.def("test_reference", [](std::vector<real_t> *qcoords) {
-        clonal_expansion::fast_forward::test_reference(qcoords);
+
+
+    //test binding pointer
+    m.def("test_reference1", [](std::vector<real_t> *qcoords) {
+        clonal_expansion::fast_forward::test_reference1(qcoords);
+    }, "Test", py::arg("qcoords"));
+
+   
+    // Bind test_reference ference
+    m.def("test_reference2", [](std::vector<real_t> &qcoords) {
+        clonal_expansion::fast_forward::test_reference2(qcoords);
     }, "Test", py::arg("qcoords"));
 
     // Bind rhs_flow
