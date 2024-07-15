@@ -23,8 +23,8 @@ namespace clonal_expansion {
 
 namespace fast_forward {
 
-void test_reference(std::vector<real_t> *qcoords) {
-    for (auto& elem : *qcoords) 
+void test_reference(std::vector<real_t> &qcoords) {
+    for (auto &elem : qcoords) 
         elem = 0;
 }
 
