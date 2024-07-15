@@ -37,5 +37,3 @@ print("Values after Implicit Euler method step:", qcoords)
 pybinding.test_reference(qcoords)
 print("Values after test_reference:", qcoords)
 
-
-
