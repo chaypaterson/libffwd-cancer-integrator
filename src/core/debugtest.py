@@ -24,8 +24,18 @@ print("Initial values:", qcoords)
 
 # Perform Heun's method step
 pybinding.heun_q_step(qcoords, time, dt, model)
-print("Values after Heun's method step:", qcoords)
+print("Values after one Heun's method step:", qcoords)
+
+# Reset qcoords for implicit Euler method
+qcoords = [0.5, 0.5, 0.5]
+print("Initial values reset:", qcoords)
 
 # Perform Implicit Euler method step
 pybinding.implicit_q_step(qcoords, time, dt, model)
 print("Values after Implicit Euler method step:", qcoords)
+
+pybinding.test_reference(qcoords)
+print("Values after test_reference:", qcoords)
+
+
+
