@@ -939,7 +939,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
             int dim = 4;
             double learning_rate = 1;
             // Cap the number of newton's method iterations at 4
-            int max_iter = 4; 
+            int max_iter = 4;
 
             for (int iter = 0; iter < max_iter; ++iter) {
                 // Minimise it with Newton's method
@@ -1341,7 +1341,10 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         // for each combination of parameters:
         for (int x_axis = 0; x_axis < dim; ++x_axis) {
             for (int y_axis = x_axis + 1; y_axis < dim; ++y_axis) {
-                draw_level_sets(objective, start_point, x_axis, y_axis);
+                draw_level_sets(objective, start_point, x_axis, y_axis,
+                                options.mesh_x_range,
+                                options.mesh_y_range,
+                                options.mesh_lines);
             }
         }
     }
