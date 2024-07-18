@@ -12,16 +12,20 @@ model.m_migr = [
     {0: 0.01, 2: 0.01},  # From vertex 1 to vertices 0 and 2
     {0: 0.02, 1: 0.01}   # From vertex 2 to vertices 0 and 1
 ]
+
 # TODO 4. check members are mutable (lower priority)
 
 # Define initial q-coordinates and time step
 qcoords = [0.5, 0.5, 0.5]
+
 # TODO HIGH PRIORITY:
 # TODO export vector<real_t> instead of converting from lists
 # TODO: 1. bindings for vectors
 # TODO: 2. initialisers for vectors, converter from lists/dictionaries to vectors.
+
 time = 0.0
 dt = 1.0
+
 # TODO 3. struct/class containing these three? (lower priority)
 
 # Test zeroing function:
@@ -46,5 +50,24 @@ print("Initial values reset:", qcoords)
 # Perform Implicit Euler method step
 pybinding.implicit_q_step(qcoords, time, dt, model)
 print("Values after Implicit Euler method step:", qcoords)
+
+
+
+
+qcoords = [0.5, 0.5, 0.5]
+
+print("Values before test_reference:", qcoords)
+
+# pybinding.test_reference1(qcoords)
+
+# print("Values after test_reference1:", qcoords)
+
+# pybinding.test_reference2(qcoords)
+
+# print("Values after test_reference2:", qcoords)
+
+
+
+
 
 

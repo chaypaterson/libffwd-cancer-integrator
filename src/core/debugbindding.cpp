@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <iostream>
-#include "fast-forward.hpp"
+#include <fast-forward.hpp>
 #include "graph-model-spec.hpp"
 
 namespace py = pybind11;
@@ -29,13 +29,17 @@ PYBIND11_MODULE(pybinding, m) {
     m.def("test_reference1", [](std::vector<real_t> *qcoords) {
         clonal_expansion::fast_forward::test_reference1(qcoords);
     }, "Test", py::arg("qcoords"));
-
+*/
+    m.def("test_reference", fast_forward::test_reference, "Test", py::arg("qcoords"));
    
+/*
     // Bind test_reference ference
     m.def("test_reference2", [](std::vector<real_t> &qcoords) {
         clonal_expansion::fast_forward::test_reference2(qcoords);
     }, "Test", py::arg("qcoords"));
 */
+
+     m.def("rhs_flow", fast_forward::rhs_flow, "Compute rates of change", py::arg("qcoords"), py::arg("parameters"));
 
     // Bind rhs_flow
     m.def("rhs_flow", [](const std::vector<real_t> &qcoords, Model &parameters) {
