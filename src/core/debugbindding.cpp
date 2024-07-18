@@ -1,12 +1,18 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 #include <iostream>
-#include "fast-forward.hpp"
+#include <fast-forward.hpp>
 #include "graph-model-spec.hpp"
 
 namespace py = pybind11;
 using namespace clonal_expansion;
 
+<<<<<<< HEAD
+=======
+//PYBIND11_MAKE_OPAQUE(std::vector<real_t>); // TODO python bindings for
+//std::vector<real_t> and a conversion function for the initialiser
+>>>>>>> 55e7cad15037d49635a4feeff746634b552ad2bf
 
 PYBIND11_MODULE(pybinding, m) {
     m.doc() = "Pybindings for ff";
@@ -24,6 +30,7 @@ PYBIND11_MODULE(pybinding, m) {
             [](Model &m, const std::vector<std::map<int, real_t>> &migr) { m.m_migr = migr; }
         );
 
+<<<<<<< HEAD
 
     //test binding pointer
     m.def("test_reference1", [](std::vector<real_t> *qcoords) {
@@ -35,15 +42,13 @@ PYBIND11_MODULE(pybinding, m) {
     m.def("test_reference2", [](std::vector<real_t> &qcoords) {
         clonal_expansion::fast_forward::test_reference2(qcoords);
     }, "Test", py::arg("qcoords"));
+=======
+    //test binding
+    m.def("test_reference", fast_forward::test_reference, "Test", py::arg("qcoords"));
+>>>>>>> 55e7cad15037d49635a4feeff746634b552ad2bf
 
     // Bind rhs_flow
-    m.def("rhs_flow", [](const std::vector<real_t> &qcoords, Model &parameters) {
-        auto result = fast_forward::rhs_flow(qcoords, parameters);
-        for (size_t i = 0; i < result.size(); ++i) {
-            std::cout << "rhs_flow[" << i << "]: " << result[i] << std::endl;
-        }
-        return result;
-    }, "Compute rates of change", py::arg("qcoords"), py::arg("parameters"));
+    m.def("rhs_flow", fast_forward::rhs_flow, "Compute rates of change", py::arg("qcoords"), py::arg("parameters"));
 
     // Bind heun_q_step
     m.def("heun_q_step", [](std::vector<real_t> &qcoords, const real_t &time, real_t &dt, Model &parameters) {

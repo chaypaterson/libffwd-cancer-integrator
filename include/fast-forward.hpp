@@ -23,9 +23,13 @@ namespace clonal_expansion {
 
 namespace fast_forward {
 
+<<<<<<< HEAD
 void test_reference1(std::vector<real_t> *qcoords);
 void test_reference2(std::vector<real_t> &qcoords);
 
+=======
+void test_reference(std::vector<real_t> &qcoords);
+>>>>>>> 55e7cad15037d49635a4feeff746634b552ad2bf
 
 // This function computes the right-hand-side of the system of ordinary
 // differential equations that govern the characteristics:

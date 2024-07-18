@@ -8,11 +8,11 @@ extension_mod = Extension(
     include_dirs=[
         pybind11.get_include(),
         pybind11.get_include(user=True),
-        '/Users/user/cancer-integrator/include',  # Adjust this path
+        '../../include',  # Adjust this path
         '/opt/homebrew/opt/python@3.12/Frameworks/Python.framework/Versions/3.12/include/python3.12'
     ],
     language='c++',
-    extra_compile_args=['-std=c++17', '-stdlib=libc++', '-mmacosx-version-min=10.9']
+    extra_compile_args=['-std=c++17']
 )
 
 # Setup configuration
