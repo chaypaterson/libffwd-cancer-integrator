@@ -22,8 +22,7 @@
 namespace clonal_expansion {
 
 namespace fast_forward {
-
-<<<<<<< HEAD
+/*
 void test_reference1(std::vector<real_t> *qcoords) {
     for (auto& elem : *qcoords)
         elem = 0;
@@ -32,12 +31,9 @@ void test_reference1(std::vector<real_t> *qcoords) {
 
 void test_reference2(std::vector<real_t> &qcoords) {
     for (auto& elem : qcoords)
-=======
-void test_reference(std::vector<real_t> &qcoords) {
-    for (auto &elem : qcoords) 
->>>>>>> 55e7cad15037d49635a4feeff746634b552ad2bf
         elem = 0;
 }
+*/
 
 std::vector<real_t> rhs_flow(const std::vector<real_t> &qcoords,
                              Model &parameters) {
@@ -81,14 +77,14 @@ void heun_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &dt,
     // Compute an initial guess, qcoords2:
     std::vector<real_t> flux = rhs_flow(qcoords, parameters);
     std::vector<real_t> qcoords2 = qcoords;
-    for (size_t vertex = 0; vertex < qcoords.size(); ++vertex) {
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords2[vertex] += flux[vertex] * dt;
     }
 
     // Use the initial guess qcoords2 to compute an improved guess:
     std::vector<real_t> flux2 = rhs_flow(qcoords2, parameters);
     // Combine the initial guess and improved guess using the trapezoid rule:
-    for (size_t vertex = 0; vertex < qcoords.size(); ++vertex) {
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords[vertex] += 0.5 * (flux[vertex] + flux2[vertex]) * dt;
     }
 
@@ -104,7 +100,7 @@ void implicit_q_step(std::vector<real_t> &qcoords, const real_t &time, real_t &d
     // iterate on this guess multiple times:
     for (int trial = 0; trial < trials; ++trial) {
         std::vector<real_t> flux2 = rhs_flow(qcoords2, parameters);
-        for (size_t vertex = 0; vertex < qcoords.size(); ++vertex) {
+        for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
             qcoords2[vertex] = qcoords[vertex];
             qcoords2[vertex] += flux2[vertex] * dt;
         }
@@ -121,26 +117,26 @@ void rungekutta_q_step(std::vector<real_t> &qcoords, const real_t &time,
     // Compute initial midpoint guesses, qcoords2 and qcoords3:
     std::vector<real_t> flux = rhs_flow(qcoords, parameters);
     std::vector<real_t> qcoords2 = qcoords;
-    for (size_t vertex = 0; vertex < qcoords.size(); ++vertex) {
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords2[vertex] += 0.5 * flux[vertex] * dt;
     }
     std::vector<real_t> flux2 = rhs_flow(qcoords2, parameters);
 
     std::vector<real_t> qcoords3 = qcoords;
-    for (size_t vertex = 0; vertex < qcoords.size(); ++vertex) {
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords3[vertex] += 0.5 * flux2[vertex] * dt;
     }
     std::vector<real_t> flux3 = rhs_flow(qcoords3, parameters);
 
     // Compute an endpoint guess, qcoords4:
     std::vector<real_t> qcoords4 = qcoords;
-    for (size_t vertex = 0; vertex < qcoords.size(); ++vertex) {
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords4[vertex] += flux3[vertex] * dt;
     }
     std::vector<real_t> flux4 = rhs_flow(qcoords2, parameters);
 
     // Combine the guesses:
-    for (size_t vertex = 0; vertex < qcoords.size(); ++vertex) {
+    for (int vertex = 0; vertex < qcoords.size(); ++vertex) {
         qcoords[vertex] += flux[vertex] * dt / 6;
         qcoords[vertex] += 2 * flux2[vertex] * dt / 6;
         qcoords[vertex] += 2 * flux3[vertex] * dt / 6;
