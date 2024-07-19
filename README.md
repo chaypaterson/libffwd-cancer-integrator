@@ -142,19 +142,25 @@ Build & run Python binding:
 ------------------------
 
 *Ensure pybind11 is available in your environment. Install it via pip if necessary:
+    
     pip install pybind11
 
 Navigate to the cancer-integrator/src/core directory:
 
 Create and activate a Python virtual environment:
+    
     python3 -m venv venv
+    
     source venv/bin/activate  
 
 Build and install the Python bindings:
+    
     python pyffwdsetup.py build
+    
     python pyffwdsetup.py install
 
 Run the Python test script:
+    
     python pyffwdtest.py
 
 
