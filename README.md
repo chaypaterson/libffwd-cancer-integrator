@@ -138,18 +138,23 @@ original but is not machine agnostic, and only targetted 4 machines: my
 workstation, my development box at the WMIC, my MacBook, and the [CSF](https://ri.itservices.manchester.ac.uk/csf3/).
 
 
-Build & run Python binding
+Build & run Python binding:
 ------------------------
-*Ensure pybind11 is available in your environment. Install it via pip if necessary.
+
+*Ensure pybind11 is available in your environment. Install it via pip if necessary:
     pip install pybind11
-Navigate to the cancer-integrator/src/core directory.
-Create and activate a Python virtual environment.
+
+Navigate to the cancer-integrator/src/core directory:
+
+Create and activate a Python virtual environment:
     python3 -m venv venv
     source venv/bin/activate  
-Build and install the Python bindings.
+
+Build and install the Python bindings:
     python pyffwdsetup.py build
     python pyffwdsetup.py install
-Run the Python test script.
+
+Run the Python test script:
     python pyffwdtest.py
 
 
