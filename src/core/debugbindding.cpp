@@ -1,15 +1,29 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 #include <iostream>
 #include <fast-forward.hpp>
 #include "graph-model-spec.hpp"
 
 namespace py = pybind11;
 using namespace clonal_expansion;
+using clonal_expansion::real_t;
 
+PYBIND11_MAKE_OPAQUE(std::vector<real_t>);
 
 PYBIND11_MODULE(pybinding, m) {
     m.doc() = "Pybindings for ff";
+
+    // convert Python list to std::vector<real_t>
+    m.def("list_to_vector", [](py::list py_list) {
+        std::vector<real_t> cpp_vector;
+        for (auto item : py_list) {
+            cpp_vector.push_back(item.cast<real_t>());
+        }
+        return cpp_vector;
+    }, "Convert list to std::vector<real_t>", py::arg("py_list"));
+
+    py::bind_vector<std::vector<real_t>>(m, "RealVector");
 
     // Bind the Model class
     py::class_<Model>(m, "Model")
@@ -24,20 +38,10 @@ PYBIND11_MODULE(pybinding, m) {
             [](Model &m, const std::vector<std::map<int, real_t>> &migr) { m.m_migr = migr; }
         );
 
-/*
-    //test binding pointer
-    m.def("test_reference1", [](std::vector<real_t> *qcoords) {
-        clonal_expansion::fast_forward::test_reference1(qcoords);
-    }, "Test", py::arg("qcoords"));
-*/
-    m.def("test_reference", fast_forward::test_reference, "Test", py::arg("qcoords"));
-   
-/*
     // Bind test_reference ference
-    m.def("test_reference2", [](std::vector<real_t> &qcoords) {
-        clonal_expansion::fast_forward::test_reference2(qcoords);
+    m.def("test_reference", [](std::vector<real_t> &qcoords) {
+        clonal_expansion::fast_forward::test_reference(qcoords);
     }, "Test", py::arg("qcoords"));
-*/
 
      m.def("rhs_flow", fast_forward::rhs_flow, "Compute rates of change", py::arg("qcoords"), py::arg("parameters"));
 
@@ -65,5 +69,7 @@ PYBIND11_MODULE(pybinding, m) {
             std::cout << "qcoords[" << i << "] after Implicit Euler step: " << qcoords[i] << std::endl;
         }
     }, "Implicit Euler method for q-coordinates", py::arg("qcoords"), py::arg("time"), py::arg("dt"), py::arg("parameters"));
+
+
 }
 

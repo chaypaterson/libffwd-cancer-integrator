@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "fast-forward.hpp"       
-#include "graph-model-spec.hpp"       
+#include <fast-forward.hpp>
+#include <graph-model-spec.hpp>
 
 namespace py = pybind11;
 using namespace clonal_expansion;
@@ -9,6 +9,14 @@ using namespace clonal_expansion;
 PYBIND11_MODULE(pybinding, m) {
     m.doc() = "Pybindings for ff";
 
+    // convert Python list to std::vector<real_t>
+    m.def("list_to_vector", [](py::list py_list) {
+        std::vector<real_t> cpp_vector;
+        for (auto item : py_list) {
+            cpp_vector.push_back(item.cast<real_t>());
+        }
+        return cpp_vector;
+    }, "Convert list to std::vector<real_t>", py::arg("py_list"));
 
     // Bind the Model class 
     py::class_<Model>(m, "Model")

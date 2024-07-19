@@ -28,19 +28,6 @@ void test_reference(std::vector<real_t> &qcoords) {
         elem = 0;
 }
 
-/*
-void test_reference1(std::vector<real_t> *qcoords) {
-    for (auto& elem : *qcoords)
-        elem = 0;
-}
-
-
-void test_reference2(std::vector<real_t> &qcoords) {
-    for (auto& elem : qcoords)
-        elem = 0;
-}
-*/
-
 std::vector<real_t> rhs_flow(const std::vector<real_t> &qcoords,
                              Model &parameters) {
     // Compute and return a vector containing the rates of change of

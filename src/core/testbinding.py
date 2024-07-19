@@ -13,6 +13,7 @@ model.m_migr = [
 
 # Define initial q-coordinates and time step
 qcoords = [0.5, 0.5, 0.5]
+vec_qcoords = pybinding.list_to_vector(qcoords)
 time = 0.0
 dt = 1.0
 
@@ -23,9 +24,11 @@ print("Result from rhs_flow:", result_rhs_flow)
 print("Initial values:", qcoords)
 
 # Perform Heun's method step
-pybinding.heun_q_step(qcoords, time, dt, model)
-print("Values after Heun's method step:", qcoords)
+vec_qcoords = pybinding.list_to_vector(qcoords)
+Result = pybinding.heun_q_step(qcoords, time, dt, model)
+print("Values after Heun's method step:", Result)
 
 # Perform Implicit Euler method step
-pybinding.implicit_q_step(qcoords, time, dt, model)
-print("Values after Implicit Euler method step:", qcoords)
+vec_qcoords = pybinding.list_to_vector(qcoords)
+Result = pybinding.implicit_q_step(qcoords, time, dt, model)
+print("Values after Implicit Euler method step:", Result)
