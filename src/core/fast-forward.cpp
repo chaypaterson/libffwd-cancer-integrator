@@ -23,11 +23,6 @@ namespace clonal_expansion {
 
 namespace fast_forward {
 
-void test_reference(std::vector<real_t> &qcoords) {
-    for (auto &elem : qcoords) 
-        elem = 0;
-}
-
 std::vector<real_t> rhs_flow(const std::vector<real_t> &qcoords,
                              Model &parameters) {
     // Compute and return a vector containing the rates of change of
