@@ -35,8 +35,14 @@ vec_qcoords = pyffwd.list_to_vector(qcoords)
 pyffwd.implicit_q_step(vec_qcoords, time, dt, model)
 print("Values after Implicit Euler method step:", vec_qcoords)
 
-
 # Perform rungekutta method
 vec_qcoords = pyffwd.list_to_vector(qcoords)
 pyffwd.rungekutta_q_step(vec_qcoords, time, dt, model)
 print("Values after rungekutta method step:", vec_qcoords)
+
+# Calculate generating function
+initial_pops = [10, 20, 30]
+vec_qcoords = pyffwd.list_to_vector(qcoords)
+initial_pops = pyffwd.list_to_vector(initial_pops)
+psi = pyffwd.generating_function(vec_qcoords, initial_pops)
+print("Generating Function:", psi)

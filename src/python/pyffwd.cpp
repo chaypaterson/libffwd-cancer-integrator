@@ -61,7 +61,10 @@ PYBIND11_MODULE(pyffwd, m) {
         fast_forward::rungekutta_q_step(qcoords, time, dt, parameters);
     }, "Runge-Kutta method for q-coordinates", py::arg("qcoords"), py::arg("time"), py::arg("dt"), py::arg("parameters"));
 
-
+    // Bind generating_function
+    m.def("generating_function", [](const std::vector<real_t> &qcoords, const std::vector<real_t> &initial_pops) {
+        return fast_forward::generating_function(qcoords, initial_pops);
+    }, "Compute the generating function", py::arg("qcoords"), py::arg("initial_pops"));
 
 }
 
