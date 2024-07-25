@@ -888,7 +888,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
 
     drawing << "x,y,z*," << std::endl;
 
-    // Re-use the same model object to avoid excessive minimisation:
+    // Copy the model object:
     Model sample_point = point;
 
     // pick a pixel, and instead of sampling the objective function here, find
@@ -906,9 +906,6 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
             ++dir;
         }
     }
-    std::cout << "(";
-    for (auto& elem : normal_dirs) std::cout << elem << " ";
-    std::cout << ")" <<std::endl;
 
     for (int x_tap = 0; x_tap < lines; ++x_tap) {
         for (int y_tap = 0; y_tap < lines; ++y_tap) {
@@ -919,7 +916,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
             y_value *= exp(log(y_range) * 2 * (real_t)y_tap / (real_t)lines);
 
             // store current parameters:
-            std::vector<real_t> sample_params = model_params_pure(sample_point);
+            std::vector<real_t> sample_params = model_params_pure(point);
 
             // compute differences:
             real_t dx, dy;
@@ -929,7 +926,7 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
             Delta[x_axis] = dx, Delta[y_axis] = dy;
 
             // Move the sample point to have the right x- and y-values:
-            sample_point = shifted_model(sample_point, Delta);
+            sample_point = shifted_model(point, Delta);
 
             real_t z_value = objective(sample_point);
 
@@ -945,13 +942,10 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
                 // Minimise it with Newton's method
                 Eigen::MatrixXd gradient = gradient_log(objective, sample_point);
                 Eigen::MatrixXd normal_gradient = gradient(normal_dirs, all);
-                std::cout << "(" << normal_gradient << ")" << std::endl;
 
                 // Get Hessian for newtonian steps:
                 Eigen::MatrixXd hessian = compute_hessian(objective, sample_point);
                 Eigen::MatrixXd normal_hessian = hessian(normal_dirs, normal_dirs);
-                std::cout << normal_hessian << std::endl;
-                std::cout << normal_hessian.inverse() << std::endl;
 
                 // Compute Newtonian step:
                 Eigen::MatrixXd newt_step = normal_hessian.inverse() * normal_gradient;
@@ -959,21 +953,16 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
 
                 // Update the guess:
                 std::vector<real_t> Step(dim, 0);
-                std::cout << "(";
                 sample_params = model_params_pure(sample_point);
                 for (int axis = 0; axis < 2; ++axis) {
                     Step[normal_dirs[axis]] = newt_step(axis);
                     Step[normal_dirs[axis]] /= sample_params[normal_dirs[axis]];
-                    std::cout << Step[normal_dirs[axis]] << " ";
                 }
-                std::cout << ")";
-                std::cout << std::endl;
 
                 Model new_point = shifted_model(sample_point, Step);
 
                 // quit when we start to go uphill:
                 real_t new_z_value = objective(new_point);
-                std::cout << "z* = " << new_z_value << std::endl;
 
                 if (new_z_value > z_value) break;
                 if (std::isnan(new_z_value)) break;
