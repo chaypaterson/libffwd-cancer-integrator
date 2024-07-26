@@ -1,4 +1,6 @@
 import pyffwd
+import gsl
+import numpy as np
 
 
 # Create an instance of the Model class
@@ -46,3 +48,15 @@ vec_qcoords = pyffwd.list_to_vector(qcoords)
 initial_pops = pyffwd.list_to_vector(initial_pops)
 psi = pyffwd.generating_function(vec_qcoords, initial_pops)
 print("Generating Function:", psi)
+
+# Create an RNG instance
+rng = pyffwd.RNGWrapper(seed=42)
+
+# Define the final vertex for which you want to calculate the first passage time
+final_vertex = 2  # Example: final vertex is 2
+
+# Call the first_passage_time_single method on the RNGWrapper instance
+time_to_final_vertex = rng.first_passage_time_single(model, final_vertex)
+
+# Print the result
+print(f"First passage time to final vertex {final_vertex}: {time_to_final_vertex}")
