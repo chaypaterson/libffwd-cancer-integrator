@@ -1036,6 +1036,8 @@ struct Estimate {
     Estimate(const Estimate& est) : best_guess(est.best_guess), Hessian(est.Hessian) {}
 };
 
+// TODO serialise Estimate to a file so minima can be saved and loaded?
+
 void print_best_guess(Estimate estimate) {
     std::cout << "Best guesses:" << std::endl;
     print_model(estimate.best_guess);
