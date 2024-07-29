@@ -1,7 +1,6 @@
 import pyffwd
 import gsl
-import numpy as np
-
+import random
 
 # Create an instance of the Model class
 model = pyffwd.Model(3)
@@ -49,14 +48,36 @@ initial_pops = pyffwd.list_to_vector(initial_pops)
 psi = pyffwd.generating_function(vec_qcoords, initial_pops)
 print("Generating Function:", psi)
 
+# Perform first_passage_time_single & first_passage_time_multiple
 # Create an RNG instance
 rng = pyffwd.RNGWrapper(seed=42)
-
-# Define the final vertex for which you want to calculate the first passage time
-final_vertex = 2  # Example: final vertex is 2
-
+final_vertex = 2
 # Call the first_passage_time_single method on the RNGWrapper instance
 time_to_final_vertex = rng.first_passage_time_single(model, final_vertex)
-
-# Print the result
 print(f"First passage time to final vertex {final_vertex}: {time_to_final_vertex}")
+# Define multiple final vertices for which you want to calculate the first passage time
+final_vertices = [1, 2]
+results = rng.first_passage_time_multiple(model, final_vertices)
+print(f"First passage times to final vertices {final_vertices}: {results}")
+
+# Perform print_results
+print("print_results...")
+all_times = [random.uniform(0, 10) for _ in range(10)]
+all_times_vector = pyffwd.list_to_vector(all_times)
+pyffwd.print_results(all_times_vector)
+
+# Perform print_kaplan_meier
+print("print_kaplan_meier...")
+pyffwd.print_kaplan_meier(10.0, all_times_vector)
+print("print_kaplan_meier with ref_pop...")
+pyffwd.print_kaplan_meier(10.0, all_times_vector, ref_pop=5)
+
+# Perform surv_kaplan_meier
+print("surv_kaplan_meier:")
+survival_rate = pyffwd.surv_kaplan_meier(5.0, all_times_vector, ref_pop=5)
+print(survival_rate)
+assert isinstance(survival_rate, float)
+
+# Perform print_naive_estimator
+print("print_naive_estimator...")
+pyffwd.print_naive_estimator(10.0, all_times_vector)

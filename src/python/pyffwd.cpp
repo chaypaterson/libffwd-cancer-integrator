@@ -108,16 +108,51 @@ PYBIND11_MODULE(pyffwd, m) {
         .def_readwrite("m_pops", &gillespie_ssa::gillespie_instance::m_pops)
         .def_readwrite("m_time", &gillespie_ssa::gillespie_instance::m_time);
 
-        // Bind for RNGWrapper
+    // Bind for RNGWrapper
     py::class_<RNGWrapper>(m, "RNGWrapper")
         .def(py::init<unsigned long>(), py::arg("seed"))
         .def("first_passage_time_single", &RNGWrapper::first_passage_time_single, py::arg("model"), py::arg("final_vertex"))
         .def("first_passage_time_multiple", &RNGWrapper::first_passage_time_multiple, py::arg("model"), py::arg("final_vertices"));
-
-        // Bind for times_to_final_vertex 
+/*
+    // Bind for times_to_final_vertex 
     m.def("times_to_final_vertex", &gillespie_ssa::times_to_final_vertex,
           "Compute times to reach the final vertex across multiple runs",
           py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"), py::arg("final_vertex"), py::arg("results"));
+        
+    // Bind for times_to_final_vertices 
+    m.def("times_to_final_vertices", &gillespie_ssa::times_to_final_vertices,
+          "Compute times to reach any of the final vertices across multiple runs",
+          py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"), py::arg("final_vertices"), py::arg("results"));
+
+*/
+    //bind print_results function
+    m.def("print_results", [](const std::vector<double> &all_times) {
+        auto& non_const_times = const_cast<std::vector<double>&>(all_times);
+        clonal_expansion::gillespie_ssa::print_results(non_const_times);
+    }, "Print results");
+
+    // Bind print_kaplan_meier
+    m.def("print_kaplan_meier", [](double time_max, const std::vector<double> &all_times) {
+        auto& non_const_times = const_cast<std::vector<double>&>(all_times);
+        clonal_expansion::gillespie_ssa::print_kaplan_meier(time_max, non_const_times);
+    }, "Print Kaplan-Meier", py::arg("time_max"), py::arg("all_times"));
+
+    m.def("print_kaplan_meier", [](double time_max, const std::vector<double> &all_times, size_t ref_pop) {
+        auto& non_const_times = const_cast<std::vector<double>&>(all_times);
+        clonal_expansion::gillespie_ssa::print_kaplan_meier(time_max, non_const_times, ref_pop);
+    }, "Print Kaplan-Meier with ref_pop", py::arg("time_max"), py::arg("all_times"), py::arg("ref_pop"));
+
+    // Bind surv_kaplan_meier
+    m.def("surv_kaplan_meier", [](double age, const std::vector<double> &all_times, size_t ref_pop) {
+        auto& non_const_times = const_cast<std::vector<double>&>(all_times);
+        return clonal_expansion::gillespie_ssa::surv_kaplan_meier(age, non_const_times, ref_pop);
+    }, "Survival Kaplan-Meier", py::arg("age"), py::arg("all_times"), py::arg("ref_pop"));
+
+    // Bind print_naive_estimator
+    m.def("print_naive_estimator", [](double time_max, const std::vector<double> &all_times) {
+        auto& non_const_times = const_cast<std::vector<double>&>(all_times);
+        clonal_expansion::gillespie_ssa::print_naive_estimator(time_max, non_const_times);
+    }, "Print naive estimator", py::arg("time_max"), py::arg("all_times"));
 
 }
 
