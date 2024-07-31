@@ -58,7 +58,7 @@ PYBIND11_MODULE(pyffwd, m) {
         }
         return cpp_vector;
     }, "Convert list to std::vector<real_t>", py::arg("py_list"));
-    
+
     py::bind_vector<std::vector<real_t>>(m, "RealVector");
 
     // Bind the Model class
@@ -137,6 +137,7 @@ PYBIND11_MODULE(pyffwd, m) {
         clonal_expansion::gillespie_ssa::print_kaplan_meier(time_max, non_const_times);
     }, "Print Kaplan-Meier", py::arg("time_max"), py::arg("all_times"));
 
+    // Bind print_kaplan_meier with ref_pop 
     m.def("print_kaplan_meier", [](double time_max, const std::vector<double> &all_times, size_t ref_pop) {
         auto& non_const_times = const_cast<std::vector<double>&>(all_times);
         clonal_expansion::gillespie_ssa::print_kaplan_meier(time_max, non_const_times, ref_pop);
