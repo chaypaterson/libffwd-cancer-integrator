@@ -66,10 +66,8 @@ all_times = [random.uniform(0, 10) for _ in range(10)]
 all_times_vector = pyffwd.list_to_vector(all_times)
 pyffwd.print_results(all_times_vector)
 
-# Perform print_kaplan_meier
+# Perform print_kaplan_meier with ref_pop
 print("print_kaplan_meier...")
-pyffwd.print_kaplan_meier(10.0, all_times_vector)
-print("print_kaplan_meier with ref_pop...")
 pyffwd.print_kaplan_meier(10.0, all_times_vector, ref_pop=5)
 
 # Perform surv_kaplan_meier
@@ -81,3 +79,31 @@ assert isinstance(survival_rate, float)
 # Perform print_naive_estimator
 print("print_naive_estimator...")
 pyffwd.print_naive_estimator(10.0, all_times_vector)
+
+
+import pyffwd
+
+# Example model initialization (assumes the Model class is properly defined)
+model = pyffwd.Model(10)  # Adjust the parameters as needed
+
+# Create RNGWrapper instance
+rng = pyffwd.RNGWrapper(42)  # Using a fixed seed for reproducibility
+
+# Test for a single vertex
+final_vertex = 5
+time = rng.first_passage_time_single(model, final_vertex)
+print(f"First passage time to vertex {final_vertex}: {time}")
+
+
+import pyffwd
+
+# Example model initialization
+model = pyffwd.Model(10)  # Adjust the parameters as needed
+
+# Create RNGWrapper instance
+rng = pyffwd.RNGWrapper(42)  # Using a fixed seed for reproducibility
+
+# Test for multiple vertices
+final_vertices = [1, 2, 5, 7]
+times = rng.first_passage_time_multiple(model, final_vertices)
+print(f"First passage times to vertices: {times}")
