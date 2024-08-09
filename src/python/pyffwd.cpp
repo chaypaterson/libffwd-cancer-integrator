@@ -17,26 +17,28 @@ PYBIND11_MAKE_OPAQUE(std::vector<real_t>);
 class RNGWrapper {
 public:
     RNGWrapper(unsigned long seed) {
-        rng = gsl_rng_alloc(gsl_rng_default); //allocate a random number generator (RNG)
-        gsl_rng_set(rng, seed); //The seed is used to initialize the RNG
+        rng = gsl_rng_alloc(gsl_rng_default);
+        gsl_rng_set(rng, seed);
     }
 
     ~RNGWrapper() {
-        gsl_rng_free(rng); //Releases the memory allocated for the RNG using GSL
+        gsl_rng_free(rng);
     }
 
-    // calculate the first passage time to a single vertex
-    //return gillespie_ssa::first_passage_time(rng, model, final_vertex)
+    // Expose the raw gsl_rng* internally (but not to Python)
+    gsl_rng* get_rng() const {
+        return rng;
+    }
+
     double first_passage_time_single(const Model& model, int final_vertex) {
         return gillespie_ssa::first_passage_time(rng, model, final_vertex);
     }
 
-    //calculate the first passage times for multiple final vertices
     std::vector<std::pair<double, int>> first_passage_time_multiple(const Model& model, const std::vector<int>& final_vertices) {
         std::vector<std::pair<double, int>> results;
         for (int final_vertex : final_vertices) {
             std::pair<double, int> result = gillespie_ssa::first_passage_time(rng, model, final_vertices);
-            if (result.first >= 0) { // Only add valid results
+            if (result.first >= 0) {
                 results.push_back(result);
             }
         }
@@ -44,7 +46,7 @@ public:
     }
 
 private:
-    gsl_rng* rng; //Declares a pointer to a gsl_rng object. This pointer holds the reference to the RNG allocated by GSL
+    gsl_rng* rng;
 };
 
 PYBIND11_MODULE(pyffwd, m) {
@@ -103,7 +105,10 @@ PYBIND11_MODULE(pyffwd, m) {
     // Bind the gillespie_instance class
     py::class_<gillespie_ssa::gillespie_instance>(m, "GillespieInstance")
         .def(py::init<const Model &>(), py::arg("model"))
-        .def("gillespie_step", &gillespie_ssa::gillespie_instance::gillespie_step, py::arg("rng"))
+        .def("gillespie_step", [](gillespie_ssa::gillespie_instance &self, RNGWrapper &rng_wrapper) {
+            // Correctly use RNGWrapper instance
+            self.gillespie_step(rng_wrapper.get_rng());  // Ensure this method exists in gillespie_instance
+        }, py::arg("rng_wrapper"))
         .def_readwrite("m_pops", &gillespie_ssa::gillespie_instance::m_pops)
         .def_readwrite("m_time", &gillespie_ssa::gillespie_instance::m_time);
 
@@ -114,9 +119,10 @@ PYBIND11_MODULE(pyffwd, m) {
         .def("first_passage_time_multiple", &RNGWrapper::first_passage_time_multiple, py::arg("model"), py::arg("final_vertices"));
 
     // Bind standalone functions
-    m.def("times_to_final_vertex", &gillespie_ssa::times_to_final_vertex,
-          "Compute times to reach the final vertex across multiple runs",
-          py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"), py::arg("final_vertex"), py::arg("results"));
+    m.def("times_to_final_vertex", [](const Model &model, int seed, int runs_per_thr, int final_vertex, std::vector<real_t> &results) {
+        gillespie_ssa::times_to_final_vertex(model, seed, runs_per_thr, final_vertex, results);
+    }, "Compute times to reach the final vertex across multiple runs",
+    py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"), py::arg("final_vertex"), py::arg("results"));
 
     m.def("times_to_final_vertices", &gillespie_ssa::times_to_final_vertices,
           "Compute times to reach any of the final vertices across multiple runs",
