@@ -15,6 +15,7 @@ def map_onto_data(params, this_data):
 
         while time < age:
             pyffwd.heun_q_step(qvals, time, dt, params)
+            print(qvals)
             time += dt
 
         prob = pyffwd.generating_function(qvals, params.m_initial_pops)
@@ -51,9 +52,9 @@ def main():
     params.m_migr[1][4] = 0.5 * rloh
     params.m_migr[2][4] = 0.5 * mu
 
-    params.m_birth = pyffwd.list_to_vector([0.1, 0.2, 0.2, 0.1, 0.1])
-    params.m_death = pyffwd.list_to_vector([0.1, 0.1, 0.1, 0.1, 0.1])
-    params.m_initial_pops = pyffwd.list_to_vector([1e2, 1e2, 1e2, 1e2, 1e2])
+    params.m_birth = pyffwd.list_to_vector([0.0, 0.2, 0.2, 0.0, 0.0])
+    params.m_death = pyffwd.list_to_vector([0.0, 0.0, 0.0, 0.0, 0.0])
+    params.m_initial_pops = pyffwd.list_to_vector([1e2, 0, 0, 0, 0])
 
     all_times = [(33.0, 3), (50.0, 4)]
 

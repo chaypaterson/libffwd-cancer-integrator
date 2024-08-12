@@ -31,6 +31,11 @@ vec_qcoords = pyffwd.list_to_vector(qcoords)
 pyffwd.heun_q_step(vec_qcoords, time, dt, model)
 print("Values after one Heun's method step:", vec_qcoords)
 
+pyffwd.heun_q_step(vec_qcoords, time, dt, model)
+print("Values after two Heun's method steps:", vec_qcoords)
+
+print(vec_qcoords)
+
 # Perform Implicit Euler method step
 vec_qcoords = pyffwd.list_to_vector(qcoords)
 pyffwd.implicit_q_step(vec_qcoords, time, dt, model)
@@ -59,6 +64,8 @@ print(f"First passage time to final vertex {final_vertex}: {time_to_final_vertex
 final_vertices = [1, 2]
 results = rng.first_passage_time_multiple(model, final_vertices)
 print(f"First passage times to final vertices {final_vertices}: {results}")
+
+exit()
 
 # Perform print_results
 print("print_results...")
