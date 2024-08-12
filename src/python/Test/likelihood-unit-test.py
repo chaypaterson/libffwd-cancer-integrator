@@ -15,7 +15,6 @@ def map_onto_data(params, this_data):
 
         while time < age:
             pyffwd.heun_q_step(qvals, time, dt, params)
-            print(qvals)
             time += dt
 
         prob = pyffwd.generating_function(qvals, params.m_initial_pops)
@@ -28,7 +27,7 @@ def map_onto_data(params, this_data):
         log_dprob = -math.log(dprob_safe)
         print(f"{age}, {node}, {prob:.6f}, {dprob:.6f}, {log_dprob:.5f}")
 
-        total += -log_dprob
+        total += log_dprob
 
     return total
 
@@ -46,15 +45,25 @@ def main():
     mu = 0.5e-3
 
     params = pyffwd.Model(5)
-    params.m_migr[0][1] = mu
-    params.m_migr[0][2] = rloh
-    params.m_migr[1][3] = 0.5 * mu
-    params.m_migr[1][4] = 0.5 * rloh
-    params.m_migr[2][4] = 0.5 * mu
+    #params.m_migr[0][1] = mu
+    #params.m_migr[0][2] = rloh
+    #params.m_migr[1][3] = 0.5 * mu
+    #params.m_migr[1][4] = 0.5 * rloh
+    #params.m_migr[2][4] = 0.5 * mu
+    params.m_migr = [
+        {1: mu, 2: rloh}, # From vertex 0 to 1 and 2
+        {3: 0.5 * mu, 4: 0.5 * rloh}, # From vertex 1 to 3 and 4
+        {4: 0.5 * mu} # From vertex 2 to 4
+    ]
 
     params.m_birth = pyffwd.list_to_vector([0.0, 0.2, 0.2, 0.0, 0.0])
     params.m_death = pyffwd.list_to_vector([0.0, 0.0, 0.0, 0.0, 0.0])
     params.m_initial_pops = pyffwd.list_to_vector([1e2, 0, 0, 0, 0])
+
+    print(params.m_migr)
+    print(params.m_birth)
+    print(params.m_death)
+    print(params.m_initial_pops)
 
     all_times = [(33.0, 3), (50.0, 4)]
 

@@ -38,10 +38,6 @@ void map_onto_data(Model& params, const epidata_t& this_data,
         real_t time = 0.0;
         while (time < age) {
             heun_q_step(qvals, time, dt, params);
-            std::cout << "[";
-            for (auto& elem : qvals)
-                std::cout << elem << ", ";
-            std::cout << "]" << std::endl;
             time += dt;
         }
 
