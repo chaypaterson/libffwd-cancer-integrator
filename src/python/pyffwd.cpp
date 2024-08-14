@@ -9,12 +9,11 @@
 
 namespace py = pybind11;
 using namespace clonal_expansion;
-using clonal_expansion::real_t;
 
 PYBIND11_MAKE_OPAQUE(std::vector<real_t>);
 
 PYBIND11_MODULE(pyffwd, m) {
-    m.doc() = "Pybindings for ff";
+    m.doc() = "Python bindings for the cancer-integrator (fastforward/ffwd) library";
 
     // Convert Python list to std::vector<real_t>
     m.def("list_to_vector", [](py::list py_list) {
@@ -45,48 +44,52 @@ PYBIND11_MODULE(pyffwd, m) {
           "Compute rates of change", py::arg("qcoords"), py::arg("parameters"));
 
     // Bind the heun_q_step function
-    m.def("heun_q_step", [](std::vector<real_t> &qcoords, const real_t &time, real_t &dt, Model &parameters) {
-        fast_forward::heun_q_step(qcoords, time, dt, parameters);
-    }, "Heun's method for q-coordinates", py::arg("qcoords"), py::arg("time"), py::arg("dt"), py::arg("parameters"));
+    m.def("heun_q_step", fast_forward::heun_q_step, 
+          "Heun's method for q-coordinates", 
+          py::arg("qcoords"), py::arg("time"), py::arg("dt"),
+          py::arg("parameters"));
 
     // Bind the implicit_q_step function
-    m.def("implicit_q_step", [](std::vector<real_t> &qcoords, const real_t &time, real_t &dt, Model &parameters) {
-        fast_forward::implicit_q_step(qcoords, time, dt, parameters);
-    }, "Implicit Euler method for q-coordinates", py::arg("qcoords"), py::arg("time"), py::arg("dt"), py::arg("parameters"));
+    m.def("implicit_q_step", fast_forward::implicit_q_step, 
+          "Implicit Euler method for q-coordinates", 
+          py::arg("qcoords"), py::arg("time"), py::arg("dt"),
+          py::arg("parameters"));
 
     // Bind the rungekutta_q_step function
-    m.def("rungekutta_q_step", [](std::vector<real_t> &qcoords, const real_t &time, real_t &dt, Model &parameters) {
-        fast_forward::rungekutta_q_step(qcoords, time, dt, parameters);
-    }, "Runge-Kutta method for q-coordinates", py::arg("qcoords"), py::arg("time"), py::arg("dt"), py::arg("parameters"));
+    m.def("rungekutta_q_step", fast_forward::rungekutta_q_step, 
+          "Runge-Kutta method for q-coordinates", 
+          py::arg("qcoords"), py::arg("time"), py::arg("dt"),
+          py::arg("parameters"));
 
     // Bind the generating_function function
-    m.def("generating_function", [](const std::vector<real_t> &qcoords, const std::vector<real_t> &initial_pops) {
-        return fast_forward::generating_function(qcoords, initial_pops);
-    }, "Compute the generating function", py::arg("qcoords"), py::arg("initial_pops"));
+    m.def("generating_function", fast_forward::generating_function, 
+          "Compute the generating function", 
+          py::arg("qcoords"), py::arg("initial_pops"));
 
     // Bind the gillespie_instance class
-    py::class_<gillespie_ssa::gillespie_instance>(m, "GillespieInstance")
+    using gillespie_ssa::gillespie_instance;
+    py::class_<gillespie_instance>(m, "GillespieInstance")
         .def(py::init<const Model &>(), py::arg("model"))
-        .def("gillespie_step", &gillespie_ssa::gillespie_instance::gillespie_step)
-        .def_readwrite("m_pops", &gillespie_ssa::gillespie_instance::m_pops)
-        .def_readwrite("m_time", &gillespie_ssa::gillespie_instance::m_time)
-        .def_readwrite("m_vertices", &gillespie_ssa::gillespie_instance::m_vertices)
-        .def_readwrite("m_parameters", &gillespie_ssa::gillespie_instance::m_parameters);
+        .def("gillespie_step", &gillespie_instance::gillespie_step)
+        .def_readwrite("m_pops", &gillespie_instance::m_pops)
+        .def_readwrite("m_time", &gillespie_instance::m_time)
+        .def_readwrite("m_vertices", &gillespie_instance::m_vertices)
+        .def_readwrite("m_parameters", &gillespie_instance::m_parameters);
 
     // Bind standalone functions
     m.def("first_passage_time_multiple", 
-          static_cast<std::pair<double,int> (*)(gsl_rng *, 
-                                                 const Model&, 
-                                                 const std::vector<int>)>(&gillespie_ssa::first_passage_time));
+          static_cast<std::pair<double,int> (*)(gsl_rng *, const Model&,
+                                                const std::vector<int>)>(&gillespie_ssa::first_passage_time));
 
-    m.def("times_to_final_vertex", [](const Model &model, int seed, int runs_per_thr, int final_vertex, std::vector<real_t> &results) {
-        gillespie_ssa::times_to_final_vertex(model, seed, runs_per_thr, final_vertex, results);
-    }, "Compute times to reach the final vertex across multiple runs",
-    py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"), py::arg("final_vertex"), py::arg("results"));
+    m.def("times_to_final_vertex", gillespie_ssa::times_to_final_vertex, 
+          "Compute times to reach the final vertex across multiple runs", 
+          py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"),
+          py::arg("final_vertex"), py::arg("results"));
 
     m.def("times_to_final_vertices", &gillespie_ssa::times_to_final_vertices,
           "Compute times to reach any of the final vertices across multiple runs",
-          py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"), py::arg("final_vertices"), py::arg("results"));
+          py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"),
+          py::arg("final_vertices"), py::arg("results"));
 
     // Bind print_results function
     m.def("print_results", [](const std::vector<double> &all_times) {

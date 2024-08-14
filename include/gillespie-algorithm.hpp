@@ -22,10 +22,10 @@ class gillespie_instance {
   public:
     // member variables:
     double m_time{0}; // the simulation time variable
-    std::vector<int> m_pops; // the populations on each vertex of the graph
+    size_t m_vertices; // the number of vertices on the graph
     Model m_parameters; // the rate parameters and connectivity of the graph
     // the Model class is defined in the header graph-model-spec.hpp
-    size_t m_vertices; // the number of vertices on the graph
+    std::vector<int> m_pops; // the populations on each vertex of the graph
     double m_gamma{0};
 
     // constructor:

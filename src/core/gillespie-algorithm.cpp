@@ -22,7 +22,7 @@ void gillespie_instance::gillespie_step(gsl_rng *rng) {
     double x = gsl_ran_flat(rng, 0, Gamma);
     auto delta_pops = x_to_event(x);
 
-    for (int vertex = 0; vertex < m_vertices; ++vertex) {
+    for (size_t vertex = 0; vertex < m_vertices; ++vertex) {
         // Update populations:
         m_pops[vertex] += delta_pops[vertex];
         // Update m_gamma:
