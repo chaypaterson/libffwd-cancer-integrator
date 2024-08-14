@@ -231,7 +231,7 @@ double surv_kaplan_meier(double age, std::vector<double> &all_times, size_t ref_
         }
         time += dt;
     }
-    return survival; 
+    return survival;
 }
 
 void print_naive_estimator(double time_max, std::vector<double> &all_times) {

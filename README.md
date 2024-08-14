@@ -137,21 +137,20 @@ Alternatively, a hand-written Makefile is provided as Makefile.old. This is the
 original but is not machine agnostic, and only targetted 4 machines: my
 workstation, my development box at the WMIC, my MacBook, and the [CSF](https://ri.itservices.manchester.ac.uk/csf3/).
 
-
 Build & run Python binding:
 ------------------------
 
-*Ensure pybind11 is available in your environment. Install it via pip if necessary:
-    
-    pip install pybind11
-
-Navigate to the cancer-integrator/src/core directory:
+Navigate to the src/python directory.
 
 Create and activate a Python virtual environment:
     
     python3 -m venv venv
     
     source venv/bin/activate  
+
+Ensure pybind11 and gsl are available in your environment. Install it via pip if necessary:
+    
+    pip install pybind11 gsl
 
 Build and install the Python bindings:
     
@@ -162,7 +161,6 @@ Build and install the Python bindings:
 Run the Python test script:
     
     python pyffwdtest.py
-
 
 Requirements:
 -------------

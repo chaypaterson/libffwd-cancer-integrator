@@ -15,11 +15,11 @@ def main():
     mu = 2.16427e-8
 
     model = pyffwd.Model(5)
-    model.m_migr[0][1] = mu
-    model.m_migr[0][2] = rloh
-    model.m_migr[1][3] = 0.5 * mu
-    model.m_migr[1][4] = 0.5 * rloh
-    model.m_migr[2][4] = 0.5 * mu
+    model.m_migr = [
+        {1: mu, 2: rloh}, # From vertex 0 to 1 and 2
+        {3: 0.5 * mu, 4: 0.5 * rloh}, # From vertex 1 to 3 and 4
+        {4: 0.5 * mu} # From vertex 2 to 4
+    ]
 
     # Convert lists to RealVector
     model.m_birth = pyffwd.list_to_vector([0, 0.05, 0.03, 0, 0])
@@ -29,8 +29,8 @@ def main():
     final_vertices = [3, 4]
 
     # Run some simulations and store the time and final node in all_times:
-    rng_wrapper = pyffwd.RNGWrapper(seed)
-    all_times = rng_wrapper.first_passage_time_multiple(model, final_vertices)
+    #rng_wrapper = pyffwd.RNGWrapper(seed)
+    all_times = pyffwd.first_passage_time_multiple(model, final_vertices)
 
     print("age, node,")
     for pair in all_times:

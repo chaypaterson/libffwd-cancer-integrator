@@ -13,42 +13,6 @@ using clonal_expansion::real_t;
 
 PYBIND11_MAKE_OPAQUE(std::vector<real_t>);
 
-// Define RNG wrapper class
-class RNGWrapper {
-public:
-    RNGWrapper(unsigned long seed) {
-        rng = gsl_rng_alloc(gsl_rng_default);
-        gsl_rng_set(rng, seed);
-    }
-
-    ~RNGWrapper() {
-        gsl_rng_free(rng);
-    }
-
-    // Expose the raw gsl_rng* internally (but not to Python)
-    gsl_rng* get_rng() const {
-        return rng;
-    }
-
-    double first_passage_time_single(const Model& model, int final_vertex) {
-        return gillespie_ssa::first_passage_time(rng, model, final_vertex);
-    }
-
-    std::vector<std::pair<double, int>> first_passage_time_multiple(const Model& model, const std::vector<int>& final_vertices) {
-        std::vector<std::pair<double, int>> results;
-        for (int final_vertex : final_vertices) {
-            std::pair<double, int> result = gillespie_ssa::first_passage_time(rng, model, final_vertices);
-            if (result.first >= 0) {
-                results.push_back(result);
-            }
-        }
-        return results;
-    }
-
-private:
-    gsl_rng* rng;
-};
-
 PYBIND11_MODULE(pyffwd, m) {
     m.doc() = "Pybindings for ff";
 
@@ -77,10 +41,8 @@ PYBIND11_MODULE(pyffwd, m) {
     );
 
     // Bind the rhs_flow function
-    m.def("rhs_flow", [](const std::vector<real_t> &qcoords, Model &parameters) {
-        auto result = fast_forward::rhs_flow(qcoords, parameters);
-        return result;
-    }, "Compute rates of change", py::arg("qcoords"), py::arg("parameters"));
+    m.def("rhs_flow", fast_forward::rhs_flow, 
+          "Compute rates of change", py::arg("qcoords"), py::arg("parameters"));
 
     // Bind the heun_q_step function
     m.def("heun_q_step", [](std::vector<real_t> &qcoords, const real_t &time, real_t &dt, Model &parameters) {
@@ -105,20 +67,18 @@ PYBIND11_MODULE(pyffwd, m) {
     // Bind the gillespie_instance class
     py::class_<gillespie_ssa::gillespie_instance>(m, "GillespieInstance")
         .def(py::init<const Model &>(), py::arg("model"))
-        .def("gillespie_step", [](gillespie_ssa::gillespie_instance &self, RNGWrapper &rng_wrapper) {
-            // Correctly use RNGWrapper instance
-            self.gillespie_step(rng_wrapper.get_rng());  // Ensure this method exists in gillespie_instance
-        }, py::arg("rng_wrapper"))
+        .def("gillespie_step", &gillespie_ssa::gillespie_instance::gillespie_step)
         .def_readwrite("m_pops", &gillespie_ssa::gillespie_instance::m_pops)
-        .def_readwrite("m_time", &gillespie_ssa::gillespie_instance::m_time);
-
-    // Bind the RNGWrapper class
-    py::class_<RNGWrapper>(m, "RNGWrapper")
-        .def(py::init<unsigned long>(), py::arg("seed"))
-        .def("first_passage_time_single", &RNGWrapper::first_passage_time_single, py::arg("model"), py::arg("final_vertex"))
-        .def("first_passage_time_multiple", &RNGWrapper::first_passage_time_multiple, py::arg("model"), py::arg("final_vertices"));
+        .def_readwrite("m_time", &gillespie_ssa::gillespie_instance::m_time)
+        .def_readwrite("m_vertices", &gillespie_ssa::gillespie_instance::m_vertices)
+        .def_readwrite("m_parameters", &gillespie_ssa::gillespie_instance::m_parameters);
 
     // Bind standalone functions
+    m.def("first_passage_time_multiple", 
+          static_cast<std::pair<double,int> (*)(gsl_rng *, 
+                                                 const Model&, 
+                                                 const std::vector<int>)>(&gillespie_ssa::first_passage_time));
+
     m.def("times_to_final_vertex", [](const Model &model, int seed, int runs_per_thr, int final_vertex, std::vector<real_t> &results) {
         gillespie_ssa::times_to_final_vertex(model, seed, runs_per_thr, final_vertex, results);
     }, "Compute times to reach the final vertex across multiple runs",
