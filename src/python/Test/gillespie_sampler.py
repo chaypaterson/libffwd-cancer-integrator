@@ -29,7 +29,7 @@ def main():
     final_vertices = [3, 4]
 
     # Run some simulations and store the time and final node in all_times:
-    r = pyffwd.seed_gsl_rng(seed)
+    r = pyffwd.GSL_RNG(seed)
     all_times = []
 
     sim_state = pyffwd.GillespieInstance(model) # causes segfault FIXME

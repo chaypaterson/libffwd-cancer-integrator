@@ -81,7 +81,8 @@ PYBIND11_MODULE(pyffwd, m) {
     // Bind the gillespie_instance class
     using gillespie_ssa::gillespie_instance;
     py::class_<gillespie_instance>(m, "GillespieInstance")
-        .def(py::init<const Model &>(), py::arg("model"))
+        .def(py::init<const Model &>(), py::arg("model"), 
+             py::keep_alive<0, 1>(), py::return_value_policy::move)
         .def("gillespie_step", &gillespie_instance::gillespie_step)
         .def_readwrite("m_time", &gillespie_instance::m_time)
         .def_readwrite("m_vertices", &gillespie_instance::m_vertices)
@@ -90,16 +91,10 @@ PYBIND11_MODULE(pyffwd, m) {
 
     // Bind gsl_rng as a class
     py::class_<gsl_rng>(m, "GSL_RNG")
-        .def(py::init<>())
+        .def(py::init([](int seed){return seed_gsl_rng(seed);}), 
+             "Create new GSL RNG object", py::arg("seed"))
         .def_readwrite("type", &gsl_rng::type)
         .def_readwrite("state", &gsl_rng::state);
-
-    // Bind gsl_rng helper functions:
-    m.def("seed_gsl_rng", seed_gsl_rng, 
-          "Create new GSL RNG object",
-          py::arg("seed")); // TODO: make into custom constructor for GSL_RNG?
-    //m.def("free_gsl_rng", gsl_rng_free,
-    //      "Free GSL RNG object");
 
     // Bind standalone functions
     m.def("first_passage_time_multiple", 

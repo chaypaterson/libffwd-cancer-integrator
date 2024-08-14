@@ -112,6 +112,7 @@ double first_passage_time(gsl_rng *rng, const Model &params,
 std::pair<double,int> first_passage_time(gsl_rng *rng, const Model &params,
         const std::vector<int> final_vertices) {
     // create an instance of a simulation state:
+    printf("hello\n");
     gillespie_instance this_run(params);
 
     // guard against global extinction:
