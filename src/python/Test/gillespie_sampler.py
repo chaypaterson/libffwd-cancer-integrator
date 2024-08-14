@@ -29,8 +29,16 @@ def main():
     final_vertices = [3, 4]
 
     # Run some simulations and store the time and final node in all_times:
-    #rng_wrapper = pyffwd.RNGWrapper(seed)
-    all_times = pyffwd.first_passage_time_multiple(model, final_vertices)
+    r = pyffwd.seed_gsl_rng(seed)
+    all_times = []
+
+    sim_state = pyffwd.GillespieInstance(model) # causes segfault FIXME
+    print("hello")
+    all_times = pyffwd.first_passage_time_multiple(r, model, final_vertices)
+
+    print("wololo")
+
+    pyffwd.times_to_final_vertices(model, seed, runs, final_vertices, all_times)
 
     print("age, node,")
     for pair in all_times:

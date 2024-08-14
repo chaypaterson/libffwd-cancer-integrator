@@ -36,7 +36,7 @@ class gillespie_instance {
             // set initial pops:
             m_pops.push_back((int)(parameters.m_initial_pops[vertex]));
         }
-        set_gamma();
+        set_gamma(); // FIXME this line causes a segfault in pybind11
     }
 
     // methods:

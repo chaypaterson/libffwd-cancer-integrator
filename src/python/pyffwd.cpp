@@ -12,6 +12,18 @@ using namespace clonal_expansion;
 
 PYBIND11_MAKE_OPAQUE(std::vector<real_t>);
 
+// GSL_RNG factory function:
+gsl_rng* seed_gsl_rng(int seed) {
+    const gsl_rng_type *T;
+    gsl_rng *r;
+
+    gsl_rng_env_setup();
+    T = gsl_rng_default;
+    r = gsl_rng_alloc(T);
+
+    return r;
+}
+
 PYBIND11_MODULE(pyffwd, m) {
     m.doc() = "Python bindings for the cancer-integrator (fastforward/ffwd) library";
 
@@ -71,10 +83,23 @@ PYBIND11_MODULE(pyffwd, m) {
     py::class_<gillespie_instance>(m, "GillespieInstance")
         .def(py::init<const Model &>(), py::arg("model"))
         .def("gillespie_step", &gillespie_instance::gillespie_step)
-        .def_readwrite("m_pops", &gillespie_instance::m_pops)
         .def_readwrite("m_time", &gillespie_instance::m_time)
         .def_readwrite("m_vertices", &gillespie_instance::m_vertices)
+        .def_readwrite("m_pops", &gillespie_instance::m_pops)
         .def_readwrite("m_parameters", &gillespie_instance::m_parameters);
+
+    // Bind gsl_rng as a class
+    py::class_<gsl_rng>(m, "GSL_RNG")
+        .def(py::init<>())
+        .def_readwrite("type", &gsl_rng::type)
+        .def_readwrite("state", &gsl_rng::state);
+
+    // Bind gsl_rng helper functions:
+    m.def("seed_gsl_rng", seed_gsl_rng, 
+          "Create new GSL RNG object",
+          py::arg("seed")); // TODO: make into custom constructor for GSL_RNG?
+    //m.def("free_gsl_rng", gsl_rng_free,
+    //      "Free GSL RNG object");
 
     // Bind standalone functions
     m.def("first_passage_time_multiple", 
