@@ -25,6 +25,12 @@ def main():
     model.m_birth = pyffwd.list_to_vector([0, 0.05, 0.03, 0, 0])
     model.m_death = pyffwd.list_to_vector([0, 0, 0, 0, 0])
     model.m_initial_pops = pyffwd.list_to_vector([1e6, 0, 0, 0, 0])
+    # TODO constructor/default values for Model?
+    print(model.m_migr)
+    print(model.m_migr[0][1])
+    print(model.m_birth)
+    print(model.m_death)
+    print(model.m_initial_pops)
 
     final_vertices = [3, 4]
 
@@ -32,13 +38,19 @@ def main():
     r = pyffwd.GSL_RNG(seed)
     all_times = []
 
-    sim_state = pyffwd.GillespieInstance(model) # causes segfault FIXME
-    print("hello")
-    all_times = pyffwd.first_passage_time_multiple(r, model, final_vertices)
+    sim_state = pyffwd.GillespieInstance(model)
+    print("anything")
+    print(sim_state.m_parameters.m_migr)
+    print(sim_state.m_parameters.m_birth)
+    print(sim_state.m_parameters.m_death)
+    print(sim_state.m_parameters.m_initial_pops)
+    print(sim_state.m_pops)
+
+    #all_times = pyffwd.first_passage_time_multiple(r, model, final_vertices)
 
     print("wololo")
 
-    pyffwd.times_to_final_vertices(model, seed, runs, final_vertices, all_times)
+    #pyffwd.times_to_final_vertices(model, seed, runs, final_vertices, all_times)
 
     print("age, node,")
     for pair in all_times:

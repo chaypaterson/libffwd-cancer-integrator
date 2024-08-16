@@ -11,6 +11,7 @@ namespace py = pybind11;
 using namespace clonal_expansion;
 
 PYBIND11_MAKE_OPAQUE(std::vector<real_t>);
+PYBIND11_MAKE_OPAQUE(std::vector<int>);
 
 // GSL_RNG factory function:
 gsl_rng* seed_gsl_rng(int seed) {
@@ -81,8 +82,11 @@ PYBIND11_MODULE(pyffwd, m) {
     // Bind the gillespie_instance class
     using gillespie_ssa::gillespie_instance;
     py::class_<gillespie_instance>(m, "GillespieInstance")
-        .def(py::init<const Model &>(), py::arg("model"), 
-             py::keep_alive<0, 1>(), py::return_value_policy::move)
+        .def(py::init([](const Model &params){
+                gillespie_instance instance(params);
+                return instance;
+            }), 
+             py::arg("model"))
         .def("gillespie_step", &gillespie_instance::gillespie_step)
         .def_readwrite("m_time", &gillespie_instance::m_time)
         .def_readwrite("m_vertices", &gillespie_instance::m_vertices)
