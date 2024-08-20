@@ -14,43 +14,38 @@ def main():
     rloh = 5.26337e-7
     mu = 2.16427e-8
 
+    #  list of dictionaries
     model = pyffwd.Model(5)
     model.m_migr = [
-        {1: mu, 2: rloh}, # From vertex 0 to 1 and 2
-        {3: 0.5 * mu, 4: 0.5 * rloh}, # From vertex 1 to 3 and 4
-        {4: 0.5 * mu} # From vertex 2 to 4
+        {1: mu, 2: rloh},         # From vertex 0 to 1 and 2
+        {3: 0.5 * mu, 4: 0.5 * rloh},  # From vertex 1 to 3 and 4
+        {4: 0.5 * mu},            # From vertex 2 to 4
+        {},                       # No migration from vertex 3
+        {}                        # No migration from vertex 4
     ]
 
     # Convert lists to RealVector
     model.m_birth = pyffwd.list_to_vector([0, 0.05, 0.03, 0, 0])
     model.m_death = pyffwd.list_to_vector([0, 0, 0, 0, 0])
     model.m_initial_pops = pyffwd.list_to_vector([1e6, 0, 0, 0, 0])
+    
     # TODO constructor/default values for Model?
-    print(model.m_migr)
-    print(model.m_migr[0][1])
-    print(model.m_birth)
-    print(model.m_death)
-    print(model.m_initial_pops)
-
-    final_vertices = [3, 4]
+    
+    final_vertices = pyffwd.convert_to_vector_int([3, 4])
 
     # Run some simulations and store the time and final node in all_times:
     r = pyffwd.GSL_RNG(seed)
     all_times = []
 
     sim_state = pyffwd.GillespieInstance(model)
-    print("anything")
-    print(sim_state.m_parameters.m_migr)
-    print(sim_state.m_parameters.m_birth)
-    print(sim_state.m_parameters.m_death)
-    print(sim_state.m_parameters.m_initial_pops)
-    print(sim_state.m_pops)
 
-    #all_times = pyffwd.first_passage_time_multiple(r, model, final_vertices)
+    # Make sure all_times is a list of tuples
+    for _ in range(runs):
+        time_result = pyffwd.first_passage_time_multiple(r, model, final_vertices)
+        all_times.append(time_result)
 
-    print("wololo")
-
-    #pyffwd.times_to_final_vertices(model, seed, runs, final_vertices, all_times)
+    # pass the list of tuples to times_to_final_vertices
+    pyffwd.times_to_final_vertices(model, seed, runs, final_vertices, all_times)
 
     print("age, node,")
     for pair in all_times:

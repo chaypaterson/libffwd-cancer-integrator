@@ -50,9 +50,7 @@ void gillespie_instance::set_gamma() {
     // for each possible process, increment gamma by the event rate = rate
     // parameter * population on this node
     for (size_t vertex = 0; vertex < m_vertices; ++vertex) {
-        printf("foo\n");
         m_gamma += m_parameters.m_birth[vertex] * m_pops[vertex];
-        printf("bar\n");
         m_gamma += m_parameters.m_death[vertex] * m_pops[vertex];
         for (size_t out_vertex = 0;
                 out_vertex < m_vertices; ++out_vertex) {
@@ -60,6 +58,8 @@ void gillespie_instance::set_gamma() {
         }
     }
 }
+
+
 
 // a method to accept a variable x < Gamma and return an event, which
 // consists of a change in the populations
@@ -114,7 +114,6 @@ double first_passage_time(gsl_rng *rng, const Model &params,
 std::pair<double,int> first_passage_time(gsl_rng *rng, const Model &params,
         const std::vector<int> final_vertices) {
     // create an instance of a simulation state:
-    printf("hello\n");
     gillespie_instance this_run(params);
 
     // guard against global extinction:

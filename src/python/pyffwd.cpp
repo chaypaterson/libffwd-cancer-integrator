@@ -6,6 +6,7 @@
 #include <graph-model-spec.hpp>
 #include <gillespie-algorithm.hpp>
 #include <gsl/gsl_rng.h>
+#include <pybind11/pytypes.h>  // For handling Python types
 
 namespace py = pybind11;
 using namespace clonal_expansion;
@@ -25,6 +26,24 @@ gsl_rng* seed_gsl_rng(int seed) {
     return r;
 }
 
+// Convert std::vector<int> to Python list
+py::list vector_to_pylist(const std::vector<int>& vec) {
+    py::list pylist;
+    for (const int& item : vec) {
+        pylist.append(item);
+    }
+    return pylist;
+}
+
+// Convert Python list to std::vector<int>
+std::vector<int> pylist_to_vector(const py::list& pylist) {
+    std::vector<int> vec;
+    for (const auto& item : pylist) {
+        vec.push_back(item.cast<int>());
+    }
+    return vec;
+}
+
 PYBIND11_MODULE(pyffwd, m) {
     m.doc() = "Python bindings for the cancer-integrator (fastforward/ffwd) library";
 
@@ -38,6 +57,17 @@ PYBIND11_MODULE(pyffwd, m) {
     }, "Convert list to std::vector<real_t>", py::arg("py_list"));
 
     py::bind_vector<std::vector<real_t>>(m, "RealVector");
+
+    // Convert Python list to_vector_int
+    m.def("convert_to_vector_int", [](py::list py_list) {
+    std::vector<int> cpp_vector;
+    for (auto item : py_list) {
+        cpp_vector.push_back(item.cast<int>());
+    }
+    return cpp_vector;
+}, "Convert list to std::vector<int>", py::arg("py_list"));
+
+    py::bind_vector<std::vector<int>>(m, "IntVector");
 
     // Bind the Model class
     py::class_<Model>(m, "Model")
@@ -90,7 +120,14 @@ PYBIND11_MODULE(pyffwd, m) {
         .def("gillespie_step", &gillespie_instance::gillespie_step)
         .def_readwrite("m_time", &gillespie_instance::m_time)
         .def_readwrite("m_vertices", &gillespie_instance::m_vertices)
-        .def_readwrite("m_pops", &gillespie_instance::m_pops)
+        .def_property("m_pops",
+            [](const gillespie_instance &instance) {
+                return vector_to_pylist(instance.m_pops);
+            },
+            [](gillespie_instance &instance, const py::list &pylist) {
+                instance.m_pops = pylist_to_vector(pylist);
+            }
+        )
         .def_readwrite("m_parameters", &gillespie_instance::m_parameters);
 
     // Bind gsl_rng as a class
