@@ -41,12 +41,15 @@ def main():
 
         time += dt
 
-        # Compute probabilities and print results
-        print(f"{time}, ", end='')
+        # Compute probabilities and print results in the desired format
+        output = f"{int(time)}, "  # Formatting the time as an integer
         for vertex in range(parameters.m_stages):
             prob = pyffwd.generating_function(qvalues[vertex], parameters.m_initial_pops)
-            print(f"{1.0 - prob}, ", end='')
-        print()
+            formatted_prob = f"{1.0 - prob:.6g}"  # Limit to 6 significant digits
+            output += f"{formatted_prob}, "
+        
+        # Remove trailing comma and space, then print the formatted output
+        print(output.strip(', '))
 
 if __name__ == "__main__":
     main()

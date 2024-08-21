@@ -1,6 +1,17 @@
 import pyffwd
 
 def main(seed, total_runs):
+    
+    num_thr = max(1, os.cpu_count() - 2)
+    runs_per_thr = runs // num_thr
+
+    # System coefficients:
+    rloh = 5e-7
+    mu = 5e-8    
+
+
+
+
     # Initialize the model
     model = pyffwd.Model(5)
     
@@ -15,66 +26,65 @@ def main(seed, total_runs):
     model.m_initial_pops = initial_pops
 
     # Define migration rates
-    model.m_migr[0][1] = 5e-8
-    model.m_migr[0][2] = 5e-7
-    model.m_migr[1][3] = 0.5 * 5e-8
-    model.m_migr[1][4] = 0.5 * 5e-7
-    model.m_migr[2][4] = 0.5 * 5e-8
+    model.m_migr = [
+        {1: mu, 2: rloh},         # From vertex 0 to 1 and 2
+        {3: 0.5 * mu, 4: 0.5 * rloh},  # From vertex 1 to 3 and 4
+        {4: 0.5 * mu},            # From vertex 2 to 4
+        {},                       # No migration from vertex 3
+        {}                        # No migration from vertex 4
+    ]
 
     # Define final vertices
-    final_vertices = [3, 4]
+    final_vertices = pyffwd.convert_to_vector_int([3, 4])
     
     # Initialize RNG and run simulations
-    rng = pyffwd.RNGWrapper(seed)
-    
-    # Debug: Print parameters
-    print(f"Running simulations with seed={seed}, final_vertices={final_vertices}, total_runs={total_runs}")
+    rng = pyffwd.GSL_RNG(seed)
     
     all_times = []
-    for _ in range(total_runs):
-        times = rng.first_passage_time_multiple(model, final_vertices)
-        if times:
-            all_times.extend(times)
-        else:
-            print("No results returned from first_passage_time_multiple for one of the runs.")
-    
-    # Debug: Check the results
-    if not all_times:
-        print("No results returned from all runs.")
-        return
-    
-    print(f"Number of results: {len(all_times)}")
 
-    # Sort and process results
+    def run_simulation(thread_id):
+        rng_seed = seed + thread_id
+        results = []
+        times_to_final_vertices(model, rng_seed, runs_per_thr, final_vertices, results)
+        return results
+
+    # Run simulations in parallel
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_thr) as executor:
+        futures = [executor.submit(run_simulation, i) for i in range(num_thr)]
+        for future in concurrent.futures.as_completed(futures):
+            all_times.extend(future.result())
+
+    # Sorting results
     all_times.sort()
-    if not all_times:
-        print("No results to process after sorting.")
-        return
-    
-    time_max = max([t[0] for t in all_times])
 
-    # Print results for each type
-    for type in final_vertices:
-        print(f"Type {type}:")
-        mutant_times = [t[0] for t in all_times if t[1] == type]
-        
-        if not mutant_times:
-            print("No results for this type")
+    # Print results for both types:
+    for vertex in final_vertices:
+        print(f"Type {vertex}:")
+
+        mutant_times = [t for t, v in all_times if v == vertex]
+
+        # Guard against invalid access:
+        if len(mutant_times) < 1:
+            print("No results")
             continue
-        
-        # Convert mutant_times to RealVector
-        mutant_times_vector = pyffwd.list_to_vector(mutant_times)
-        
-        # Print Kaplan-Meier estimate
+
+        # Kaplan-Meier plot:
+        time_max = max(t for t, _ in all_times)
         print("age, p1, p2,")
-        pyffwd.print_kaplan_meier(time_max, mutant_times_vector, len(all_times))
+        print_kaplan_meier(time_max, mutant_times, len(all_times))
+
+        print()
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) != 3:
-        print("Usage: python ts-loss-gillespie.py <seed> <runs>")
+    import os
+    import concurrent.futures
+
+    if len(sys.argv) < 3:
+        print("Call this program with\n ./tsgillespie seed runs\n")
         sys.exit(1)
-    
+
     seed = int(sys.argv[1])
-    total_runs = int(sys.argv[2])
-    main(seed, total_runs)
+    runs = int(sys.argv[2])
+
+    main(seed, runs)
