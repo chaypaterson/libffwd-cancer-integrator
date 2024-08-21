@@ -1,6 +1,13 @@
 import pyffwd
 import sys
 
+def test_rng(seed, count=10):
+    # Initialize RNG with seed
+    rng = pyffwd.GSL_RNG(seed)
+    # Generate random numbers using the appropriate method
+    numbers = [rng.uniform() for _ in range(count)]  # Using 'uniform()' for [0, 1)
+    return numbers
+
 def main():
     if len(sys.argv) < 3:
         print("Call this program with:")
@@ -32,6 +39,12 @@ def main():
     # TODO constructor/default values for Model?
     
     final_vertices = pyffwd.convert_to_vector_int([3, 4])
+
+    # Test RNG consistency
+    print("Python output with seed", seed, ":")
+    rng_numbers = test_rng(seed)
+    for number in rng_numbers:
+        print(number)
 
     # Run some simulations and store the time and final node in all_times:
     r = pyffwd.GSL_RNG(seed)

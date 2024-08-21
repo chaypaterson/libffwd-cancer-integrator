@@ -6,7 +6,7 @@
 #include <graph-model-spec.hpp>
 #include <gillespie-algorithm.hpp>
 #include <gsl/gsl_rng.h>
-#include <pybind11/pytypes.h>  // For handling Python types
+#include <pybind11/pytypes.h>
 
 namespace py = pybind11;
 using namespace clonal_expansion;
@@ -134,6 +134,10 @@ PYBIND11_MODULE(pyffwd, m) {
     py::class_<gsl_rng>(m, "GSL_RNG")
         .def(py::init([](int seed){return seed_gsl_rng(seed);}), 
              "Create new GSL RNG object", py::arg("seed"))
+        .def("uniform", [](gsl_rng* rng) { return gsl_rng_uniform(rng); }, 
+             "Generate a random number in the interval [0, 1)")
+        .def("uniform_int", [](gsl_rng* rng, int max) { return gsl_rng_uniform_int(rng, max); },
+             "Generate a random integer in the interval [0, max)")
         .def_readwrite("type", &gsl_rng::type)
         .def_readwrite("state", &gsl_rng::state);
 
