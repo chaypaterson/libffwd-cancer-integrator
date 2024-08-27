@@ -62,7 +62,9 @@ def main():
 
     print("age, node,")
     for pair in all_times:
-        print(f"{pair[0]}, {pair[1]},")
+        age_formatted = f"{pair[0]:.3f}"
+        node = pair[1]
+        print(f"{age_formatted}, {node},")
 
     return 0
 

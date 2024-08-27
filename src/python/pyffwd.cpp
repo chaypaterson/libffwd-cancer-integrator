@@ -16,12 +16,14 @@ PYBIND11_MAKE_OPAQUE(std::vector<int>);
 
 // GSL_RNG factory function:
 gsl_rng* seed_gsl_rng(int seed) {
-    const gsl_rng_type *T;
+    const gsl_rng_type *T = gsl_rng_mt19937;
     gsl_rng *r;
 
     gsl_rng_env_setup();
     T = gsl_rng_default;
     r = gsl_rng_alloc(T);
+    gsl_rng_set(r, seed);
+
 
     return r;
 }
