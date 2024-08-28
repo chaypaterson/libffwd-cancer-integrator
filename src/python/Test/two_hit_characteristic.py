@@ -22,7 +22,7 @@ def main():
     time = 0.0
     tmax = 100.0
     dt = 1.0
-    print(f"{time}, 1, 0,")
+    print(f"{int(time)}, 1, 0,")
 
     while time < tmax:
         # Subdivide the time step dt into smaller, finer time steps
@@ -36,7 +36,7 @@ def main():
         
         prob = pyffwd.generating_function(qvalues, model.m_initial_pops)
 
-        print(f"{time}, {prob}, {1.0 - prob},")
+        print(f"{int(time)}, {prob:.6g}, {1.0 - prob:.6g},")
 
 if __name__ == "__main__":
     main()
