@@ -38,6 +38,7 @@ public:
     // NB the defaults for all string options are empty (""), this is set in the
     // to_string factory below.
     std::string histogram_file; // load histogram from file
+    std::string estimate_file; // save (serialise) best guess to this file
 
     // SINGLE FLAG OPTIONS (boolean options):
     bool include_germline = false; // mixed germline/sporadic study or not (default not)
@@ -53,7 +54,8 @@ public:
 
     // The constructor:
     inline GuesserConfig(int argc, char* argv[]) :
-        histogram_file(to_string(argc, argv, "--load_histogram"))
+        histogram_file(to_string(argc, argv, "--load_histogram")),
+        estimate_file(to_string(argc, argv, "--save_estimate"))
     {
         // for arguments that come in pairs: " --seed 5 " etc.
         for (char* *cmdarg = argv; cmdarg < argv + argc - 1; ++cmdarg) {

@@ -54,5 +54,5 @@ gilllosserrs_LDFLAGS = $(GSL_LIBS)
 ## Inference harness:
 guesser_SOURCES = src/inference/likelihood-optimisation.cpp \
                   src/inference/likelihood-optimisation.hpp
-guesser_LDADD = libffwd.la libgillespie.la
+guesser_LDADD = libffwd.la libgillespie.la libgmsce.la
 guesser_CPPFLAGS = $(AM_CPPFLAGS)

@@ -1036,8 +1036,6 @@ struct Estimate {
     Estimate(const Estimate& est) : best_guess(est.best_guess), Hessian(est.Hessian) {}
 };
 
-// TODO serialise Estimate to a file so minima can be saved and loaded?
-
 void print_best_guess(Estimate estimate) {
     std::cout << "Best guesses:" << std::endl;
     print_model(estimate.best_guess);
@@ -1307,6 +1305,10 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
 
     // Annealing now complete. Print guess:
     print_best_guess(estimate);
+
+    if (!options.estimate_file.empty()) {
+        clonal_expansion::save_model(estimate.best_guess, options.estimate_file);
+    }
 
     // Jack-knife resampling of incidence:
     if (options.resample_after) {

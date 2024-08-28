@@ -182,7 +182,7 @@ gilllosserrs_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 am_guesser_OBJECTS =  \
 	src/inference/guesser-likelihood-optimisation.$(OBJEXT)
 guesser_OBJECTS = $(am_guesser_OBJECTS)
-guesser_DEPENDENCIES = libffwd.la libgillespie.la
+guesser_DEPENDENCIES = libffwd.la libgillespie.la libgmsce.la
 am_likelihoodunittest_OBJECTS =  \
 	src/tests/likelihoodunittest-likelihood-unit-test.$(OBJEXT)
 likelihoodunittest_OBJECTS = $(am_likelihoodunittest_OBJECTS)
@@ -508,7 +508,7 @@ gilllosserrs_LDFLAGS = $(GSL_LIBS)
 guesser_SOURCES = src/inference/likelihood-optimisation.cpp \
                   src/inference/likelihood-optimisation.hpp
 
-guesser_LDADD = libffwd.la libgillespie.la
+guesser_LDADD = libffwd.la libgillespie.la libgmsce.la
 guesser_CPPFLAGS = $(AM_CPPFLAGS)
 all: all-am
 
