@@ -12,11 +12,13 @@ def main(dt, type):
 
     # Create model
     model = pyffwd.Model(5)
-    model.m_migr[0][1] = mu
-    model.m_migr[0][2] = rloh
-    model.m_migr[1][3] = 0.5 * mu
-    model.m_migr[1][4] = 0.5 * rloh
-    model.m_migr[2][4] = 0.5 * mu
+    model.m_migr = [
+        {1: mu, 2: rloh},         # From vertex 0 to 1 and 2
+        {3: 0.5 * mu, 4: 0.5 * rloh},  # From vertex 1 to 3 and 4
+        {4: 0.5 * mu},            # From vertex 2 to 4
+        {},                       # No migration from vertex 3
+        {}                        # No migration from vertex 4
+    ]
 
     # Birth and death rates
     model.m_birth = pyffwd.list_to_vector([0, 0.05, 0.03, 0, 0])
