@@ -93,7 +93,7 @@ host_triplet = @host@
 bin_tests_PROGRAMS = likelihoodunittest$(EXEEXT) \
 	gillespiesampler$(EXEEXT) fivestage$(EXEEXT) \
 	tslossffwd$(EXEEXT) tslossgill$(EXEEXT) \
-	tslossgillpoly$(EXEEXT)
+	tslossgillpoly$(EXEEXT) modeltest$(EXEEXT)
 bin_PROGRAMS = tslosserrs$(EXEEXT) gilllosserrs$(EXEEXT) \
 	guesser$(EXEEXT)
 subdir = .
@@ -157,6 +157,12 @@ libgillespie_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
 	$(AM_CXXFLAGS) $(CXXFLAGS) $(libgillespie_la_LDFLAGS) \
 	$(LDFLAGS) -o $@
+libgmsce_la_LIBADD =
+am_libgmsce_la_OBJECTS = src/core/graph-model-spec.lo
+libgmsce_la_OBJECTS = $(am_libgmsce_la_OBJECTS)
+libgmsce_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(libgmsce_la_LDFLAGS) $(LDFLAGS) -o $@
 am_fivestage_OBJECTS = src/tests/five-stage-characteristic.$(OBJEXT)
 fivestage_OBJECTS = $(am_fivestage_OBJECTS)
 fivestage_DEPENDENCIES = libffwd.la
@@ -181,6 +187,9 @@ am_likelihoodunittest_OBJECTS =  \
 	src/tests/likelihoodunittest-likelihood-unit-test.$(OBJEXT)
 likelihoodunittest_OBJECTS = $(am_likelihoodunittest_OBJECTS)
 likelihoodunittest_DEPENDENCIES = libffwd.la
+am_modeltest_OBJECTS = src/tests/modeltest.$(OBJEXT)
+modeltest_OBJECTS = $(am_modeltest_OBJECTS)
+modeltest_DEPENDENCIES = libgmsce.la
 am_tslosserrs_OBJECTS =  \
 	src/errors/ts-loss-characteristic-errors.$(OBJEXT)
 tslosserrs_OBJECTS = $(am_tslosserrs_OBJECTS)
@@ -219,12 +228,14 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = src/core/$(DEPDIR)/fast-forward.Plo \
 	src/core/$(DEPDIR)/gillespie-algorithm.Plo \
+	src/core/$(DEPDIR)/graph-model-spec.Plo \
 	src/errors/$(DEPDIR)/gillespie-errors.Po \
 	src/errors/$(DEPDIR)/ts-loss-characteristic-errors.Po \
 	src/inference/$(DEPDIR)/guesser-likelihood-optimisation.Po \
 	src/tests/$(DEPDIR)/five-stage-characteristic.Po \
 	src/tests/$(DEPDIR)/gillespie-sampler.Po \
 	src/tests/$(DEPDIR)/likelihoodunittest-likelihood-unit-test.Po \
+	src/tests/$(DEPDIR)/modeltest.Po \
 	src/tests/$(DEPDIR)/ts-loss-characteristic.Po \
 	src/tests/$(DEPDIR)/ts-loss-gillespie-poly.Po \
 	src/tests/$(DEPDIR)/ts-loss-gillespie.Po
@@ -266,15 +277,17 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libffwd_la_SOURCES) $(libgillespie_la_SOURCES) \
-	$(fivestage_SOURCES) $(gillespiesampler_SOURCES) \
-	$(gilllosserrs_SOURCES) $(guesser_SOURCES) \
-	$(likelihoodunittest_SOURCES) $(tslosserrs_SOURCES) \
+	$(libgmsce_la_SOURCES) $(fivestage_SOURCES) \
+	$(gillespiesampler_SOURCES) $(gilllosserrs_SOURCES) \
+	$(guesser_SOURCES) $(likelihoodunittest_SOURCES) \
+	$(modeltest_SOURCES) $(tslosserrs_SOURCES) \
 	$(tslossffwd_SOURCES) $(tslossgill_SOURCES) \
 	$(tslossgillpoly_SOURCES)
 DIST_SOURCES = $(libffwd_la_SOURCES) $(libgillespie_la_SOURCES) \
-	$(fivestage_SOURCES) $(gillespiesampler_SOURCES) \
-	$(gilllosserrs_SOURCES) $(guesser_SOURCES) \
-	$(likelihoodunittest_SOURCES) $(tslosserrs_SOURCES) \
+	$(libgmsce_la_SOURCES) $(fivestage_SOURCES) \
+	$(gillespiesampler_SOURCES) $(gilllosserrs_SOURCES) \
+	$(guesser_SOURCES) $(likelihoodunittest_SOURCES) \
+	$(modeltest_SOURCES) $(tslosserrs_SOURCES) \
 	$(tslossffwd_SOURCES) $(tslossgill_SOURCES) \
 	$(tslossgillpoly_SOURCES)
 am__can_run_installinfo = \
@@ -451,7 +464,7 @@ top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = subdir-objects foreign
 dist_doc_DATA = README.md
 AM_CPPFLAGS = -I$(src_topdir)../include
-lib_LTLIBRARIES = libffwd.la libgillespie.la
+lib_LTLIBRARIES = libffwd.la libgillespie.la libgmsce.la
 libffwd_la_SOURCES = src/core/fast-forward.cpp \
                      include/graph-model-spec.hpp \
                      include/fast-forward.hpp
@@ -462,6 +475,10 @@ libgillespie_la_SOURCES = src/core/gillespie-algorithm.cpp \
                           include/gillespie-algorithm.hpp
 
 libgillespie_la_LDFLAGS = $(GSL_LIBS) -version-info 0:0:0
+libgmsce_la_SOURCES = src/core/graph-model-spec.cpp \
+                      include/graph-model-spec.hpp
+
+libgmsce_la_LDFLAGS = -version-info 0:0:0
 bin_testsdir = $(bindir)/tests
 likelihoodunittest_SOURCES = src/tests/likelihood-unit-test.cpp \
                              src/tests/max-likelihood.hpp
@@ -481,6 +498,8 @@ tslossgill_LDFLAGS = $(GSL_LIBS)
 tslossgillpoly_SOURCES = src/tests/ts-loss-gillespie-poly.cpp
 tslossgillpoly_LDADD = libgillespie.la
 tslossgillpoly_LDFLAGS = $(GSL_LIBS)
+modeltest_SOURCES = src/tests/modeltest.cpp
+modeltest_LDADD = libgmsce.la
 tslosserrs_SOURCES = src/errors/ts-loss-characteristic-errors.cpp
 tslosserrs_LDADD = libffwd.la
 gilllosserrs_SOURCES = src/errors/gillespie-errors.cpp
@@ -677,6 +696,11 @@ src/core/gillespie-algorithm.lo: src/core/$(am__dirstamp) \
 
 libgillespie.la: $(libgillespie_la_OBJECTS) $(libgillespie_la_DEPENDENCIES) $(EXTRA_libgillespie_la_DEPENDENCIES) 
 	$(AM_V_CXXLD)$(libgillespie_la_LINK) -rpath $(libdir) $(libgillespie_la_OBJECTS) $(libgillespie_la_LIBADD) $(LIBS)
+src/core/graph-model-spec.lo: src/core/$(am__dirstamp) \
+	src/core/$(DEPDIR)/$(am__dirstamp)
+
+libgmsce.la: $(libgmsce_la_OBJECTS) $(libgmsce_la_DEPENDENCIES) $(EXTRA_libgmsce_la_DEPENDENCIES) 
+	$(AM_V_CXXLD)$(libgmsce_la_LINK) -rpath $(libdir) $(libgmsce_la_OBJECTS) $(libgmsce_la_LIBADD) $(LIBS)
 src/tests/$(am__dirstamp):
 	@$(MKDIR_P) src/tests
 	@: > src/tests/$(am__dirstamp)
@@ -726,6 +750,12 @@ src/tests/likelihoodunittest-likelihood-unit-test.$(OBJEXT):  \
 likelihoodunittest$(EXEEXT): $(likelihoodunittest_OBJECTS) $(likelihoodunittest_DEPENDENCIES) $(EXTRA_likelihoodunittest_DEPENDENCIES) 
 	@rm -f likelihoodunittest$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(likelihoodunittest_OBJECTS) $(likelihoodunittest_LDADD) $(LIBS)
+src/tests/modeltest.$(OBJEXT): src/tests/$(am__dirstamp) \
+	src/tests/$(DEPDIR)/$(am__dirstamp)
+
+modeltest$(EXEEXT): $(modeltest_OBJECTS) $(modeltest_DEPENDENCIES) $(EXTRA_modeltest_DEPENDENCIES) 
+	@rm -f modeltest$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(modeltest_OBJECTS) $(modeltest_LDADD) $(LIBS)
 src/errors/ts-loss-characteristic-errors.$(OBJEXT):  \
 	src/errors/$(am__dirstamp) \
 	src/errors/$(DEPDIR)/$(am__dirstamp)
@@ -765,12 +795,14 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@src/core/$(DEPDIR)/fast-forward.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/core/$(DEPDIR)/gillespie-algorithm.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@src/core/$(DEPDIR)/graph-model-spec.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/errors/$(DEPDIR)/gillespie-errors.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/errors/$(DEPDIR)/ts-loss-characteristic-errors.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/inference/$(DEPDIR)/guesser-likelihood-optimisation.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/five-stage-characteristic.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/gillespie-sampler.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/likelihoodunittest-likelihood-unit-test.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/modeltest.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/ts-loss-characteristic.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/ts-loss-gillespie-poly.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/ts-loss-gillespie.Po@am__quote@ # am--include-marker
@@ -1152,12 +1184,14 @@ distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 		-rm -f src/core/$(DEPDIR)/fast-forward.Plo
 	-rm -f src/core/$(DEPDIR)/gillespie-algorithm.Plo
+	-rm -f src/core/$(DEPDIR)/graph-model-spec.Plo
 	-rm -f src/errors/$(DEPDIR)/gillespie-errors.Po
 	-rm -f src/errors/$(DEPDIR)/ts-loss-characteristic-errors.Po
 	-rm -f src/inference/$(DEPDIR)/guesser-likelihood-optimisation.Po
 	-rm -f src/tests/$(DEPDIR)/five-stage-characteristic.Po
 	-rm -f src/tests/$(DEPDIR)/gillespie-sampler.Po
 	-rm -f src/tests/$(DEPDIR)/likelihoodunittest-likelihood-unit-test.Po
+	-rm -f src/tests/$(DEPDIR)/modeltest.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-characteristic.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-gillespie-poly.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-gillespie.Po
@@ -1210,12 +1244,14 @@ maintainer-clean: maintainer-clean-am
 	-rm -rf $(top_srcdir)/autom4te.cache
 		-rm -f src/core/$(DEPDIR)/fast-forward.Plo
 	-rm -f src/core/$(DEPDIR)/gillespie-algorithm.Plo
+	-rm -f src/core/$(DEPDIR)/graph-model-spec.Plo
 	-rm -f src/errors/$(DEPDIR)/gillespie-errors.Po
 	-rm -f src/errors/$(DEPDIR)/ts-loss-characteristic-errors.Po
 	-rm -f src/inference/$(DEPDIR)/guesser-likelihood-optimisation.Po
 	-rm -f src/tests/$(DEPDIR)/five-stage-characteristic.Po
 	-rm -f src/tests/$(DEPDIR)/gillespie-sampler.Po
 	-rm -f src/tests/$(DEPDIR)/likelihoodunittest-likelihood-unit-test.Po
+	-rm -f src/tests/$(DEPDIR)/modeltest.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-characteristic.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-gillespie-poly.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-gillespie.Po

@@ -19,6 +19,11 @@
  * solvers, as well as new methods.
  */
 
+// Needed for serialisation/deserialisation:
+#include <fstream>
+#include <iostream>
+#include <string>
+
 namespace clonal_expansion {
 
 typedef double real_t;
@@ -47,6 +52,11 @@ class Model {
         m_initial_pops = metapopulation;
     }
 };
+
+// serialisation and deserialisation:
+void save_model(Model graph, std::string filename);
+
+Model load_model(std::string filename);
 
 }
 
