@@ -64,7 +64,7 @@ public:
         voxel_file(to_string(argv, "--voxel_file"))
     {
         // for arguments that come in pairs: " --seed 5 " etc.
-        for (char* *cmdarg = argv; cmdarg < argv + argc - 1; ++cmdarg) {
+        for (char* *cmdarg = argv; *(cmdarg + 1); ++cmdarg) {
             set_pair(cmdarg, "--seed", seed);
             set_pair(cmdarg, "--sample_size", dataset_size);
             set_pair(cmdarg, "--child_threads", num_child_threads);
@@ -74,7 +74,7 @@ public:
             set_pair(cmdarg, "--voxel_resolution", voxel_res);
         }
         // for arguments that are just isolated flags: "--annealing" etc.
-        for (char* *cmdarg = argv; cmdarg < argv + argc; ++cmdarg) {
+        for (char* *cmdarg = argv; *cmdarg; ++cmdarg) {
             set_bool(cmdarg, "--with_germline", include_germline);
             set_bool(cmdarg, "--resample", resample_after);
             set_bool(cmdarg, "--gradient", minimise_with_gradient);
