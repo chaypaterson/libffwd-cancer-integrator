@@ -30,6 +30,9 @@
  * Contact:
  *      Chay Paterson (chay.paterson@manchester.ac.uk)
  *      Miaomiao Gao (miaomiao.gao@postgrad.manchester.ac.uk)
+ *
+ * TODO this file is way, way too long and needs to be broken into smaller
+ * units. Also, eigen dependencies are very spread out through this file.
  */
 
 using clonal_expansion::gillespie_ssa::times_to_final_vertices;
@@ -290,7 +293,8 @@ Model get_neighbour(Model& model, double w) {
                              new_fitness2, new_inipop);
 }
 
-/* Valid method_min methods have the signature:
+/* MINIMISATION METHODS (should be in their own compile unit/library)
+ * Valid method_min methods have the signature:
  *  Model method_min(std::function<real_t(Model &model)> objective,
  *                   Model  initial_guess);
  * The first argument is a closure to this object -- this allows the other
@@ -633,7 +637,15 @@ Model mixed_min_16(std::function<real_t(Model& model)> objective,
     return gradient_min(objective, better_guess);
 }
 
-// Methods to output data:
+Model skip_minimisation(std::function<real_t(Model& model)> objective,
+                        Model initial_guess) {
+    // don't bother minimising, just return the initial guess.
+    return initial_guess;
+}
+
+// end of minimisation methods
+
+// Methods to serialise/output data:
 
 void print_model(Model &model) {
     printf("  mu = %g\n", model.m_migr[0][1]);
@@ -1028,6 +1040,25 @@ void draw_3dsurface(std::function<real_t(Model &model)> objective,
     drawing.close();
 }
 
+// The bounding box has a centre, side dimensions, and resolutions.
+// The axes are mu, rloh, s1, and the colour will be given by s1 and the
+// likelihood.
+struct BoundingBox {
+    size_t resolution[3];
+    double centre[3];
+    double dims[3];
+};
+
+void render_voxel_cube(std::function<real_t(Model &model)> objective,
+                       struct BoundingBox bounding_box,
+                       std::string voxel_file,
+                       size_t num_child_threads) {
+    // Serialise the objective function to a voxel cube file
+    // Vectorise the sampling so that we can easily parallelise
+    // TODO
+    return;
+}
+
 struct Estimate {
     Model best_guess;
     Eigen::MatrixXd Hessian;
@@ -1168,7 +1199,6 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
     generate_histogram_germline(ground_truth, ground_truth_germline,
                        seed, dataset_size, end_nodes, max_age, reference_pop,
                        binwidth, incidence, incidence_germline);
-    // TODO timing and loadable histograms?
 
     // Get the main un-resampled estimate with simulated annealing:
     printf("Target likelihood:\n-log L = %g\n",
@@ -1306,6 +1336,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
     // Annealing now complete. Print guess:
     print_best_guess(estimate);
 
+    // Save the model to a file:
     if (!options.estimate_file.empty()) {
         clonal_expansion::save_model(estimate.best_guess, options.estimate_file);
     }
@@ -1361,6 +1392,35 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
             }
         }
     }
+
+    // TODO Draw 3d voxel cube:
+    if (options.draw_voxels) {
+        struct BoundingBox bbox = {
+            // For now, just assume the same resolution along each axis:
+            .resolution = {options.voxel_res, options.voxel_res,
+                          options.voxel_res},
+            // Ground truth is visible within this scope so we can use that to
+            // choose a centre for the cube:
+            .centre = {ground_truth.m_migr[0][1],
+                      ground_truth.m_migr[0][2],
+                      ground_truth.m_birth[1]
+                     },
+            // TODO pass these in on command line
+            // Also, use logarithmic scales for mu and rloh and linear scales for
+            // s1 and s2.
+            .dims = {100, 100, 1},
+        };
+
+        std::cout << "Rendering 3D voxel data..." << std::endl;
+
+        std::function<real_t(Model&)> objective = [&](Model& model) {
+            return loglikelihood_hist_both(model, binwidth,
+                                           reference_pop, incidence);
+        };
+
+        render_voxel_cube(objective, bbox, options.voxel_file, 
+                          options.num_child_threads);
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -1380,6 +1440,7 @@ int main(int argc, char* argv[]) {
                                            0.05,
                                            0.03,
                                            1e6);
+    // TODO load initial guess from a file:
 
     // the default minimisation method is annealing:
     typedef Model (*Minimiser_t)(std::function<real_t(Model&)>, Model);
@@ -1390,6 +1451,7 @@ int main(int argc, char* argv[]) {
     if (options.minimise_with_mixed)    method_min = mixed_min;
     if (options.minimise_with_mixed_8)  method_min = mixed_min_8;
     if (options.minimise_with_mixed_16) method_min = mixed_min_16;
+    if (options.skip_minimisation) method_min = skip_minimisation;
 
     // The inference harness itself:
     void (*guessing_harness)(Model &ground_truth, GuesserConfig options,
