@@ -30,7 +30,7 @@ public:
     size_t dataset_size = 10; // sample size
     size_t mesh_lines = 16; // resolution of the heatmap plot of the likelihood
     size_t num_child_threads = 0; // parallelisation in jackknife_and_save
-    size_t voxel_res = 16; // side resolution of 3d cube
+    unsigned int voxel_res = 16; // side resolution of 3d cube
     // float options:
     // the heatmap plot will run from best_guess/these to best_guess * these:
     double mesh_x_range = 10.0f; 
@@ -55,7 +55,6 @@ public:
     bool skip_minimisation = false; // skip minimisation entirely
     bool level_sets       = false; // whether or not to draw with level sets
     bool draw_mesh        = false; // whether or not to draw 3d plots of the likelihood
-    bool draw_voxels      = false; // draw voxels
 
     // The constructor:
     inline GuesserConfig(int argc, char* argv[]) :
@@ -89,6 +88,7 @@ public:
     }
 private:
     inline void set_pair(char* *cmdarg, const char key[], size_t &member);
+    inline void set_pair(char* *cmdarg, const char key[], unsigned &member);
     inline void set_pair(char* *cmdarg, const char key[], double &member);
     inline void set_bool(char* *cmdarg, const char key[], bool &member);
 };
@@ -107,6 +107,10 @@ inline std::string GuesserConfig::to_string(char* *argv, const char key[]) {
 }
 
 inline void GuesserConfig::set_pair(char* *cmdarg, const char key[], size_t &member) {
+    if (!strcmp(*cmdarg, key)) member = atoi(cmdarg[1]);
+}
+
+inline void GuesserConfig::set_pair(char* *cmdarg, const char key[], unsigned &member) {
     if (!strcmp(*cmdarg, key)) member = atoi(cmdarg[1]);
 }
 

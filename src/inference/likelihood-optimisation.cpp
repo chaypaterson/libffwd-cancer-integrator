@@ -1044,7 +1044,7 @@ void draw_3dsurface(std::function<real_t(Model &model)> objective,
 // The axes are mu, rloh, s1, and the colour will be given by s1 and the
 // likelihood.
 struct BoundingBox {
-    size_t resolution[3];
+    unsigned int resolution[3];
     double centre[3];
     double dims[3];
 };
@@ -1054,8 +1054,91 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
                        std::string voxel_file,
                        size_t num_child_threads) {
     // Serialise the objective function to a voxel cube file
+    Model centre_of_box = instantiate_model(bounding_box.centre[1],
+                                            bounding_box.centre[0],
+                                            bounding_box.centre[2],
+                                            0.03, // bit of a hack
+                                            1e6);
+    // TODO marginalise over s2 to get colour information
+    real_t s2 = 0.03;
+    // note the value of the objective in the centre, call this the offset:
+    real_t offset = objective(centre_of_box);
+
+    // get the total number of samples to take:
+    size_t volume_samples = 1;
+    for (int index = 0; index < 3; ++index) {
+        volume_samples *= bounding_box.resolution[index];
+    }
+    // create a buffer to store results:
+    float* buffer; // vectorised buffer for storing 3D stuff
+    size_t buffer_size = volume_samples * 3 * sizeof(float);
+    buffer = (float*)malloc(buffer_size);
+
     // Vectorise the sampling so that we can easily parallelise
-    // TODO
+    for (size_t sample = 0; sample < volume_samples; ++sample) {
+        // compute row, col, and lyr
+        size_t next;
+        size_t row = sample % bounding_box.resolution[0];
+        next = sample / bounding_box.resolution[0];
+        size_t col = next % bounding_box.resolution[1];
+        next = next / bounding_box.resolution[1];
+        size_t lyr = next % bounding_box.resolution[2];
+        next = next / bounding_box.resolution[2];
+
+        // set position in box
+        double offset_mu = row * 1.0 / bounding_box.resolution[0];
+        offset_mu -= 0.5;
+        real_t mu = bounding_box.centre[0]; 
+        mu *= exp(log(bounding_box.dims[0]) * offset_mu);
+
+        double offset_rloh = col * 1.0 / bounding_box.resolution[1];
+        offset_rloh -= 0.5;
+        offset_rloh += 0.5;
+        real_t rloh = bounding_box.centre[1]; 
+        rloh *= exp(log(bounding_box.dims[1]) * offset_rloh);
+
+        double offset_s1 = lyr * 1.0 / bounding_box.resolution[2];
+        offset_s1 -= 0.5;
+        offset_s1 *= 2.0 * bounding_box.dims[2];
+        real_t s1 = bounding_box.centre[2];
+        s1 *= (1.0 + offset_s1);
+
+        Model sample_point = instantiate_model(rloh, mu, s1, s2, 1e6);
+        // get a normalised value for likelihood, 
+        // which is exp(-log(L)).
+        float y_value = exp(offset - objective(sample_point));
+
+        // Nice the output: set NaNs to zero
+        if (std::isnan(y_value)) {
+            std::cout << "invalid value at ";
+            std::cout << row << " " << col << " " << lyr;
+            std::cout << ": " << y_value << std::endl;
+            y_value = 0.0f;
+        }
+
+        // convert value to floating point colour:
+        float colour[3] = {y_value, y_value, y_value};
+        //std::cout << y_value <<std::endl; //DEBUG
+        // copy colour to buffer:
+        std::memcpy(buffer + 3 * sample, colour, sizeof(colour));
+    }
+
+    // write out results in buffer to file:
+    std::ofstream voxelfile;
+    voxelfile.open(voxel_file, std::ios::out|std::ios::binary);
+
+    // Write header:
+    const char* header = "Voxel\n";
+    voxelfile.write((char*)header, 6 * sizeof(char));
+
+    voxelfile.write((char*)(bounding_box.resolution), 3 * sizeof(unsigned));
+
+    // Write buffer:
+    voxelfile.write((char*)(buffer), buffer_size);
+
+    voxelfile.close();
+
+    free(buffer);
     return;
 }
 
@@ -1394,7 +1477,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
     }
 
     // TODO Draw 3d voxel cube:
-    if (options.draw_voxels) {
+    if (!options.voxel_file.empty()) {
         struct BoundingBox bbox = {
             // For now, just assume the same resolution along each axis:
             .resolution = {options.voxel_res, options.voxel_res,
