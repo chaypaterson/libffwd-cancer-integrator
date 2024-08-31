@@ -1049,33 +1049,13 @@ struct BoundingBox {
     double dims[3];
 };
 
-void render_voxel_cube(std::function<real_t(Model &model)> objective,
+// TODO: reference to float vector safer than raw pointer?
+void sample_voxel_cube(float* buffer,
+                       std::function<real_t(Model &model)> objective,
                        struct BoundingBox bounding_box,
-                       std::string voxel_file,
-                       size_t num_child_threads) {
-    // Serialise the objective function to a voxel cube file
-    Model centre_of_box = instantiate_model(bounding_box.centre[1],
-                                            bounding_box.centre[0],
-                                            bounding_box.centre[2],
-                                            0.03, // bit of a hack
-                                            1e6);
-    // TODO marginalise over s2 to get colour information
-    real_t s2 = 0.03;
-    // note the value of the objective in the centre, call this the offset:
-    real_t offset = objective(centre_of_box);
-
-    // get the total number of samples to take:
-    size_t volume_samples = 1;
-    for (int index = 0; index < 3; ++index) {
-        volume_samples *= bounding_box.resolution[index];
-    }
-    // create a buffer to store results:
-    float* buffer; // vectorised buffer for storing 3D stuff
-    size_t buffer_size = volume_samples * 3 * sizeof(float);
-    buffer = (float*)malloc(buffer_size);
-
-    // Vectorise the sampling so that we can easily parallelise
-    for (size_t sample = 0; sample < volume_samples; ++sample) {
+                       real_t offset, real_t s2,
+                       size_t first_sample, size_t last_sample) {
+    for (size_t sample = first_sample; sample < last_sample; ++sample) {
         // compute row, col, and lyr
         size_t next;
         size_t row = sample % bounding_box.resolution[0];
@@ -1109,7 +1089,7 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
         float y_value = exp(offset - objective(sample_point));
 
         // Nice the output: set NaNs to zero
-        if (std::isnan(y_value)) {
+        if (!std::isnormal(y_value) || y_value < 0) {
             std::cout << "invalid value at ";
             std::cout << row << " " << col << " " << lyr;
             std::cout << ": " << y_value << std::endl;
@@ -1121,6 +1101,60 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
         //std::cout << y_value <<std::endl; //DEBUG
         // copy colour to buffer:
         std::memcpy(buffer + 3 * sample, colour, sizeof(colour));
+    }
+}
+
+void render_voxel_cube(std::function<real_t(Model &model)> objective,
+                       struct BoundingBox bounding_box,
+                       std::string voxel_file,
+                       size_t num_child_threads) {
+    // Serialise the objective function to a voxel cube file
+    // TODO marginalise over s2 to get colour information
+    real_t s2 = 0.03;
+    Model centre_of_box = instantiate_model(bounding_box.centre[1],
+                                            bounding_box.centre[0],
+                                            bounding_box.centre[2],
+                                            s2, // bit of a hack for now
+                                            1e6);
+    // note the value of the objective in the centre, call this the offset:
+    real_t offset = objective(centre_of_box);
+
+    // get the total number of samples to take:
+    size_t volume_samples = 1;
+    for (int index = 0; index < 3; ++index) {
+        volume_samples *= bounding_box.resolution[index];
+    }
+    // create a buffer to store results:
+    float* buffer; // vectorised buffer for storing 3D stuff
+    size_t buffer_size = volume_samples * 3 * sizeof(float);
+    buffer = (float*)malloc(buffer_size);
+
+    // Vectorise the sampling so that we can easily parallelise
+    // multi thread:
+    // Get some number of samples from each child thread, and the remainder from
+    // the parent thread:
+    size_t child_samples = volume_samples / (num_child_threads + 1);
+    size_t remainder     = volume_samples % (num_child_threads + 1);
+
+    std::vector<std::thread> child_threads(0);
+    for (size_t thrd = 0; thrd < num_child_threads; ++thrd) {
+        size_t start, end;
+        start = thrd * child_samples;
+        end = start + child_samples;
+
+        child_threads.push_back(std::thread(sample_voxel_cube,
+                                            buffer, objective, bounding_box,
+                                            offset, s2, start, end));
+    }
+
+    // run the remaining threads in the parent thread:
+    sample_voxel_cube(buffer, objective, bounding_box, offset, s2, 
+                      volume_samples - child_samples - remainder, 
+                      volume_samples);
+
+    // Wait for child threads to finish
+    for (auto& thread : child_threads) {
+        thread.join();
     }
 
     // write out results in buffer to file:
