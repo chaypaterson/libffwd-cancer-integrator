@@ -1126,7 +1126,11 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
     buffer = (float*)malloc(buffer_size);
 
     // Vectorise the sampling so that we can easily parallelise
-    // multi thread:
+    // multi thread: but divide up the work so 0 child threads recovers default
+    // behaviour. When num_child_threads == 0, we will skip the loop where we
+    // dispatch worker threads, and should run all the samples on the main
+    // thread. child_samples should work out to volume_samples, and remainder
+    // should work out to 0.
     // Get some number of samples from each child thread, and the remainder from
     // the parent thread:
     size_t child_samples = volume_samples / (num_child_threads + 1);
