@@ -1088,17 +1088,13 @@ void sample_voxel_cube(float* buffer,
         // which is exp(-log(L)).
         float y_value = exp(offset - objective(sample_point));
 
-        // Nice the output: set NaNs to zero
+        // Nice the output: set NaNs and negative values to zero
         if (!std::isnormal(y_value) || y_value < 0) {
-            std::cout << "invalid value at ";
-            std::cout << row << " " << col << " " << lyr;
-            std::cout << ": " << y_value << std::endl;
             y_value = 0.0f;
         }
 
         // convert value to floating point colour:
         float colour[3] = {y_value, y_value, y_value};
-        //std::cout << y_value <<std::endl; //DEBUG
         // copy colour to buffer:
         std::memcpy(buffer + 3 * sample, colour, sizeof(colour));
     }
