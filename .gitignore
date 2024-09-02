@@ -19,4 +19,5 @@ configure.ac~
 *.so
 *_env
 *.egg-info
-
+*.tar.xz
+*.o

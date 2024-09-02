@@ -95,3 +95,7 @@ Mon  8 Apr 14:49:44 BST 2024
 
 TODO: yes to heatmap
 reruns with s2 pinned?
+
+Tue  2 Jul 2024 11:11:44 KST
+
+Late deviations in S-curves: examine Kaplan-Meier plots but check for polyclonality? i.e. look for a SECOND passage time with a different type.

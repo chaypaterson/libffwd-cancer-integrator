@@ -52,6 +52,7 @@ class gillespie_instance {
     // event (change in populations)
 };
 
+// First passage times to chosen vertices:
 double first_passage_time(gsl_rng *rng, const Model &params,
                           const int final_vertex);
 
@@ -65,6 +66,14 @@ void times_to_final_vertex(const Model &model, int seed,
 void times_to_final_vertices(const Model &model, int seed,
                              int runs_per_thr, std::vector<int> final_vertices,
                              std::vector<std::pair<double,int>> &results);
+
+// First passage times for polyclonal (second primary) tumours of different types:
+double first_passage_time_poly(gsl_rng *rng, const Model &params,
+        const std::vector<int> final_vertices);
+
+void times_to_final_vertices_poly(const Model &model, int seed,
+                             int runs_per_thr, std::vector<int> final_vertices,
+                             std::vector<double> &results);
 
 void print_results(std::vector<double> &all_times);
 
