@@ -5,7 +5,8 @@ def test_rng(seed, count=10):
     # Initialize RNG with seed
     rng = pyffwd.GSL_RNG(seed)
     # Generate random numbers using the appropriate method
-    numbers = [rng.uniform() for _ in range(count)]  # Using 'uniform()' for [0, 1)
+    # Using 'uniform()' for [0, 1):
+    numbers = [rng.uniform() for _ in range(count)]
     return numbers
 
 def main():
@@ -54,7 +55,8 @@ def main():
 
     # Make sure all_times is a list of tuples
     for _ in range(runs):
-        time_result = pyffwd.first_passage_time_multiple(r, model, final_vertices)
+        time_result = pyffwd.first_passage_time_multiple(r, model,
+                                                         final_vertices)
         all_times.append(time_result)
 
     # pass the list of tuples to times_to_final_vertices

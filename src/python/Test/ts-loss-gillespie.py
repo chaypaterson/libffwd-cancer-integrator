@@ -7,10 +7,7 @@ def main(seed, total_runs):
 
     # System coefficients:
     rloh = 5e-7
-    mu = 5e-8    
-
-
-
+    mu = 5e-8
 
     # Initialize the model
     model = pyffwd.Model(5)
@@ -72,8 +69,6 @@ def main(seed, total_runs):
         time_max = max(t for t, _ in all_times)
         print("age, p1, p2,")
         print_kaplan_meier(time_max, mutant_times, len(all_times))
-
-        print()
 
 if __name__ == "__main__":
     import sys

@@ -13,9 +13,9 @@ mu1 = 0.001
 # Model setup
 model = pyffwd.Model(3)
 model.m_migr = [
-    {1: mu0},  
-    {2: mu1},  
-    {}         
+    {1: mu0},
+    {2: mu1},
+    {}
 ]
 model.m_birth = pyffwd.list_to_vector([1, 1.2, 1])
 model.m_death = pyffwd.list_to_vector([1, 1.0, 1])
@@ -38,7 +38,8 @@ times = [None] * num_thr
 threads = []
 
 for i in range(num_thr):
-    thread = threading.Thread(target=lambda idx=i: times.__setitem__(idx, simulate_times(idx)))
+    thread = threading.Thread(target=lambda idx=i:
+                              times.__setitem__(idx, simulate_times(idx)))
     threads.append(thread)
     thread.start()
 

@@ -45,11 +45,6 @@ def main():
     mu = 0.5e-3
 
     params = pyffwd.Model(5)
-    #params.m_migr[0][1] = mu
-    #params.m_migr[0][2] = rloh
-    #params.m_migr[1][3] = 0.5 * mu
-    #params.m_migr[1][4] = 0.5 * rloh
-    #params.m_migr[2][4] = 0.5 * mu
     params.m_migr = [
         {1: mu, 2: rloh}, # From vertex 0 to 1 and 2
         {3: 0.5 * mu, 4: 0.5 * rloh}, # From vertex 1 to 3 and 4

@@ -67,7 +67,7 @@ PYBIND11_MODULE(pyffwd, m) {
         cpp_vector.push_back(item.cast<int>());
     }
     return cpp_vector;
-}, "Convert list to std::vector<int>", py::arg("py_list"));
+    }, "Convert list to std::vector<int>", py::arg("py_list"));
 
     py::bind_vector<std::vector<int>>(m, "IntVector");
 
@@ -81,34 +81,36 @@ PYBIND11_MODULE(pyffwd, m) {
     .def_readwrite("m_initial_pops", &Model::m_initial_pops)
     .def_property("m_migr",
         [](const Model &m) { return m.m_migr; },
-        [](Model &m, const std::vector<std::map<int, real_t>> &migr) { m.m_migr = migr; }
+        [](Model &m, const std::vector<std::map<int, real_t>> &migr) {
+            m.m_migr = migr;
+        }
     );
 
     // Bind the rhs_flow function
-    m.def("rhs_flow", fast_forward::rhs_flow, 
+    m.def("rhs_flow", fast_forward::rhs_flow,
           "Compute rates of change", py::arg("qcoords"), py::arg("parameters"));
 
     // Bind the heun_q_step function
-    m.def("heun_q_step", fast_forward::heun_q_step, 
-          "Heun's method for q-coordinates", 
+    m.def("heun_q_step", fast_forward::heun_q_step,
+          "Heun's method for q-coordinates",
           py::arg("qcoords"), py::arg("time"), py::arg("dt"),
           py::arg("parameters"));
 
     // Bind the implicit_q_step function
-    m.def("implicit_q_step", fast_forward::implicit_q_step, 
-          "Implicit Euler method for q-coordinates", 
+    m.def("implicit_q_step", fast_forward::implicit_q_step,
+          "Implicit Euler method for q-coordinates",
           py::arg("qcoords"), py::arg("time"), py::arg("dt"),
           py::arg("parameters"));
 
     // Bind the rungekutta_q_step function
-    m.def("rungekutta_q_step", fast_forward::rungekutta_q_step, 
-          "Runge-Kutta method for q-coordinates", 
+    m.def("rungekutta_q_step", fast_forward::rungekutta_q_step,
+          "Runge-Kutta method for q-coordinates",
           py::arg("qcoords"), py::arg("time"), py::arg("dt"),
           py::arg("parameters"));
 
     // Bind the generating_function function
-    m.def("generating_function", fast_forward::generating_function, 
-          "Compute the generating function", 
+    m.def("generating_function", fast_forward::generating_function,
+          "Compute the generating function",
           py::arg("qcoords"), py::arg("initial_pops"));
 
     // Bind the gillespie_instance class
@@ -117,7 +119,7 @@ PYBIND11_MODULE(pyffwd, m) {
         .def(py::init([](const Model &params){
                 gillespie_instance instance(params);
                 return instance;
-            }), 
+            }),
              py::arg("model"))
         .def("gillespie_step", &gillespie_instance::gillespie_step)
         .def_readwrite("m_time", &gillespie_instance::m_time)
@@ -134,22 +136,27 @@ PYBIND11_MODULE(pyffwd, m) {
 
     // Bind gsl_rng as a class
     py::class_<gsl_rng>(m, "GSL_RNG")
-        .def(py::init([](int seed){return seed_gsl_rng(seed);}), 
-             "Create new GSL RNG object", py::arg("seed"))
-        .def("uniform", [](gsl_rng* rng) { return gsl_rng_uniform(rng); }, 
-             "Generate a random number in the interval [0, 1)")
-        .def("uniform_int", [](gsl_rng* rng, int max) { return gsl_rng_uniform_int(rng, max); },
-             "Generate a random integer in the interval [0, max)")
+        .def(py::init([](int seed) {
+            return seed_gsl_rng(seed);
+        }), "Create new GSL RNG object", py::arg("seed"))
+        .def("uniform", [](gsl_rng* rng) {
+            return gsl_rng_uniform(rng);
+        }, "Generate a random number in the interval [0, 1)")
+        .def("uniform_int", [](gsl_rng* rng, int max) {
+            return gsl_rng_uniform_int(rng, max);
+        }, "Generate a random integer in the interval [0, max)")
         .def_readwrite("type", &gsl_rng::type)
         .def_readwrite("state", &gsl_rng::state);
 
     // Bind standalone functions
-    m.def("first_passage_time_multiple", 
-          static_cast<std::pair<double,int> (*)(gsl_rng *, const Model&,
-                                                const std::vector<int>)>(&gillespie_ssa::first_passage_time));
+    m.def("first_passage_time_multiple",
+        // Cast the corresponding function to a function pointer type:
+        static_cast<std::pair<double,int> (*)(
+            gsl_rng *, const Model&, const std::vector<int>)>(
+                &gillespie_ssa::first_passage_time));
 
-    m.def("times_to_final_vertex", gillespie_ssa::times_to_final_vertex, 
-          "Compute times to reach the final vertex across multiple runs", 
+    m.def("times_to_final_vertex", gillespie_ssa::times_to_final_vertex,
+          "Compute times to reach the final vertex across multiple runs",
           py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"),
           py::arg("final_vertex"), py::arg("results"));
 
@@ -165,13 +172,16 @@ PYBIND11_MODULE(pyffwd, m) {
     }, "Print results");
 
     // Bind print_kaplan_meier for two-argument
-    m.def("print_kaplan_meier", 
-          static_cast<void (*)(double, std::vector<double>&)>(&clonal_expansion::gillespie_ssa::print_kaplan_meier),
-          "Print Kaplan-Meier survival curves",
-          py::arg("time_max"), py::arg("all_times"));
+    m.def("print_kaplan_meier",
+        // Cast the corresponding function to a function pointer type:
+        static_cast<void (*)(double, std::vector<double>&)>(
+            &clonal_expansion::gillespie_ssa::print_kaplan_meier),
+        "Print Kaplan-Meier survival curves",
+        py::arg("time_max"), py::arg("all_times"));
 
     // Bind print_kaplan_meier for three-argument
-    m.def("surv_kaplan_meier", &clonal_expansion::gillespie_ssa::surv_kaplan_meier, 
+    m.def("surv_kaplan_meier",
+          &clonal_expansion::gillespie_ssa::surv_kaplan_meier,
           py::arg("age"), py::arg("all_times"), py::arg("ref_pop"),
           "Kaplan-Meier survival times.");
 
@@ -180,11 +190,13 @@ PYBIND11_MODULE(pyffwd, m) {
         auto& non_const_times = const_cast<std::vector<double>&>(all_times);
         return clonal_expansion::gillespie_ssa::surv_kaplan_meier(age, non_const_times, ref_pop);
     }, "Survival Kaplan-Meier", py::arg("age"), py::arg("all_times"), py::arg("ref_pop"));
-    
+
     // Bind print_naive_estimator
-    m.def("print_naive_estimator", [](double time_max, const std::vector<double> &all_times) {
+    m.def("print_naive_estimator", [](double time_max,
+                                      const std::vector<double> &all_times) {
         auto& non_const_times = const_cast<std::vector<double>&>(all_times);
-        clonal_expansion::gillespie_ssa::print_naive_estimator(time_max, non_const_times);
+        clonal_expansion::gillespie_ssa::print_naive_estimator(time_max,
+                                                               non_const_times);
     }, "Print naive estimator", py::arg("time_max"), py::arg("all_times"));
 
 }

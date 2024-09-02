@@ -52,8 +52,10 @@ def main(dt, type):
         pyffwd.heun_q_step(qvaluesOther, time, delta, model)
         time = t_write
 
-        probneither = pyffwd.generating_function(qvaluesBoth, model.m_initial_pops)
-        probother = pyffwd.generating_function(qvaluesOther, model.m_initial_pops)
+        probneither = pyffwd.generating_function(qvaluesBoth,
+                                                 model.m_initial_pops)
+        probother = pyffwd.generating_function(qvaluesOther,
+                                               model.m_initial_pops)
         prob = probneither / probother
 
         print(f"{time:.17f}, {prob:.17f}, {1.0 - prob:.17f},")
