@@ -1,16 +1,15 @@
 import pyffwd
 
-def main(seed, total_runs):
+def main(seed, runs):
     
-    num_thr = max(1, os.cpu_count() - 2)
-    runs_per_thr = runs // num_thr
+    # Number of hardware threads available
+    num_thr = 1
+    runs_per_thr = int(1e7)
+    seed = 1
 
     # System coefficients:
     rloh = 5e-7
     mu = 5e-8    
-
-
-
 
     # Initialize the model
     model = pyffwd.Model(5)
@@ -37,16 +36,23 @@ def main(seed, total_runs):
     # Define final vertices
     final_vertices = pyffwd.convert_to_vector_int([3, 4])
     
-    # Initialize RNG and run simulations
-    rng = pyffwd.GSL_RNG(seed)
-    
+    # Run some simulations and store the time and final node in all_times:
+    r = pyffwd.GSL_RNG(seed)
     all_times = []
+
+    # Make sure all_times is a list of tuples
+    for _ in range(runs):
+        time_result = pyffwd.first_passage_time_multiple(r, model, final_vertices)
+        all_times.append(time_result)
 
     def run_simulation(thread_id):
         rng_seed = seed + thread_id
-        results = []
-        times_to_final_vertices(model, rng_seed, runs_per_thr, final_vertices, results)
-        return results
+        results = pyffwd.RealVector()
+        
+        pyffwd.times_to_final_vertices(model, rng_seed, runs_per_thr, final_vertices, results)
+        
+        result_list = list(results)
+        return result_list
 
     # Run simulations in parallel
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_thr) as executor:
@@ -62,16 +68,12 @@ def main(seed, total_runs):
         print(f"Type {vertex}:")
 
         mutant_times = [t for t, v in all_times if v == vertex]
-
-        # Guard against invalid access:
-        if len(mutant_times) < 1:
-            print("No results")
-            continue
+        mutant_times = pyffwd.list_to_vector(mutant_times)
 
         # Kaplan-Meier plot:
         time_max = max(t for t, _ in all_times)
         print("age, p1, p2,")
-        print_kaplan_meier(time_max, mutant_times, len(all_times))
+        pyffwd. print_kaplan_meier(time_max, mutant_times, len(all_times))
 
         print()
 

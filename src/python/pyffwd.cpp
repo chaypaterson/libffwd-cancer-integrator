@@ -164,22 +164,17 @@ PYBIND11_MODULE(pyffwd, m) {
         clonal_expansion::gillespie_ssa::print_results(non_const_times);
     }, "Print results");
 
-    // Bind print_kaplan_meier for two-argument
+    // Binding Kaplan-Meier functions
     m.def("print_kaplan_meier", 
-          static_cast<void (*)(double, std::vector<double>&)>(&clonal_expansion::gillespie_ssa::print_kaplan_meier),
-          "Print Kaplan-Meier survival curves",
+          static_cast<void(*)(double, std::vector<double>&)>(&clonal_expansion::gillespie_ssa::print_kaplan_meier),
           py::arg("time_max"), py::arg("all_times"));
 
-    // Bind print_kaplan_meier for three-argument
-    m.def("surv_kaplan_meier", &clonal_expansion::gillespie_ssa::surv_kaplan_meier, 
-          py::arg("age"), py::arg("all_times"), py::arg("ref_pop"),
-          "Kaplan-Meier survival times.");
+    m.def("print_kaplan_meier", 
+          static_cast<void(*)(double, std::vector<double>&, size_t)>(&clonal_expansion::gillespie_ssa::print_kaplan_meier),
+          py::arg("time_max"), py::arg("all_times"), py::arg("ref_pop"));
 
-    // Bind surv_kaplan_meier
-    m.def("surv_kaplan_meier", [](double age, const std::vector<double> &all_times, size_t ref_pop) {
-        auto& non_const_times = const_cast<std::vector<double>&>(all_times);
-        return clonal_expansion::gillespie_ssa::surv_kaplan_meier(age, non_const_times, ref_pop);
-    }, "Survival Kaplan-Meier", py::arg("age"), py::arg("all_times"), py::arg("ref_pop"));
+    m.def("surv_kaplan_meier", &clonal_expansion::gillespie_ssa::surv_kaplan_meier, 
+          py::arg("age"), py::arg("all_times"), py::arg("ref_pop"));
     
     // Bind print_naive_estimator
     m.def("print_naive_estimator", [](double time_max, const std::vector<double> &all_times) {
