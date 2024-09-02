@@ -75,8 +75,6 @@ def main(seed, runs):
         print("age, p1, p2,")
         pyffwd. print_kaplan_meier(time_max, mutant_times, len(all_times))
 
-        print()
-
 if __name__ == "__main__":
     import sys
     import os

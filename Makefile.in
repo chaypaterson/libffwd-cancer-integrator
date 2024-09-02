@@ -92,7 +92,8 @@ build_triplet = @build@
 host_triplet = @host@
 bin_tests_PROGRAMS = likelihoodunittest$(EXEEXT) \
 	gillespiesampler$(EXEEXT) fivestage$(EXEEXT) \
-	tslossffwd$(EXEEXT) tslossgill$(EXEEXT)
+	tslossffwd$(EXEEXT) tslossgill$(EXEEXT) \
+	tslossgillpoly$(EXEEXT)
 bin_PROGRAMS = tslosserrs$(EXEEXT) gilllosserrs$(EXEEXT) \
 	guesser$(EXEEXT)
 subdir = .
@@ -193,6 +194,14 @@ tslossgill_DEPENDENCIES = libgillespie.la
 tslossgill_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
 	$(CXXFLAGS) $(tslossgill_LDFLAGS) $(LDFLAGS) -o $@
+am_tslossgillpoly_OBJECTS =  \
+	src/tests/ts-loss-gillespie-poly.$(OBJEXT)
+tslossgillpoly_OBJECTS = $(am_tslossgillpoly_OBJECTS)
+tslossgillpoly_DEPENDENCIES = libgillespie.la
+tslossgillpoly_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(AM_CXXFLAGS) $(CXXFLAGS) $(tslossgillpoly_LDFLAGS) \
+	$(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -217,6 +226,7 @@ am__depfiles_remade = src/core/$(DEPDIR)/fast-forward.Plo \
 	src/tests/$(DEPDIR)/gillespie-sampler.Po \
 	src/tests/$(DEPDIR)/likelihoodunittest-likelihood-unit-test.Po \
 	src/tests/$(DEPDIR)/ts-loss-characteristic.Po \
+	src/tests/$(DEPDIR)/ts-loss-gillespie-poly.Po \
 	src/tests/$(DEPDIR)/ts-loss-gillespie.Po
 am__mv = mv -f
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -259,12 +269,14 @@ SOURCES = $(libffwd_la_SOURCES) $(libgillespie_la_SOURCES) \
 	$(fivestage_SOURCES) $(gillespiesampler_SOURCES) \
 	$(gilllosserrs_SOURCES) $(guesser_SOURCES) \
 	$(likelihoodunittest_SOURCES) $(tslosserrs_SOURCES) \
-	$(tslossffwd_SOURCES) $(tslossgill_SOURCES)
+	$(tslossffwd_SOURCES) $(tslossgill_SOURCES) \
+	$(tslossgillpoly_SOURCES)
 DIST_SOURCES = $(libffwd_la_SOURCES) $(libgillespie_la_SOURCES) \
 	$(fivestage_SOURCES) $(gillespiesampler_SOURCES) \
 	$(gilllosserrs_SOURCES) $(guesser_SOURCES) \
 	$(likelihoodunittest_SOURCES) $(tslosserrs_SOURCES) \
-	$(tslossffwd_SOURCES) $(tslossgill_SOURCES)
+	$(tslossffwd_SOURCES) $(tslossgill_SOURCES) \
+	$(tslossgillpoly_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -466,6 +478,9 @@ tslossffwd_LDADD = libffwd.la
 tslossgill_SOURCES = src/tests/ts-loss-gillespie.cpp
 tslossgill_LDADD = libgillespie.la
 tslossgill_LDFLAGS = $(GSL_LIBS)
+tslossgillpoly_SOURCES = src/tests/ts-loss-gillespie-poly.cpp
+tslossgillpoly_LDADD = libgillespie.la
+tslossgillpoly_LDFLAGS = $(GSL_LIBS)
 tslosserrs_SOURCES = src/errors/ts-loss-characteristic-errors.cpp
 tslosserrs_LDADD = libffwd.la
 gilllosserrs_SOURCES = src/errors/gillespie-errors.cpp
@@ -730,6 +745,12 @@ src/tests/ts-loss-gillespie.$(OBJEXT): src/tests/$(am__dirstamp) \
 tslossgill$(EXEEXT): $(tslossgill_OBJECTS) $(tslossgill_DEPENDENCIES) $(EXTRA_tslossgill_DEPENDENCIES) 
 	@rm -f tslossgill$(EXEEXT)
 	$(AM_V_CXXLD)$(tslossgill_LINK) $(tslossgill_OBJECTS) $(tslossgill_LDADD) $(LIBS)
+src/tests/ts-loss-gillespie-poly.$(OBJEXT): src/tests/$(am__dirstamp) \
+	src/tests/$(DEPDIR)/$(am__dirstamp)
+
+tslossgillpoly$(EXEEXT): $(tslossgillpoly_OBJECTS) $(tslossgillpoly_DEPENDENCIES) $(EXTRA_tslossgillpoly_DEPENDENCIES) 
+	@rm -f tslossgillpoly$(EXEEXT)
+	$(AM_V_CXXLD)$(tslossgillpoly_LINK) $(tslossgillpoly_OBJECTS) $(tslossgillpoly_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -751,6 +772,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/gillespie-sampler.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/likelihoodunittest-likelihood-unit-test.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/ts-loss-characteristic.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/ts-loss-gillespie-poly.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/ts-loss-gillespie.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -1137,6 +1159,7 @@ distclean: distclean-am
 	-rm -f src/tests/$(DEPDIR)/gillespie-sampler.Po
 	-rm -f src/tests/$(DEPDIR)/likelihoodunittest-likelihood-unit-test.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-characteristic.Po
+	-rm -f src/tests/$(DEPDIR)/ts-loss-gillespie-poly.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-gillespie.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -1194,6 +1217,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f src/tests/$(DEPDIR)/gillespie-sampler.Po
 	-rm -f src/tests/$(DEPDIR)/likelihoodunittest-likelihood-unit-test.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-characteristic.Po
+	-rm -f src/tests/$(DEPDIR)/ts-loss-gillespie-poly.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-gillespie.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic

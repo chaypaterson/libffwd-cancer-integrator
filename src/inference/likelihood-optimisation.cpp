@@ -870,89 +870,111 @@ real_t save_data_compute_maximum(Epidata_t &all_times) {
 }
 
 void draw_level_sets(std::function<real_t(Model &model)> objective,
-                     Model point, int q_axis, int p_axis) {
-    // This function will visualise a level set of the negative log likelihood
-    // function in a chosen parameter plane. It does this by drawing a curve
-    // with a "pencil" that follows Hamilton's equations. The "pencil"
-    // automatically updates the point in the plane, as its coordinates are just
-    // pointers to the corresponding variables in the underlying model, "point".
-    // Note that the model "point" is deliberately passed by value to
-    // create a mutable copy inside this function.
-    // We will need to translate between different coordinate axes and Model
-    // parameters, so here is a vector of parameter values:
+                     Model point, int x_axis, int y_axis,
+                     real_t x_range=10.0f, real_t y_range=10.0f,
+                     size_t lines=16) {
+    using Eigen::all;
+    // Use this function to draw realistic non-ellipsoidal likelihood intervals.
+    // We choose two axes, and want to know about the projection of a surface
+    // objective=const onto this plane. Along this surface, because we
+    // solve objective = const., d obj / d marginal_variables = 0.
     std::vector<real_t> params = model_params_pure(point);
 
     // Create the paper:
     std::ofstream drawing;
-    drawing.open("level_set.csv");
+    char filename[25];
+    std::snprintf(filename, sizeof(filename), "raster_intervals_%d_%d.csv", x_axis, y_axis);
+    drawing.open(filename);
 
-    // Create the pencil:
-    struct {
-        real_t p;
-        real_t q;
-        real_t time;
-        real_t angle;
-    } pencil;
-    pencil.p = params[p_axis], pencil.q = params[q_axis], pencil.time = 0;
-    pencil.angle = 0;
+    drawing << "x,y,z*," << std::endl;
 
-    // draw initial point:
-    drawing << "x,y,z," << std::endl;
-    drawing << pencil.q << "," << pencil.p << ",";
-    drawing << objective(point) << ",";
-    drawing << std::endl;
+    // Copy the model object:
+    Model sample_point = point;
 
-    // Trace a level set of the objective function using
-    // Hamilton's equations:
-    real_t dt = 0.05;
-    while (pencil.angle < 2 * M_PI) {
-        /* Hamilton's equations:
-         * dp / dt = - dH / dq
-         * dq / dt = + dH / dp
-         *
-         * Use kick-drift-kick (Verlet) instead of Euler integration:
-         */
-        std::vector<real_t> Delta(4, 0);
-        Eigen::MatrixXd gradient = gradient_log(objective, point);
-        real_t dp, dq;
-        real_t angle;
+    // pick a pixel, and instead of sampling the objective function here, find
+    // the minimum in the normal directions.
+    //    we try to minimise H along the normal directions
+    //    because when H is minimised dH/dn = 0, and this is one of the
+    //    conditions of the projection.
+    // Store the normal directions for later (the ones that are not chosen):
+    std::vector<int> normal_dirs{0,1,2,3};
+    for (auto dir = normal_dirs.begin(); dir != normal_dirs.end();) {
+        if ((*dir == x_axis) || (*dir == y_axis)) {
+            normal_dirs.erase(dir);
+            continue;
+        } else {
+            ++dir;
+        }
+    }
 
-        // kick:
-        dp = -gradient(q_axis) * dt * 0.5;
-        // remember that gradient_log works in log space:
-        // move the pencil:
-        Delta[p_axis] = pencil.p * (exp(dp) - 1);
-        point = shifted_model(point, Delta); // p += dp
-        pencil.p *= exp(dp);
-        Delta[p_axis] = 0;
-        angle = dp;
+    for (int x_tap = 0; x_tap < lines; ++x_tap) {
+        for (int y_tap = 0; y_tap < lines; ++y_tap) {
+            // compute new parameters in log grid:
+            real_t x_value = params[x_axis] / x_range;
+            real_t y_value = params[y_axis] / y_range;
+            x_value *= exp(log(x_range) * 2 * (real_t)x_tap / (real_t)lines);
+            y_value *= exp(log(y_range) * 2 * (real_t)y_tap / (real_t)lines);
 
-        // drift:
-        gradient = gradient_log(objective, point);
-        dq = +gradient(p_axis) * dt;
-        Delta[q_axis] = pencil.q * (exp(dq) - 1);
-        point = shifted_model(point, Delta); // q += dq
-        pencil.q *= exp(dq);
-        Delta[q_axis] = 0;
+            // store current parameters:
+            std::vector<real_t> sample_params = model_params_pure(point);
 
-        // kick:
-        gradient = gradient_log(objective, point);
-        dp = -gradient(q_axis) * dt * 0.5;
-        Delta[p_axis] = pencil.p * (exp(dp) - 1);
-        point = shifted_model(point, Delta); // p += dp
-        pencil.p *= exp(dp);
-        Delta[p_axis] = 0;
+            // compute differences:
+            real_t dx, dy;
+            dx = x_value - sample_params[x_axis];
+            dy = y_value - sample_params[y_axis];
+            std::vector<real_t> Delta(4,0);
+            Delta[x_axis] = dx, Delta[y_axis] = dy;
 
-        angle -= dp;
-        angle /= dq;
+            // Move the sample point to have the right x- and y-values:
+            sample_point = shifted_model(point, Delta);
 
-        pencil.time += dt;
-        pencil.angle += angle;
+            real_t z_value = objective(sample_point);
 
-        // draw:
-        drawing << pencil.q << "," << pencil.p << ",";
-        drawing << objective(point) << ",";
-        drawing << std::endl;
+            // instead of just sampling the objective at this point, minimise it
+            // with respect to the normal directions (the parameters we are
+            // ignoring)
+            int dim = 4;
+            double learning_rate = 1;
+            // Cap the number of newton's method iterations at 4
+            int max_iter = 4;
+
+            for (int iter = 0; iter < max_iter; ++iter) {
+                // Minimise it with Newton's method
+                Eigen::MatrixXd gradient = gradient_log(objective, sample_point);
+                Eigen::MatrixXd normal_gradient = gradient(normal_dirs, all);
+
+                // Get Hessian for newtonian steps:
+                Eigen::MatrixXd hessian = compute_hessian(objective, sample_point);
+                Eigen::MatrixXd normal_hessian = hessian(normal_dirs, normal_dirs);
+
+                // Compute Newtonian step:
+                Eigen::MatrixXd newt_step = normal_hessian.inverse() * normal_gradient;
+                newt_step = newt_step * -1 * learning_rate;
+
+                // Update the guess:
+                std::vector<real_t> Step(dim, 0);
+                sample_params = model_params_pure(sample_point);
+                for (int axis = 0; axis < 2; ++axis) {
+                    Step[normal_dirs[axis]] = newt_step(axis);
+                    Step[normal_dirs[axis]] /= sample_params[normal_dirs[axis]];
+                }
+
+                Model new_point = shifted_model(sample_point, Step);
+
+                // quit when we start to go uphill:
+                real_t new_z_value = objective(new_point);
+
+                if (new_z_value > z_value) break;
+                if (std::isnan(new_z_value)) break;
+
+                sample_point = new_point;
+                z_value = new_z_value;
+            }
+
+            // write out values:
+            drawing << x_value << "," << y_value << "," << z_value << ",";
+            drawing << std::endl;
+        }
     }
 
     drawing.close();
@@ -1013,6 +1035,8 @@ struct Estimate {
     Estimate(const Model& guess) : best_guess(guess) {}
     Estimate(const Estimate& est) : best_guess(est.best_guess), Hessian(est.Hessian) {}
 };
+
+// TODO serialise Estimate to a file so minima can be saved and loaded?
 
 void print_best_guess(Estimate estimate) {
     std::cout << "Best guesses:" << std::endl;
@@ -1166,6 +1190,7 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
 
     // Draw level sets:
     if (options.level_sets) {
+        int dim = 4;
         std::cout << "Tracing level sets..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
             return loglikelihood_hist_both(model, binwidth,
@@ -1174,17 +1199,13 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
         };
         // choose a starting point from the best guess and local hessian:
         Model start_point = estimate.best_guess;
-        int q_axis = 0, p_axis = 1; // mu (1) vs rloh (0)
-        real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
 
-        std::vector<real_t> params = model_params_pure(start_point);
-
-        // use shifted_model not params_raw
-        std::vector<real_t> Delta(4,0);
-        Delta[q_axis] = stddev * 4.0;
-        start_point = shifted_model(start_point, Delta);
-
-        draw_level_sets(objective, start_point, q_axis, p_axis);
+        // for each combination of parameters:
+        for (int x_axis = 0; x_axis < dim; ++x_axis) {
+            for (int y_axis = x_axis + 1; y_axis < dim; ++y_axis) {
+                draw_level_sets(objective, start_point, x_axis, y_axis);
+            }
+        }
     }
 }
 
@@ -1295,6 +1316,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
 
     // Draw level sets:
     if (options.level_sets) {
+        int dim = 4;
         std::cout << "Tracing level sets..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
             return loglikelihood_hist_both(model, binwidth,
@@ -1306,17 +1328,16 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         };
         // choose a starting point from the best guess and local hessian:
         Model start_point = estimate.best_guess;
-        int q_axis = 0, p_axis = 1; // mu (1) vs rloh (0)
 
-        std::vector<real_t> params = model_params_pure(start_point);
-
-        real_t stddev = sqrt(estimate.Hessian.inverse()(q_axis, q_axis));
-        // use shifted_model not params_raw
-        std::vector<real_t> Delta(4,0);
-        Delta[q_axis] = stddev * 4.0;
-        start_point = shifted_model(start_point, Delta);
-
-        draw_level_sets(objective, start_point, q_axis, p_axis);
+        // for each combination of parameters:
+        for (int x_axis = 0; x_axis < dim; ++x_axis) {
+            for (int y_axis = x_axis + 1; y_axis < dim; ++y_axis) {
+                draw_level_sets(objective, start_point, x_axis, y_axis,
+                                options.mesh_x_range,
+                                options.mesh_y_range,
+                                options.mesh_lines);
+            }
+        }
     }
 
     // Draw 3d plot:

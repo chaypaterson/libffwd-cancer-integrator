@@ -13,21 +13,26 @@ def main(time_step):
     # Initialize the Model
     model = pyffwd.Model(5)
     model.m_migr = [
-        {1: mu, 2: rloh},         
-        {3: 0.5 * mu, 4: 0.5 * rloh},  
-        {4: 0.5 * mu},            
-        {},                       
-        {}                        
+        {1: mu, 2: rloh},
+        {3: 0.5 * mu, 4: 0.5 * rloh},
+        {4: 0.5 * mu},
+        {},
+        {}
     ]
     model.m_birth = pyffwd.list_to_vector([0, 0.2, 0.2, 0, 0])
     model.m_death = pyffwd.list_to_vector([0, 0, 0, 0, 0])
     model.m_initial_pops = pyffwd.list_to_vector([1e2, 0, 0, 0, 0])
 
     # Final vertices 3 and 4: 4 = mutants with LOH
-    qvaluesF = numpy_array_to_real_vector(np.array([1, 1, 1, 0, 0], dtype=np.float64))
-    qvaluesF2 = numpy_array_to_real_vector(np.copy(np.array([1, 1, 1, 0, 0], dtype=np.float64)))
-    qvalues4 = numpy_array_to_real_vector(np.array([1, 1, 1, 0, 1], dtype=np.float64))
-    qvalues42 = numpy_array_to_real_vector(np.copy(np.array([1, 1, 1, 0, 1], dtype=np.float64)))
+    # TODO realvector class? e.g. qvalues = pyffwd.RealVector([1,...])
+    qvaluesF = numpy_array_to_real_vector(np.array([1, 1, 1, 0, 0],
+                                          dtype=np.float64))
+    qvaluesF2 = numpy_array_to_real_vector(np.copy(np.array([1, 1, 1, 0, 0],
+                                           dtype=np.float64)))
+    qvalues4 = numpy_array_to_real_vector(np.array([1, 1, 1, 0, 1],
+                                          dtype=np.float64))
+    qvalues42 = numpy_array_to_real_vector(np.copy(np.array([1, 1, 1, 0, 1],
+                                           dtype=np.float64)))
 
     time = 0.0
     tmax = 100.0

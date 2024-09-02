@@ -113,6 +113,7 @@ Project structure:
  * `src/inference`: the statistical inference harness
  * `src/tests`: unit tests
  * `include`: headers defining the API for the core library
+ * `src/python`: the Python API bindings and equivalent unit tests are defined here
 
 Building:
 ---------
@@ -137,31 +138,6 @@ Alternatively, a hand-written Makefile is provided as Makefile.old. This is the
 original but is not machine agnostic, and only targetted 4 machines: my
 workstation, my development box at the WMIC, my MacBook, and the [CSF](https://ri.itservices.manchester.ac.uk/csf3/).
 
-Build & run Python binding:
-------------------------
-
-Navigate to the src/python directory.
-
-Create and activate a Python virtual environment:
-    
-    python3 -m venv venv
-    
-    source venv/bin/activate  
-
-Ensure pybind11 and gsl are available in your environment. Install it via pip if necessary:
-    
-    pip install pybind11 gsl
-
-Build and install the Python bindings:
-    
-    python pyffwdsetup.py build
-    
-    python pyffwdsetup.py install
-
-Run the Python test script:
-    
-    python pyffwdtest.py
-
 Requirements:
 -------------
 
@@ -175,6 +151,11 @@ Requires
 
 The Mac subsection of Makefile.old assumes GSL and Eigen are installed under Homebrew.
 
+Python API:
+-----------
+
+See src/python/API_GUIDE.md.
+
 Sources: 
 --------
 
@@ -183,4 +164,14 @@ Sources:
  * E.G. Luebeck et al 2012, doi: 10.1158/0008-5472.CAN-12-2198
  * D. Quinn, Risk Analysis, Vol. 9, Issue 3, 1989, doi: 10.1111/j.1539-6924.1989.tb01006.x
 
+Authors and acknowledgements
+----------------------------
 
+Developers:
+* Chay Paterson (project lead)
+* Miaomiao Gao (`src/inference` and related)
+* Ramishka Dona Liyanage (Python API)
+* Joshua Hellier
+* Ivana Bozic
+* David Wedge
+* Georg Luebeck

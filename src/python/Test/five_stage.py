@@ -24,6 +24,7 @@ def main():
 
     # Initialize qvalues
     default_qvalues = [1, 1, 1, 1, 1, 1]
+    # what is the function of this next line??????? - Chay
     qvalues = [list_to_real_vector(default_qvalues) for _ in range(parameters.m_stages)]
     for vertex in range(parameters.m_stages):
         qvalues[vertex][vertex] = 0
@@ -44,8 +45,10 @@ def main():
         # Compute probabilities and print results in the desired format
         output = f"{int(time)}, "  # Formatting the time as an integer
         for vertex in range(parameters.m_stages):
-            prob = pyffwd.generating_function(qvalues[vertex], parameters.m_initial_pops)
-            formatted_prob = f"{1.0 - prob:.6g}"  # Limit to 6 significant digits
+            prob = pyffwd.generating_function(qvalues[vertex],
+                                              parameters.m_initial_pops)
+            # Limit to 6 significant digits:
+            formatted_prob = f"{1.0 - prob:.6g}"
             output += f"{formatted_prob}, "
         
         # Remove trailing comma and space, then print the formatted output
