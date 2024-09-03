@@ -1047,13 +1047,14 @@ struct BoundingBox {
     unsigned int resolution[3];
     double centre[3];
     double dims[3];
+    double s2;
 };
 
 // TODO: reference to float vector safer than raw pointer?
 void sample_voxel_cube(float* buffer,
                        std::function<real_t(Model &model)> objective,
                        struct BoundingBox bounding_box,
-                       real_t offset, real_t s2,
+                       real_t offset, real_t s2max,
                        size_t first_sample, size_t last_sample) {
     for (size_t sample = first_sample; sample < last_sample; ++sample) {
         // compute row, col, and lyr
@@ -1083,20 +1084,35 @@ void sample_voxel_cube(float* buffer,
         real_t s1 = bounding_box.centre[2];
         s1 *= (1.0 + offset_s1);
 
-        Model sample_point = instantiate_model(rloh, mu, s1, s2, 1e6);
-        // get a normalised value for likelihood, 
-        // which is exp(-log(L)).
-        float y_value = exp(offset - objective(sample_point));
+        // Marginalise/integrate over s2:
+        real_t slices = 16; // TODO I don't see a big difference between 8 and 64
+        real_t ds2 = s2max / slices;
+        float voxel[3] = {0, 0, 0};
+        for (real_t s2 = 0.0; s2 < s2max; s2 += ds2) {
+            // Associate a floating point colour with this s2 value:
+            float theta = M_PI * s2 / s2max;
+            float colour[3] = {0.6f - 0.4f * cosf(theta) - 0.2f * cosf(2 * theta),
+                               0.4f + 0.1f * cosf(theta) + 0.3f * cosf(2 * theta),
+                               0.6f + 0.4f * cosf(theta) + 0};
 
-        // Nice the output: set NaNs and negative values to zero
-        if (!std::isnormal(y_value) || y_value < 0) {
-            y_value = 0.0f;
+            // get a normalised value for likelihood, 
+            // which is exp(-log(L)).
+            Model sample_point = instantiate_model(rloh, mu, s1, s2, 1e6);
+            float y_value = exp(offset - objective(sample_point));
+
+            // Nice the output: set NaNs and negative values to zero
+            if (!std::isnormal(y_value) || y_value < 0 || y_value > 1e6) {
+                y_value = 0.0f;
+            }
+            // increment integral and convert value to floating point colour:
+            for (int ch = 0; ch < 3; ++ch) {
+                voxel[ch] += y_value * colour[ch] * ds2 / s2max;
+                // \frac{1}{s2max} \int_{s2=0}^s2max ... ds2
+            }
         }
 
-        // convert value to floating point colour:
-        float colour[3] = {y_value, y_value, y_value};
         // copy colour to buffer:
-        std::memcpy(buffer + 3 * sample, colour, sizeof(colour));
+        std::memcpy(buffer + 3 * sample, voxel, sizeof(voxel));
     }
 }
 
@@ -1105,12 +1121,11 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
                        std::string voxel_file,
                        size_t num_child_threads) {
     // Serialise the objective function to a voxel cube file
-    // TODO marginalise over s2 to get colour information
-    real_t s2 = 0.03;
+    real_t s2max = 0.06; // WARNING values too high result in garbage
     Model centre_of_box = instantiate_model(bounding_box.centre[1],
                                             bounding_box.centre[0],
                                             bounding_box.centre[2],
-                                            s2, // bit of a hack for now
+                                            bounding_box.s2,
                                             1e6);
     // note the value of the objective in the centre, call this the offset:
     real_t offset = objective(centre_of_box);
@@ -1144,11 +1159,11 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
 
         child_threads.push_back(std::thread(sample_voxel_cube,
                                             buffer, objective, bounding_box,
-                                            offset, s2, start, end));
+                                            offset, s2max, start, end));
     }
 
     // run the remaining threads in the parent thread:
-    sample_voxel_cube(buffer, objective, bounding_box, offset, s2, 
+    sample_voxel_cube(buffer, objective, bounding_box, offset, s2max, 
                       volume_samples - child_samples - remainder, 
                       volume_samples);
 
@@ -1526,6 +1541,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
             // Also, use logarithmic scales for mu and rloh and linear scales for
             // s1 and s2.
             .dims = {100, 100, 1},
+            .s2 = ground_truth.m_birth[2],
         };
 
         std::cout << "Rendering 3D voxel data..." << std::endl;
