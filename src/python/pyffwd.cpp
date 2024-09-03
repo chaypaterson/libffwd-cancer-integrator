@@ -46,45 +46,59 @@ std::vector<int> pylist_to_vector(const py::list& pylist) {
     return vec;
 }
 
+// Convert Python list to std::vector<real_t>
+std::vector<real_t> pylist_to_vector_real_t(const py::list& pylist) {
+    std::vector<real_t> vec;
+    for (const auto& item : pylist) {
+        vec.push_back(item.cast<real_t>());
+    }
+    return vec;
+}
+
 PYBIND11_MODULE(pyffwd, m) {
     m.doc() = "Python bindings for the cancer-integrator (fastforward/ffwd) library";
 
     // Convert Python list to std::vector<real_t>
     m.def("list_to_vector", [](py::list py_list) {
-        std::vector<real_t> cpp_vector;
-        for (auto item : py_list) {
-            cpp_vector.push_back(item.cast<real_t>());
-        }
-        return cpp_vector;
+        return pylist_to_vector_real_t(py_list);
     }, "Convert list to std::vector<real_t>", py::arg("py_list"));
 
     py::bind_vector<std::vector<real_t>>(m, "RealVector");
 
-    // Convert Python list to_vector_int
-    m.def("convert_to_vector_int", [](py::list py_list) {
-    std::vector<int> cpp_vector;
-    for (auto item : py_list) {
-        cpp_vector.push_back(item.cast<int>());
-    }
-    return cpp_vector;
+    // Convert Python list to std::vector<int>
+    m.def("list_vector_int", [](py::list py_list) {
+        std::vector<int> cpp_vector;
+        for (auto item : py_list) {
+            cpp_vector.push_back(item.cast<int>());
+        }
+        return cpp_vector;
     }, "Convert list to std::vector<int>", py::arg("py_list"));
 
     py::bind_vector<std::vector<int>>(m, "IntVector");
 
     // Bind the Model class
     py::class_<Model>(m, "Model")
-    .def(py::init<size_t>(), py::arg("n_vertices"))
-    .def_readwrite("m_stages", &Model::m_stages)
-    .def_readwrite("m_birth", &Model::m_birth)
-    .def_readwrite("m_death", &Model::m_death)
-    .def_readwrite("m_immig_rates", &Model::m_immig_rates)
-    .def_readwrite("m_initial_pops", &Model::m_initial_pops)
-    .def_property("m_migr",
-        [](const Model &m) { return m.m_migr; },
-        [](Model &m, const std::vector<std::map<int, real_t>> &migr) {
-            m.m_migr = migr;
-        }
-    );
+        .def(py::init<size_t>(), py::arg("n_vertices"))
+        .def("set_birth", [](Model &model, py::list birth_rates) {
+            model.m_birth = pylist_to_vector_real_t(birth_rates);
+        })
+        .def("set_death", [](Model &model, py::list death_rates) {
+            model.m_death = pylist_to_vector_real_t(death_rates);
+        })
+        .def("set_initial_pops", [](Model &model, py::list initial_pops) {
+            model.m_initial_pops = pylist_to_vector_real_t(initial_pops);
+        })
+        .def_readwrite("m_stages", &Model::m_stages)
+        .def_readwrite("m_birth", &Model::m_birth)
+        .def_readwrite("m_death", &Model::m_death)
+        .def_readwrite("m_immig_rates", &Model::m_immig_rates)
+        .def_readwrite("m_initial_pops", &Model::m_initial_pops)
+        .def_property("m_migr",
+            [](const Model &m) { return m.m_migr; },
+            [](Model &m, const std::vector<std::map<int, real_t>> &migr) {
+                m.m_migr = migr;
+            }
+        );
 
     // Bind the rhs_flow function
     m.def("rhs_flow", fast_forward::rhs_flow,

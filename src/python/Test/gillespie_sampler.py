@@ -32,14 +32,12 @@ def main():
         {}                        # No migration from vertex 4
     ]
 
-    # Convert lists to RealVector
-    model.m_birth = pyffwd.list_to_vector([0, 0.05, 0.03, 0, 0])
-    model.m_death = pyffwd.list_to_vector([0, 0, 0, 0, 0])
-    model.m_initial_pops = pyffwd.list_to_vector([1e6, 0, 0, 0, 0])
-    
-    # TODO constructor/default values for Model?
-    
-    final_vertices = pyffwd.convert_to_vector_int([3, 4])
+    # set birth death initial_pops
+    model.set_birth([0, 0.05, 0.03, 0, 0])
+    model.set_death([0, 0, 0, 0, 0])
+    model.set_initial_pops([1e6, 0, 0, 0, 0])
+        
+    final_vertices = pyffwd.list_vector_int([3, 4])
 
     # Test RNG consistency
     print("Python output with seed", seed, ":")

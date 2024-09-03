@@ -20,14 +20,14 @@ def main(dt, type):
         {}                        # No migration from vertex 4
     ]
 
-    # Birth and death rates
-    model.m_birth = pyffwd.list_to_vector([0, 0.05, 0.03, 0, 0])
-    model.m_death = pyffwd.list_to_vector([0, 0, 0, 0, 0])
-    model.m_initial_pops = pyffwd.list_to_vector([1e6, 0, 0, 0, 0])
+    # set Birth and death rates
+    model.set_birth([0, 0.05, 0.03, 0, 0])
+    model.set_death([0, 0, 0, 0, 0])
+    model.set_initial_pops([1e6, 0, 0, 0, 0])
 
     # Initial q-values
-    qvaluesBoth = pyffwd.list_to_vector([1, 1, 1, 0, 0])
-    qvaluesOther = pyffwd.list_to_vector([1, 1, 1, 0, 0])
+    qvaluesBoth = pyffwd. RealVector([1, 1, 1, 0, 0])
+    qvaluesOther = pyffwd. RealVector([1, 1, 1, 0, 0])
     qvaluesOther[type] = 1
 
     time = 0.0

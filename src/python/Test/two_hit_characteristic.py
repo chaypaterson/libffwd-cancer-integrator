@@ -4,16 +4,11 @@ def main():
     # Initialize the model with 3 vertices
     model = pyffwd.Model(3)
     
-    # Create RealVector for each attribute
-    birth_rates = pyffwd. list_to_vector([1.0, 1.2, 1.0])
-    death_rates = pyffwd. list_to_vector([1.0, 1.0, 1.0])
-    initial_pops = pyffwd. list_to_vector([1, 0, 0])
-    
     # Set the model parameters
     model.m_migr = [{1: 0.001}, {2: 0.001}, {}]
-    model.m_birth = birth_rates
-    model.m_death = death_rates
-    model.m_initial_pops = initial_pops
+    model.set_birth([1.0, 1.2, 1.0])
+    model.set_death([1.0, 1.0, 1.0])
+    model.set_initial_pops([1, 0, 0])
     
     # We want the probability that site 2 is unoccupied: the corresponding set
     # of q-coordinates is (1,1,0)

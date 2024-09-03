@@ -17,10 +17,10 @@ def main():
         {5: 4.56e-7}
     ]
     
-    # Convert Python lists to RealVector
-    parameters.m_birth = list_to_real_vector([0, 0, 0.2, 0.27, 0.27, 0])
-    parameters.m_death = list_to_real_vector([0, 0, 0, 0, 0, 0])
-    parameters.m_initial_pops = list_to_real_vector([1e8, 0, 0, 0, 0, 0])
+    # Set birth rates, death rates, and initial populations
+    parameters.set_birth([0, 0, 0.2, 0.27, 0.27, 0])
+    parameters.set_death([0, 0, 0, 0, 0, 0])
+    parameters.set_initial_pops([1e8, 0, 0, 0, 0, 0])
 
     # Initialize qvalues
     default_qvalues = [1, 1, 1, 1, 1, 1]

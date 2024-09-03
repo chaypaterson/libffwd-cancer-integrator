@@ -4,7 +4,7 @@ import math
 EPSILON = 1e-10
 
 def map_onto_data(params, this_data):
-    qcorner = pyffwd.list_to_vector([1] * params.m_stages)
+    qcorner = pyffwd.RealVector([1] * params.m_stages)
     dt = 0.01
     total = 0
 
@@ -51,9 +51,9 @@ def main():
         {4: 0.5 * mu} # From vertex 2 to 4
     ]
 
-    params.m_birth = pyffwd.list_to_vector([0.0, 0.2, 0.2, 0.0, 0.0])
-    params.m_death = pyffwd.list_to_vector([0.0, 0.0, 0.0, 0.0, 0.0])
-    params.m_initial_pops = pyffwd.list_to_vector([1e2, 0, 0, 0, 0])
+    params.set_birth([0.0, 0.2, 0.2, 0.0, 0.0])
+    params.set_death([0.0, 0.0, 0.0, 0.0, 0.0])
+    params.set_initial_pops([1e2, 0, 0, 0, 0])
 
     print(params.m_migr)
     print(params.m_birth)

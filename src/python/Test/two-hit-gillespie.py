@@ -17,9 +17,9 @@ model.m_migr = [
     {2: mu1},
     {}
 ]
-model.m_birth = pyffwd.list_to_vector([1, 1.2, 1])
-model.m_death = pyffwd.list_to_vector([1, 1.0, 1])
-model.m_initial_pops = pyffwd.list_to_vector([1, 0, 0])
+model.set_birth([1, 1.2, 1])
+model.set_death([1, 1.0, 1])
+model.set_initial_pops([1, 0, 0])
 
 def simulate_times(index):
     # Create a RealVector to hold the results
@@ -55,8 +55,8 @@ for time_list in times:
 
 all_times.sort()
 
-# Convert to pyffwd.RealVector
-all_times_real_vector = pyffwd.list_to_vector(all_times)
+# Convert to RealVector
+all_times_real_vector = pyffwd.RealVector(all_times)
 
 # Kaplan-Meier plot
 pyffwd.print_kaplan_meier(100, all_times_real_vector)

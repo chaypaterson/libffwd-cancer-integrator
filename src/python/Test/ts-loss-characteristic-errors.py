@@ -19,9 +19,9 @@ def main(time_step):
         {},
         {}
     ]
-    model.m_birth = pyffwd.list_to_vector([0, 0.2, 0.2, 0, 0])
-    model.m_death = pyffwd.list_to_vector([0, 0, 0, 0, 0])
-    model.m_initial_pops = pyffwd.list_to_vector([1e2, 0, 0, 0, 0])
+    model.set_birth([0, 0.2, 0.2, 0, 0])
+    model.set_death([0, 0, 0, 0, 0])
+    model.set_initial_pops([1e2, 0, 0, 0, 0])
 
     # Final vertices 3 and 4: 4 = mutants with LOH
     # TODO realvector class? e.g. qvalues = pyffwd.RealVector([1,...])
