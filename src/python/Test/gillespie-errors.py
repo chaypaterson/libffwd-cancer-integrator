@@ -17,17 +17,17 @@ def generate_dataset(seed, runs):
     ]
 
     # Convert lists to RealVector
-    model.m_birth = pyffwd.list_to_vector([0, 0.05, 0.03, 0, 0])
-    model.m_death = pyffwd.list_to_vector([0, 0, 0, 0, 0])
-    model.m_initial_pops = pyffwd.list_to_vector([1e6, 0, 0, 0, 0])
+    model.set_birth([0, 0.05, 0.03, 0, 0])
+    model.set_death([0, 0, 0, 0, 0])
+    model.set_initial_pops([1e6, 0, 0, 0, 0])
     
-    final_vertices = pyffwd.convert_to_vector_int([3, 4])
+    final_vertices = pyffwd.IntVector([3, 4])
 
     # Run some simulations and store the time and final node in all_times:
     r = pyffwd.GSL_RNG(seed)
     all_times = []
 
-    sim_state = pyffwd.GillespieInstance(model)
+    # sim_state = pyffwd.GillespieInstance(model)
 
     # Make sure all_times is a list of tuples
     for _ in range(runs):
@@ -74,11 +74,11 @@ def main(seed, runs):
             s1 = 1
             s2 = 1
             if vertex_type in all_times_1 and len(all_times_1[vertex_type]) > 0:
-                times_vector_1 = pyffwd.list_to_vector(all_times_1[vertex_type])
+                times_vector_1 = pyffwd. RealVector(all_times_1[vertex_type])
                 s1 = pyffwd.surv_kaplan_meier(age, times_vector_1,
                                               reference_pop_1)
             if vertex_type in all_times_2 and len(all_times_2[vertex_type]) > 0:
-                times_vector_2 = pyffwd.list_to_vector(all_times_2[vertex_type])
+                times_vector_2 = pyffwd. RealVector(all_times_2[vertex_type])
                 s2 = pyffwd.surv_kaplan_meier(age, times_vector_2,
                                               reference_pop_2)
             error = (s1 - s2) ** 2

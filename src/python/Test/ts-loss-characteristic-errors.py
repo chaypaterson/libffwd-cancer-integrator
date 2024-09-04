@@ -2,9 +2,6 @@ import sys
 import numpy as np
 import pyffwd
 
-def numpy_array_to_real_vector(np_array):
-    return pyffwd.list_to_vector(np_array.tolist())
-
 def main(time_step):
     # System coefficients
     rloh = 0.5e-2
@@ -23,16 +20,10 @@ def main(time_step):
     model.set_death([0, 0, 0, 0, 0])
     model.set_initial_pops([1e2, 0, 0, 0, 0])
 
-    # Final vertices 3 and 4: 4 = mutants with LOH
-    # TODO realvector class? e.g. qvalues = pyffwd.RealVector([1,...])
-    qvaluesF = numpy_array_to_real_vector(np.array([1, 1, 1, 0, 0],
-                                          dtype=np.float64))
-    qvaluesF2 = numpy_array_to_real_vector(np.copy(np.array([1, 1, 1, 0, 0],
-                                           dtype=np.float64)))
-    qvalues4 = numpy_array_to_real_vector(np.array([1, 1, 1, 0, 1],
-                                          dtype=np.float64))
-    qvalues42 = numpy_array_to_real_vector(np.copy(np.array([1, 1, 1, 0, 1],
-                                           dtype=np.float64)))
+    qvaluesF = pyffwd.RealVector([1, 1, 1, 0, 0])
+    qvaluesF2 = pyffwd.RealVector([1, 1, 1, 0, 0])
+    qvalues4 = pyffwd.RealVector([1, 1, 1, 0, 1])
+    qvalues42 = pyffwd.RealVector([1, 1, 1, 0, 1])
 
     time = 0.0
     tmax = 100.0
