@@ -46,6 +46,14 @@ once installed the module can be loaded from within the virtual environment with
 
     >>> import pyffwd
 
+Note
+----
+
+GSL in Python: GSL (GNU Scientific Library) in Python, ensure that the random number generator is explicitly set to gsl_rng_mt19937 (Mersenne Twister) for consistency with the C++ implementation.
+
+Data Type Conversions: Custom conversion functions for types like std::vector<int> and std::vector<real_t> build to avoid unexpected behavior and ensure reliable data exchange between Python Pybind11 and C++.
+
+
 Authors and acknowledgements
 ----------------------------
 
