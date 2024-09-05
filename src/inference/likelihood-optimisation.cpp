@@ -1048,6 +1048,7 @@ struct BoundingBox {
     double centre[3];
     double dims[3];
     double s2;
+    size_t size;
 };
 
 // TODO: reference to float vector safer than raw pointer?
@@ -1074,7 +1075,6 @@ void sample_voxel_cube(float* buffer,
 
         double offset_rloh = col * 1.0 / bounding_box.resolution[1];
         offset_rloh -= 0.5;
-        offset_rloh += 0.5;
         real_t rloh = bounding_box.centre[1]; 
         rloh *= exp(log(bounding_box.dims[1]) * offset_rloh);
 
@@ -1090,10 +1090,10 @@ void sample_voxel_cube(float* buffer,
         float voxel[3] = {0, 0, 0};
         for (real_t s2 = 0.0; s2 < s2max; s2 += ds2) {
             // Associate a floating point colour with this s2 value:
-            float theta = M_PI * s2 / s2max;
-            float colour[3] = {0.6f - 0.4f * cosf(theta) - 0.2f * cosf(2 * theta),
-                               0.4f + 0.1f * cosf(theta) + 0.3f * cosf(2 * theta),
-                               0.6f + 0.4f * cosf(theta) + 0};
+            float theta = (4 * M_PI / 3) * s2 / s2max;
+            float colour[3] = {0.66f -0.33f * cosf(theta),
+                               0.66f +0.17f * cosf(theta) -0.29f * sinf(theta),
+                               0.66f +0.17f * cosf(theta) +0.29f * sinf(theta)};
 
             // get a normalised value for likelihood, 
             // which is exp(-log(L)).
@@ -1129,6 +1129,8 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
                                             1e6);
     // note the value of the objective in the centre, call this the offset:
     real_t offset = objective(centre_of_box);
+    // and subtract off the study sample size to normalise the colours:
+    offset -= log(bounding_box.size);
 
     // get the total number of samples to take:
     size_t volume_samples = 1;
@@ -1540,8 +1542,9 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
             // TODO pass these in on command line
             // Also, use logarithmic scales for mu and rloh and linear scales for
             // s1 and s2.
-            .dims = {100, 100, 1},
+            .dims = {options.mesh_x_range, options.mesh_y_range, 1},
             .s2 = ground_truth.m_birth[2],
+            .size = dataset_size
         };
 
         std::cout << "Rendering 3D voxel data..." << std::endl;

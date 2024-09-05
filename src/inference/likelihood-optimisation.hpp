@@ -33,8 +33,8 @@ public:
     unsigned int voxel_res = 16; // side resolution of 3d cube
     // float options:
     // the heatmap plot will run from best_guess/these to best_guess * these:
-    double mesh_x_range = 10.0f; 
-    double mesh_y_range = 10.0f;
+    double mesh_x_range = 100.0; 
+    double mesh_y_range = 100.0;
 
     // string options:
     // NB the defaults for all string options are empty (""), this is set in the
