@@ -15,7 +15,7 @@
 #include <fast-forward.hpp>
 #include <gillespie-algorithm.hpp>
 
-#include "likelihood-optimisation.hpp"
+#include "guesser-argparse.hpp"
 
 /* Max. likelihood program:
  *      Generates a simulated dataset with hidden parameter values
@@ -1091,9 +1091,20 @@ void sample_voxel_cube(float* buffer,
         for (real_t s2 = 0.0; s2 < s2max; s2 += ds2) {
             // Associate a floating point colour with this s2 value:
             float theta = (4 * M_PI / 3) * s2 / s2max;
-            float colour[3] = {0.66f -0.33f * cosf(theta),
+            // swatch 1:
+            /*float colour[3] = {0.66f -0.33f * cosf(theta),
                                0.66f +0.17f * cosf(theta) -0.29f * sinf(theta),
                                0.66f +0.17f * cosf(theta) +0.29f * sinf(theta)};
+                               */
+            // swatch 2:
+            float colour[3] = {0.5f -0.408f * cosf(theta),
+                               0.5f +0.204f * cosf(theta) -0.353f * sinf(theta),
+                               0.5f +0.204f * cosf(theta) +0.353f * sinf(theta)};
+            // swatch 3:
+            /*float colour[3] = {0.5f -0.392f * cosf(theta) +0.276f * sinf(theta),
+                               0.5f +0.087f * cosf(theta) -0.122f * sinf(theta), 
+                               0.5f +0.298f * cosf(theta) +0.398f * sinf(theta)};
+                               */
 
             // get a normalised value for likelihood, 
             // which is exp(-log(L)).
