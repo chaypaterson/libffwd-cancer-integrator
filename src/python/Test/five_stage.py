@@ -1,13 +1,13 @@
 import pyffwd
 
-def list_to_real_vector(py_list):
-    """Helper function to convert a Python list to a std::vector<real_t>."""
-    return pyffwd.list_to_vector(py_list)
-
 def main():
     # Create model with 6 stages
-    parameters = pyffwd.Model(6)
-
+    parameters = pyffwd.Model.create_model(
+        6, 
+        birth_rates= [0, 0, 0.2, 0.27, 0.27, 0],
+        death_rates=[0, 0, 0, 0, 0, 0],
+        initial_pops=[1e8, 0, 0, 0, 0, 0]
+    )
     # System coefficients
     parameters.m_migr = [
         {1: 2.86e-4},
@@ -16,16 +16,12 @@ def main():
         {4: 1.36e-4},
         {5: 4.56e-7}
     ]
-    
-    # Set birth rates, death rates, and initial populations
-    parameters.set_birth([0, 0, 0.2, 0.27, 0.27, 0])
-    parameters.set_death([0, 0, 0, 0, 0, 0])
-    parameters.set_initial_pops([1e8, 0, 0, 0, 0, 0])
 
     # Initialize qvalues
     default_qvalues = [1, 1, 1, 1, 1, 1]
-    # what is the function of this next line??????? - Chay
-    qvalues = [list_to_real_vector(default_qvalues) for _ in range(parameters.m_stages)]
+    qvalues = [pyffwd.RealVector(default_qvalues) 
+               for _ in range(parameters.m_stages)]
+    
     for vertex in range(parameters.m_stages):
         qvalues[vertex][vertex] = 0
 

@@ -44,16 +44,17 @@ def main():
     rloh = 0.5e-2
     mu = 0.5e-3
 
-    params = pyffwd.Model(5)
+    params = pyffwd.Model.create_model(
+        5, 
+        birth_rates= [0.0, 0.2, 0.2, 0.0, 0.0],
+        death_rates=[0.0, 0.0, 0.0, 0.0, 0.0],
+        initial_pops=[1e2, 0, 0, 0, 0]
+    )
     params.m_migr = [
         {1: mu, 2: rloh}, # From vertex 0 to 1 and 2
         {3: 0.5 * mu, 4: 0.5 * rloh}, # From vertex 1 to 3 and 4
         {4: 0.5 * mu} # From vertex 2 to 4
     ]
-
-    params.set_birth([0.0, 0.2, 0.2, 0.0, 0.0])
-    params.set_death([0.0, 0.0, 0.0, 0.0, 0.0])
-    params.set_initial_pops([1e2, 0, 0, 0, 0])
 
     print(params.m_migr)
     print(params.m_birth)

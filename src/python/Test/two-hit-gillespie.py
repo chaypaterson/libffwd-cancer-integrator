@@ -11,15 +11,17 @@ mu0 = 0.001
 mu1 = 0.001
 
 # Model setup
-model = pyffwd.Model(3)
+model = pyffwd.Model.create_model(
+        3, 
+        birth_rates=[1.0, 1.2, 1.0],
+        death_rates=[1.0, 1.0, 1.0],
+        initial_pops=[1, 0, 0]
+    )
 model.m_migr = [
     {1: mu0},
     {2: mu1},
     {}
 ]
-model.set_birth([1, 1.2, 1])
-model.set_death([1, 1.0, 1])
-model.set_initial_pops([1, 0, 0])
 
 def simulate_times(index):
     # Create a RealVector to hold the results

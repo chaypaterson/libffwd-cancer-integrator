@@ -47,7 +47,7 @@ std::vector<int> pylist_to_vector(const py::list& pylist) {
 }
 
 // Convert Python list to std::vector<real_t>
-std::vector<real_t> pylist_to_vector_real_t(const py::list& pylist) {
+std::vector<real_t> vec_real_t(const py::list& pylist) {
     std::vector<real_t> vec;
     for (const auto& item : pylist) {
         vec.push_back(item.cast<real_t>());
@@ -60,7 +60,7 @@ PYBIND11_MODULE(pyffwd, m) {
 
     // Convert Python list to std::vector<real_t>
     m.def("list_to_vector", [](py::list py_list) {
-        return pylist_to_vector_real_t(py_list);
+        return vec_real_t(py_list);
     }, "Convert list to std::vector<real_t>", py::arg("py_list"));
 
     py::bind_vector<std::vector<real_t>>(m, "RealVector");
@@ -78,16 +78,52 @@ PYBIND11_MODULE(pyffwd, m) {
 
     // Bind the Model class
     py::class_<Model>(m, "Model")
+         // Original constructor
         .def(py::init<size_t>(), py::arg("n_vertices"))
+        // Factory function for pass birth, death rates, initial_pops
+        .def_static("create_model",
+            [](size_t n_vertices,
+               py::object birth_rates = py::none(),
+               py::object death_rates = py::none(),
+               py::object initial_pops = py::none()) {
+
+                // Create a default Model
+                Model model(n_vertices);
+
+                if (!birth_rates.is_none()) {
+                    auto birth_list = vec_real_t(birth_rates.cast<py::list>());
+                    model.m_birth = birth_list;
+                }
+
+                if (!death_rates.is_none()) {
+                    auto death_list = vec_real_t(death_rates.cast<py::list>());
+                    model.m_death = death_list;
+                }
+
+                if (!initial_pops.is_none()) {
+                    auto pops_list = vec_real_t(initial_pops.cast<py::list>());
+                    model.m_initial_pops = pops_list;
+                }
+
+                return model;
+            },
+            py::arg("n_vertices"),
+            py::arg("birth_rates") = py::none(),
+            py::arg("death_rates") = py::none(),
+            py::arg("initial_pops") = py::none())
+
+        // Setter for birth, death, and initial populations
         .def("set_birth", [](Model &model, py::list birth_rates) {
-            model.m_birth = pylist_to_vector_real_t(birth_rates);
+            model.m_birth = vec_real_t(birth_rates);
         })
         .def("set_death", [](Model &model, py::list death_rates) {
-            model.m_death = pylist_to_vector_real_t(death_rates);
+            model.m_death = vec_real_t(death_rates);
         })
         .def("set_initial_pops", [](Model &model, py::list initial_pops) {
-            model.m_initial_pops = pylist_to_vector_real_t(initial_pops);
+            model.m_initial_pops = vec_real_t(initial_pops);
         })
+        
+        // Accessors for internal variables
         .def_readwrite("m_stages", &Model::m_stages)
         .def_readwrite("m_birth", &Model::m_birth)
         .def_readwrite("m_death", &Model::m_death)
@@ -163,6 +199,13 @@ PYBIND11_MODULE(pyffwd, m) {
         .def_readwrite("state", &gsl_rng::state);
 
     // Bind standalone functions
+
+    m.def("first_passage_time",
+        static_cast<double (*)(gsl_rng *, const Model&, const int)>(
+            &gillespie_ssa::first_passage_time),
+        py::arg("rng"), py::arg("model"), py::arg("final_vertex"));
+
+
     m.def("first_passage_time_multiple",
         // Cast the corresponding function to a function pointer type:
         static_cast<std::pair<double,int> (*)(
@@ -176,6 +219,15 @@ PYBIND11_MODULE(pyffwd, m) {
 
     m.def("times_to_final_vertices", &gillespie_ssa::times_to_final_vertices,
           "Compute times to reach any of the final vertices across multiple runs",
+          py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"),
+          py::arg("final_vertices"), py::arg("results"));
+
+    m.def("first_passage_time_poly", &gillespie_ssa::first_passage_time_poly,
+          "Compute the first passage time to reach a set of final vertices", 
+          py::arg("rng"), py::arg("model"), py::arg("final_vertices"));
+
+    m.def("times_to_final_vertices_poly", &gillespie_ssa::times_to_final_vertices_poly,
+          "Compute times to reach any of the final vertices across multiple runs (poly)",
           py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"),
           py::arg("final_vertices"), py::arg("results"));
 

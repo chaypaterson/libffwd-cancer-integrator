@@ -11,7 +11,12 @@ def main(dt, type):
     mu = 5e-8
 
     # Create model
-    model = pyffwd.Model(5)
+    model = pyffwd.Model.create_model(
+        5, 
+        birth_rates=[0, 0.05, 0.03, 0, 0],
+        death_rates=[0, 0, 0, 0, 0],
+        initial_pops=[1e6, 0, 0, 0, 0]
+    )
     model.m_migr = [
         {1: mu, 2: rloh},         # From vertex 0 to 1 and 2
         {3: 0.5 * mu, 4: 0.5 * rloh},  # From vertex 1 to 3 and 4
@@ -19,11 +24,6 @@ def main(dt, type):
         {},                       # No migration from vertex 3
         {}                        # No migration from vertex 4
     ]
-
-    # set Birth and death rates
-    model.set_birth([0, 0.05, 0.03, 0, 0])
-    model.set_death([0, 0, 0, 0, 0])
-    model.set_initial_pops([1e6, 0, 0, 0, 0])
 
     # Initial q-values
     qvaluesBoth = pyffwd. RealVector([1, 1, 1, 0, 0])

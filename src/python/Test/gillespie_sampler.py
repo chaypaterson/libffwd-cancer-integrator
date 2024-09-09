@@ -22,8 +22,13 @@ def main():
     rloh = 5.26337e-7
     mu = 2.16427e-8
 
-    #  list of dictionaries
-    model = pyffwd.Model(5)
+    #  set birth, death rates and initial_pops
+    model = pyffwd.Model.create_model(
+        5, 
+        birth_rates=[0, 0.05, 0.03, 0, 0],
+        death_rates=[0, 0, 0, 0, 0],
+        initial_pops=[1e6, 0, 0, 0, 0]
+    )
     model.m_migr = [
         {1: mu, 2: rloh},         # From vertex 0 to 1 and 2
         {3: 0.5 * mu, 4: 0.5 * rloh},  # From vertex 1 to 3 and 4
@@ -31,11 +36,6 @@ def main():
         {},                       # No migration from vertex 3
         {}                        # No migration from vertex 4
     ]
-
-    # set birth death initial_pops
-    model.set_birth([0, 0.05, 0.03, 0, 0])
-    model.set_death([0, 0, 0, 0, 0])
-    model.set_initial_pops([1e6, 0, 0, 0, 0])
         
     final_vertices = pyffwd.list_vector_int([3, 4])
 

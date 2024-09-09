@@ -8,7 +8,13 @@ def main(time_step):
     mu = 0.5e-3
 
     # Initialize the Model
-    model = pyffwd.Model(5)
+    model = pyffwd.Model.create_model(
+        5, 
+        birth_rates=[0, 0.2, 0.2, 0, 0],
+        death_rates=[0, 0, 0, 0, 0],
+        initial_pops=[1e2, 0, 0, 0, 0]
+    )
+    
     model.m_migr = [
         {1: mu, 2: rloh},
         {3: 0.5 * mu, 4: 0.5 * rloh},
@@ -16,9 +22,6 @@ def main(time_step):
         {},
         {}
     ]
-    model.set_birth([0, 0.2, 0.2, 0, 0])
-    model.set_death([0, 0, 0, 0, 0])
-    model.set_initial_pops([1e2, 0, 0, 0, 0])
 
     qvaluesF = pyffwd.RealVector([1, 1, 1, 0, 0])
     qvaluesF2 = pyffwd.RealVector([1, 1, 1, 0, 0])
