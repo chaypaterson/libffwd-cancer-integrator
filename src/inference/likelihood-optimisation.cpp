@@ -1059,6 +1059,9 @@ void sample_voxel_cube(float* buffer,
                        struct BoundingBox bounding_box,
                        real_t offset, real_t s2max,
                        size_t first_sample, size_t last_sample) {
+    // gamma compression:
+    float compression = 10.0 / bounding_box.size;
+
     for (size_t sample = first_sample; sample < last_sample; ++sample) {
         // compute row, col, and lyr
         size_t next;
@@ -1111,10 +1114,16 @@ void sample_voxel_cube(float* buffer,
             // get a normalised value for likelihood, 
             // which is exp(-log(L)).
             Model sample_point = instantiate_model(rloh, mu, s1, s2, 1e6);
-            float y_value = exp(offset - objective(sample_point));
+            float dloglike = offset - objective(sample_point);
+            // Apply gamma compression to squash the value into a visible range:
+            dloglike *= compression;
+            float y_value = exp(dloglike);
 
             // Nice the output: set NaNs and negative values to zero
-            if (!std::isnormal(y_value) || y_value < 0 || y_value > 1e6) {
+            // Values are also invalid iff they would cause an overflow in exp:
+            // 127 * log(2) = 88
+
+            if (!std::isnormal(y_value) || y_value < 0 || dloglike > 88) {
                 y_value = 0.0f;
             }
             // increment integral and convert value to floating point colour:
@@ -1143,7 +1152,9 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
     // note the value of the objective in the centre, call this the offset:
     real_t offset = objective(centre_of_box);
     // and try to normalise the colours:
-    offset -= 0.5 * bounding_box.size * log(bounding_box.size);
+    //real_t offset = +0.5 * bounding_box.size * log(bounding_box.size);
+    printf("size: %u\n", bounding_box.size);
+    printf("normalisation offset: %g\n", offset);
 
     // get the total number of samples to take:
     size_t volume_samples = 1;
@@ -1557,7 +1568,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
             // s1 and s2.
             .dims = {options.mesh_x_range, options.mesh_y_range, 1},
             .s2 = ground_truth.m_birth[2],
-            .size = dataset_size
+            .size = reference_pop
         };
 
         std::cout << "Rendering 3D voxel data..." << std::endl;
