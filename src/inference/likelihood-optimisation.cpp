@@ -93,8 +93,10 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
 
         // -log binomial likelihood:
         real_t p = Sprob - Sprob2;
-        mlogl += -log(p) * curr_bin;
-        mlogl += -log(1 - p) * (nsurv - curr_bin);
+        if (p > 0 && p < 1) {
+            mlogl += -log(p) * curr_bin;
+            mlogl += -log(1 - p) * (nsurv - curr_bin);
+        }
         nsurv -= curr_bin;
 
         // weight for survival/chance of detection of cancer:
@@ -1546,9 +1548,9 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
                           options.voxel_res},
             // Ground truth is visible within this scope so we can use that to
             // choose a centre for the cube:
-            .centre = {ground_truth.m_migr[0][1],
-                      ground_truth.m_migr[0][2],
-                      ground_truth.m_birth[1]
+            .centre = {estimate.best_guess.m_migr[0][1],
+                       estimate.best_guess.m_migr[0][2],
+                       estimate.best_guess.m_birth[1]
                      },
             // TODO pass these in on command line
             // Also, use logarithmic scales for mu and rloh and linear scales for
