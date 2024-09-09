@@ -52,7 +52,7 @@ def main():
             output += f"{formatted_prob}, "
         
         # Remove trailing comma and space, then print the formatted output
-        print(output.strip(', '))
+        print(output)
 
 if __name__ == "__main__":
     main()
