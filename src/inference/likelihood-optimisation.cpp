@@ -1142,8 +1142,8 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
                                             1e6);
     // note the value of the objective in the centre, call this the offset:
     real_t offset = objective(centre_of_box);
-    // and subtract off the study sample size to normalise the colours:
-    offset -= log(bounding_box.size);
+    // and try to normalise the colours:
+    offset -= 0.5 * bounding_box.size * log(bounding_box.size);
 
     // get the total number of samples to take:
     size_t volume_samples = 1;
