@@ -1149,6 +1149,10 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
                                             bounding_box.centre[2],
                                             bounding_box.s2,
                                             1e6);
+    // likelihood functions are only unique up to a scalar constant. We use this
+    // to wrap the likelihood function into a representable range by offsetting
+    // the log-likelihood by a constant before converting it to a probability
+    // with exp(- -loglikelihood): i.e. exp(offset - -loglikelihood)
     // note the value of the objective in the centre, call this the offset:
     real_t offset = objective(centre_of_box);
     // and try to normalise the colours:
