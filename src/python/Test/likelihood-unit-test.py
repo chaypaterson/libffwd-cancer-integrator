@@ -25,7 +25,7 @@ def map_onto_data(params, this_data):
         # Output the result in the required format
         dprob_safe = dprob if dprob > EPSILON else EPSILON
         log_dprob = -math.log(dprob_safe)
-        print(f"{age}, {node}, {prob:.6f}, {dprob:.6f}, {log_dprob:.5f}")
+        print(f"{age}, {node}, {prob:.6f}, {dprob_safe:.7e}, {log_dprob:.5f}")
 
         total += log_dprob
 
@@ -46,8 +46,8 @@ def main():
 
     params = pyffwd.Model.create_model(
         5, 
-        birth_rates= [0.0, 0.2, 0.2, 0.0, 0.0],
-        death_rates=[0.0, 0.0, 0.0, 0.0, 0.0],
+        birth_rates= [0, 0.2, 0.2, 0, 0],
+        death_rates=[0, 0, 0, 0, 0],
         initial_pops=[1e2, 0, 0, 0, 0]
     )
     params.m_migr = [
@@ -56,12 +56,7 @@ def main():
         {4: 0.5 * mu} # From vertex 2 to 4
     ]
 
-    print(params.m_migr)
-    print(params.m_birth)
-    print(params.m_death)
-    print(params.m_initial_pops)
-
-    all_times = [(33.0, 3), (50.0, 4)]
+    all_times = [(33, 3), (50, 4)]
 
     # Perform the calculations and print the results
     total = map_onto_data(params, all_times)

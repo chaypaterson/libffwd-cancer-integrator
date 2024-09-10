@@ -36,7 +36,7 @@ def main(time_step):
 
     # Print header
     print("age, err,")
-    print(f"{time:.6f}, 0.0,")
+    print(f"{time:.20f}, 0.00000000000000000000, ")
 
     t_write = time + t_write_step
 
