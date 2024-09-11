@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
     model.m_initial_pops = {1e6, 0, 0, 0, 0};
 
     std::vector<int> final_vertices = {3, 4};
-    // Setup GSL RNG
+    /* Setup GSL RNG
     gsl_rng *rng = gsl_rng_alloc(gsl_rng_mt19937);
     gsl_rng_set(rng, seed);
 
@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < 10; ++i) {
         std::cout << gsl_rng_uniform(rng) << std::endl;
     }
+    */
     // run some simulations and store the time and final node in
     // all_times:
     std::vector<std::pair<double,int>> all_times;
