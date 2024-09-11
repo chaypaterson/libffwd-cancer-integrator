@@ -1,6 +1,8 @@
 import pyffwd
 import sys
 
+'''
+Test to check the random numbers
 def test_rng(seed, count=10):
     # Initialize RNG with seed
     rng = pyffwd.GSL_RNG(seed)
@@ -8,6 +10,7 @@ def test_rng(seed, count=10):
     # Using 'uniform()' for [0, 1):
     numbers = [rng.uniform() for _ in range(count)]
     return numbers
+'''
 
 def main():
     if len(sys.argv) < 3:
@@ -38,14 +41,16 @@ def main():
     ]
         
     final_vertices = pyffwd.list_vector_int([3, 4])
-
+    
+    '''
     # Test RNG consistency
     print("Python output with seed", seed, ":")
     rng_numbers = test_rng(seed)
     for number in rng_numbers:
         print(number)
+    '''
 
-    # Run some simulations and store the time and final node in all_times:
+    # Run some simulations and store the time and final node in all_times
     r = pyffwd.GSL_RNG(seed)
     all_times = []
 
@@ -62,7 +67,7 @@ def main():
 
     print("age, node,")
     for pair in all_times:
-        age_formatted = f"{pair[0]:.3f}"
+        age_formatted = f"{pair[0]:.3f}".rstrip('0').rstrip('.')
         node = pair[1]
         print(f"{age_formatted}, {node},")
 
