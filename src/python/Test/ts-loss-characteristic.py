@@ -38,7 +38,7 @@ def main(dt, type):
     print("age, p1, p2,")
 
     # Print initial values
-    print(f"{time:.17f}, 1.0, 0.0,")
+    print(f"{time:.17f}, {1.00000000000000000:.17f}, {0.00000000000000000:.17f}, ")
     t_write = time + t_write_step
 
     while time < tmax:
@@ -58,7 +58,7 @@ def main(dt, type):
                                                model.m_initial_pops)
         prob = probneither / probother
 
-        print(f"{time:.17f}, {prob:.17f}, {1.0 - prob:.17f},")
+        print(f"{time:.17f}, {prob:.17f}, {1.00000000000000000 - prob:.17f}, ")
         t_write += t_write_step
 
 if __name__ == "__main__":
