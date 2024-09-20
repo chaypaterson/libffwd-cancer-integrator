@@ -3,13 +3,15 @@
 # Paths
 CORE_DIR="core"
 INCLUDE_DIR="/Users/user/cancer-integrator/include"  # Absolute path to the include directory
-CPP_TEST_FILES=("tests/five-stage-characteristic.cpp" "tests/likelihood-unit-test.cpp" "tests/ts-loss-characteristic.cpp")
-PYTHON_TEST_FILES=("python/Test/five-stage-characteristic.py" "python/Test/likelihood-unit-test.py" "python/Test/ts-loss-characteristic.py")
+CPP_TEST_FILES=("tests/five-stage-characteristic.cpp" "tests/likelihood-unit-test.cpp" \
+    "tests/ts-loss-characteristic.cpp" "tests/two-hit-characteristic.cpp")
+PYTHON_TEST_FILES=("python/Test/five-stage-characteristic.py" "python/Test/likelihood-unit-test.py" \
+    "python/Test/ts-loss-characteristic.py" "python/Test/two-hit-characteristic.py")
 
-# Arguments for ts-loss-characteristic.cpp and ts-loss-characteristic.py
-TEST_ARGS=("0.01 3")
+# Arguments for specific tests
+TEST_ARGS=("" "" "0.01 3" "1 10")
 
-# Function to compile and run a C++ test with optional arguments
+# Function to compile and run a C++ test
 run_cpp_test() {
     local cpp_test_path=$1
     local test_name=$(basename "$cpp_test_path" .cpp)
@@ -18,9 +20,7 @@ run_cpp_test() {
 
     echo "Compiling C++ test: $test_name..."
     g++ -std=c++11 -o "$test_name" "$cpp_test_path" \
-        -I "$INCLUDE_DIR" \
-        -L "$CORE_DIR" \
-        -lfast_forward
+        -I "$INCLUDE_DIR" -L "$CORE_DIR" -lfast_forward
 
     if [ $? -ne 0 ]; then
         echo "C++ compilation for $test_name failed!"
@@ -38,7 +38,7 @@ run_cpp_test() {
     echo "C++ test $test_name completed. Output saved to $output_file."
 }
 
-# Function to run a Python test with optional arguments
+# Function to run a Python test
 run_python_test() {
     local python_test_path=$1
     local test_name=$(basename "$python_test_path" .py)
@@ -66,9 +66,11 @@ compare_outputs() {
     diff -u "$cpp_output" "$python_output" > "diff_output_${test_name}.txt"
 
     if [ $? -eq 0 ]; then
-        echo "Outputs for $test_name are identical."
+        echo "***Outputs for $test_name are identical***"
+        echo "   "
     else
-        echo "Outputs for $test_name differ. See diff_output_${test_name}.txt for details."
+        echo "***Outputs for $test_name differ. See diff_output_${test_name}.txt***"
+        echo "   "
     fi
 }
 
@@ -97,16 +99,10 @@ cd ..
 for i in "${!CPP_TEST_FILES[@]}"; do
     cpp_test="${CPP_TEST_FILES[$i]}"
     python_test="${PYTHON_TEST_FILES[$i]}"
-    
-    # If it's the ts-loss test, pass the arguments
-    if [[ "$cpp_test" == *"ts-loss-characteristic.cpp" ]]; then
-        run_cpp_test "$cpp_test" "${TEST_ARGS[*]}"
-        run_python_test "$python_test" "${TEST_ARGS[*]}"
-    else
-        # Run the original tests without arguments
-        run_cpp_test "$cpp_test"
-        run_python_test "$python_test"
-    fi
+
+    # Run the tests with their respective arguments
+    run_cpp_test "$cpp_test" "${TEST_ARGS[$i]}"
+    run_python_test "$python_test" "${TEST_ARGS[$i]}"
 
     # Compare outputs
     test_name=$(basename "$cpp_test" .cpp)
