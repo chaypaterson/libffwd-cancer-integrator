@@ -73,9 +73,8 @@ def main():
     time_max = all_times[-1]
 
     all_times_real_vector = pyffwd.RealVector(all_times)
-
-    # Print the Kaplan-Meier plot
     print("age, S12, p12,")
+    # Print the Kaplan-Meier plot
     pyffwd.print_kaplan_meier(time_max, all_times_real_vector, study_population)
 
 if __name__ == '__main__':
