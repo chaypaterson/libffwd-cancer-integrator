@@ -4,9 +4,9 @@
 CORE_DIR="core"
 INCLUDE_DIR="/Users/user/cancer-integrator/include"  # Absolute path to the include directory
 CPP_TEST_FILES=("tests/five-stage-characteristic.cpp" "tests/likelihood-unit-test.cpp" "tests/ts-loss-characteristic.cpp")
-PYTHON_TEST_FILES=("python/Test/five_stage.py" "python/Test/likelihood-unit-test.py" "python/Test/ts-loss-characteristic.py")
+PYTHON_TEST_FILES=("python/Test/five-stage-characteristic.py" "python/Test/likelihood-unit-test.py" "python/Test/ts-loss-characteristic.py")
 
-# Arguments for the new tests (ts-loss-characteristic.cpp and ts_loss.py)
+# Arguments for ts-loss-characteristic.cpp and ts-loss-characteristic.py
 TEST_ARGS=("0.01 3")
 
 # Function to compile and run a C++ test with optional arguments
@@ -98,7 +98,7 @@ for i in "${!CPP_TEST_FILES[@]}"; do
     cpp_test="${CPP_TEST_FILES[$i]}"
     python_test="${PYTHON_TEST_FILES[$i]}"
     
-    # If it's the ts-loss test, pass the arguments "0.01 3"
+    # If it's the ts-loss test, pass the arguments
     if [[ "$cpp_test" == *"ts-loss-characteristic.cpp" ]]; then
         run_cpp_test "$cpp_test" "${TEST_ARGS[*]}"
         run_python_test "$python_test" "${TEST_ARGS[*]}"
