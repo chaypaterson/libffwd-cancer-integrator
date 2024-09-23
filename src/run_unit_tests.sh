@@ -2,14 +2,21 @@
 
 # Paths
 CORE_DIR="core"
-INCLUDE_DIR="/Users/user/cancer-integrator/include"  # Absolute path to the include directory
+INCLUDE_DIR="/Users/user/cancer-integrator/include"
+GSL_DIR="/opt/homebrew/Cellar/gsl/2.8"
 CPP_TEST_FILES=("tests/five-stage-characteristic.cpp" "tests/likelihood-unit-test.cpp" \
-    "tests/ts-loss-characteristic.cpp" "tests/two-hit-characteristic.cpp")
+    "tests/ts-loss-characteristic.cpp" "tests/two-hit-characteristic.cpp" \
+    "tests/gillespie-sampler.cpp" "tests/two-hit-characteristic.cpp" \
+    "errors/ts-loss-characteristic-errors.cpp" "tests/ts-loss-gillespie-poly.cpp" \
+     "errors/gillespie-errors.cpp" "tests/ts-loss-gillespie.cpp")
 PYTHON_TEST_FILES=("python/Test/five-stage-characteristic.py" "python/Test/likelihood-unit-test.py" \
-    "python/Test/ts-loss-characteristic.py" "python/Test/two-hit-characteristic.py")
+    "python/Test/ts-loss-characteristic.py" "python/Test/two-hit-characteristic.py" \
+    "python/Test/gillespie-sampler.py" "python/Test/two-hit-gillespie.py" \
+    "python/Test/ts-loss-characteristic-errors.py" "python/Test/ts-loss-gillespie-poly.py" \
+    "python/Test/gillespie-errors.py" "python/Test/ts-loss-gillespie.py")
 
 # Arguments for specific tests
-TEST_ARGS=("" "" "0.01 3" "1 10")
+TEST_ARGS=("" "" "0.01 3" "1 10" "1 100" "1 10" "0.01" "123 10" "1 10" "1 10")
 
 # Function to compile and run a C++ test
 run_cpp_test() {
@@ -20,7 +27,9 @@ run_cpp_test() {
 
     echo "Compiling C++ test: $test_name..."
     g++ -std=c++11 -o "$test_name" "$cpp_test_path" \
-        -I "$INCLUDE_DIR" -L "$CORE_DIR" -lfast_forward
+        -I "$INCLUDE_DIR" -I "$GSL_DIR/include" \
+        -L "$CORE_DIR" -L "$GSL_DIR/lib" \
+        -lfast_forward -lgsl -lgslcblas -pthread
 
     if [ $? -ne 0 ]; then
         echo "C++ compilation for $test_name failed!"
@@ -66,11 +75,11 @@ compare_outputs() {
     diff -u "$cpp_output" "$python_output" > "diff_output_${test_name}.txt"
 
     if [ $? -eq 0 ]; then
-        echo "***Outputs for $test_name are identical***"
-        echo "   "
+        echo "Outputs for $test_name are identical."
+        echo "----------------------------------------------"
     else
-        echo "***Outputs for $test_name differ. See diff_output_${test_name}.txt***"
-        echo "   "
+        echo "Outputs for $test_name differ. See diff_output_${test_name}.txt"
+        echo "-------------------------------------------------------------------------------------"
     fi
 }
 
@@ -90,9 +99,19 @@ else
     exit 1
 fi
 
+# Compile gillespie-algorithm.cpp into object files
+if [ -f "gillespie-algorithm.cpp" ]; then
+    echo "Compiling gillespie-algorithm.cpp..."
+    g++ -std=c++11 -c gillespie-algorithm.cpp -I "$INCLUDE_DIR" -I "$GSL_DIR/include" \
+        -o gillespie-algorithm.o
+else
+    echo "Source file gillespie-algorithm.cpp not found!"
+    exit 1
+fi
+
 # Create a static library from the object files
 echo "Creating static library libfast_forward.a..."
-ar rcs libfast_forward.a fast-forward.o
+ar rcs libfast_forward.a fast-forward.o gillespie-algorithm.o
 cd ..
 
 # Run the C++ and Python tests, and compare outputs
@@ -100,7 +119,7 @@ for i in "${!CPP_TEST_FILES[@]}"; do
     cpp_test="${CPP_TEST_FILES[$i]}"
     python_test="${PYTHON_TEST_FILES[$i]}"
 
-    # Run the tests with their respective arguments
+    # Run the tests with arguments
     run_cpp_test "$cpp_test" "${TEST_ARGS[$i]}"
     run_python_test "$python_test" "${TEST_ARGS[$i]}"
 

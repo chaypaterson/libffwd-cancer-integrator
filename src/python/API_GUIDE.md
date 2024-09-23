@@ -46,6 +46,17 @@ once installed the module can be loaded from within the virtual environment with
 
     >>> import pyffwd
 
+Running Unit Tests
+------------------
+Navigate to the directory
+    cd cancer-integrator/src
+
+Grant execution permission to the script
+    chmod +x run_unit_tests.sh
+
+Run the unit tests
+    ./run_unit_tests.sh
+
 Note
 ----
 
