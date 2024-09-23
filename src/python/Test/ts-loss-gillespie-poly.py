@@ -19,7 +19,7 @@ def simulate_times(seed, runs_per_thread, final_vertices_list, rloh, mu):
     ]
 
     # Convert the list to a pyffwd.IntVector
-    final_vertices = pyffwd. IntVector(final_vertices_list)
+    final_vertices = pyffwd.IntVector(final_vertices_list)
     
     # Initialize an empty pyffwd.RealVector
     times = pyffwd.RealVector()
@@ -73,9 +73,11 @@ def main():
     time_max = all_times[-1]
 
     all_times_real_vector = pyffwd.RealVector(all_times)
-    print("age, S12, p12,")
+    
+    print("age, S12, p12,", flush=True)
     # Print the Kaplan-Meier plot
     pyffwd.print_kaplan_meier(time_max, all_times_real_vector, study_population)
+    print()
 
 if __name__ == '__main__':
     main()
