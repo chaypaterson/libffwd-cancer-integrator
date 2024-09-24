@@ -22,10 +22,26 @@ def map_onto_data(params, this_data):
         prob2 = pyffwd.generating_function(qvals, params.m_initial_pops)
         dprob = (prob - prob2) / dt
 
-        # Output the result in the required format
         dprob_safe = dprob if dprob > EPSILON else EPSILON
         log_dprob = -math.log(dprob_safe)
-        print(f"{age}, {node}, {prob:.6f}, {dprob_safe:.7e}, {log_dprob:.5f}")
+
+        if prob < 0.0001:
+            prob_str = f"{prob:.6e}"
+        else:
+            prob_str = f"{prob:.6f}"
+
+        # Format dprob with 7 decimal places to capture full precision
+        if dprob_safe < 0.0001:
+            dprob_str = f"{dprob_safe:.5e}"
+        else:
+            dprob_str = f"{dprob_safe:.7f}"
+
+        log_dprob_str = f"{log_dprob:.5f}"
+
+        # Print formatted output
+        print(f"{age:.0f}, {node}, {prob_str}, "
+              f"{dprob_str.rstrip('0').rstrip('.')}, "
+              f"{log_dprob_str.rstrip('0')}")
 
         total += log_dprob
 

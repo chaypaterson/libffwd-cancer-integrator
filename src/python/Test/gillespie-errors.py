@@ -1,98 +1,112 @@
 import pyffwd
 import numpy as np
+import math
 import sys
 
 def generate_dataset(seed, runs):
-    # System coefficients:
-    rloh = 5.0e-7
-    mu = 5.0e-8
+    # System coefficients
+    rloh = 5e-7
+    mu = 5e-8
 
-    model = pyffwd.Model(5)
+    # Initialize the model with 5 compartments
+    model = pyffwd.Model.create_model(
+        5,
+        birth_rates=[0, 0.05, 0.03, 0, 0],
+        death_rates=[0, 0, 0, 0, 0],
+        initial_pops=[1e6, 0, 0, 0, 0]
+    )
+
+    # Set migration rates between compartments
     model.m_migr = [
-        {1: mu, 2: rloh},
-        {3: 0.5 * mu, 4: 0.5 * rloh},
-        {4: 0.5 * mu},
-        {},
-        {}
+        {1: mu, 2: rloh},  # From vertex 0 to 1 and 2
+        {3: 0.5 * mu, 
+         4: 0.5 * rloh},  # From vertex 1 to 3 and 4
+        {4: 0.5 * mu},    # From vertex 2 to 4
+        {},                # No migration from vertex 3
+        {}                 # No migration from vertex 4
     ]
 
-    # Convert lists to RealVector
-    model.set_birth([0, 0.05, 0.03, 0, 0])
-    model.set_death([0, 0, 0, 0, 0])
-    model.set_initial_pops([1e6, 0, 0, 0, 0])
-    
     final_vertices = pyffwd.IntVector([3, 4])
 
-    # Run some simulations and store the time and final node in all_times:
-    r = pyffwd.GSL_RNG(seed)
+    # Container for simulation results
     all_times = []
 
-    # sim_state = pyffwd.GillespieInstance(model)
+    # Set up random number generator
+    rng = pyffwd.GSL_RNG(seed)
 
-    # Make sure all_times is a list of tuples
+    # Run simulations using first_passage_time_multiple
     for _ in range(runs):
-        time_result = pyffwd.first_passage_time_multiple(r, model,
-                                                         final_vertices)
-        all_times.append(time_result)
+        result = pyffwd.first_passage_time_multiple(
+            rng, model, final_vertices
+        )
+        all_times.append(result)
 
-    # pass the list of tuples to times_to_final_vertices
-    pyffwd.times_to_final_vertices(model, seed, runs, final_vertices, all_times)
-
-    all_times_flipped = {}
+    # Flip results to map by final tumour type
+    all_times_flipped = {3: [], 4: []}
     for time, vertex in all_times:
-        if vertex not in all_times_flipped:
-            all_times_flipped[vertex] = []
         all_times_flipped[vertex].append(time)
 
     return all_times_flipped
 
-def main(seed, runs):
-    all_times_1 = generate_dataset(seed, runs)
-    all_times_2 = generate_dataset(seed + runs, runs)
 
+def compute_error(all_times_1, all_times_2, runs):
+    # Compute maximum age
     age_max = 0
-    for pair in all_times_1.values():
-        if pair:  # Check if the list is not empty
-            age_max = max(age_max, max(pair))
-            pair.sort()
-    
-    for pair in all_times_2.values():
-        if pair:
-            age_max = max(age_max, max(pair))
-            pair.sort()
+    for dataset in [all_times_1, all_times_2]:
+        for times in dataset.values():
+            if times:
+                age_max = max(age_max, max(times))
+            times.sort()
 
-    # Compute scaled root mean square difference in survival curves
-    reference_pop_1 = len(all_times_1.get(3, [])) + len(all_times_1.get(4, []))
-    reference_pop_2 = len(all_times_2.get(3, [])) + len(all_times_2.get(4, []))
+    # Reference populations
+    reference_pop_1 = len(all_times_1[3]) + len(all_times_1[4])
+    reference_pop_2 = len(all_times_2[3]) + len(all_times_2[4])
 
+    # Parameters for sampling points
     num_sample_points = 256
     dt = age_max / num_sample_points
 
+    # Output errors over time
     for age in np.arange(0, age_max + dt, dt):
-        toterr = 0
-        for vertex_type in [3, 4]:
-            s1 = 1
-            s2 = 1
-            if vertex_type in all_times_1 and len(all_times_1[vertex_type]) > 0:
-                times_vector_1 = pyffwd. RealVector(all_times_1[vertex_type])
-                s1 = pyffwd.surv_kaplan_meier(age, times_vector_1,
-                                              reference_pop_1)
-            if vertex_type in all_times_2 and len(all_times_2[vertex_type]) > 0:
-                times_vector_2 = pyffwd. RealVector(all_times_2[vertex_type])
-                s2 = pyffwd.surv_kaplan_meier(age, times_vector_2,
-                                              reference_pop_2)
-            error = (s1 - s2) ** 2
-            toterr += error
+        total_error = 0
+        for tumour_type in [3, 4]:
+            times_1 = (
+                pyffwd.RealVector(all_times_1[tumour_type]) 
+                if all_times_1[tumour_type] 
+                else pyffwd.RealVector()
+            )
+            times_2 = (
+                pyffwd.RealVector(all_times_2[tumour_type]) 
+                if all_times_2[tumour_type] 
+                else pyffwd.RealVector()
+            )
 
-        toterr = np.sqrt(toterr / 2)
-        print(f"{age:.20f},{toterr:.20f},")
+            s1 = (1.0 if not times_1 
+                  else pyffwd.surv_kaplan_meier(
+                      age, times_1, reference_pop_1))
+            s2 = (1.0 if not times_2 
+                  else pyffwd.surv_kaplan_meier(
+                      age, times_2, reference_pop_2))
+            
+            error = (s1 - s2) ** 2
+            total_error += error
+
+        total_error = math.sqrt(total_error / 2)
+        print(f"{age:.20f},{total_error:.20f},")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Call this program with:")
-        print("    python gillespie_errors.py seed runs")
+        print("Call this program with: ")
+        print("    python gillespie_sampler.py seed runs")
         sys.exit(1)
 
     seed = int(sys.argv[1])
     runs = int(sys.argv[2])
-    main(seed, runs)
+
+    # Generate two datasets with different seeds
+    all_times_1 = generate_dataset(seed, runs)
+    all_times_2 = generate_dataset(seed + runs, runs)
+
+    # Compute and output the error between the two datasets
+    compute_error(all_times_1, all_times_2, runs)
