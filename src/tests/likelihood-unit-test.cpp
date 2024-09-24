@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <iomanip>
 
 #include <graph-model-spec.hpp>
 #include <fast-forward.hpp>
@@ -55,9 +56,18 @@ void map_onto_data(Model& params, const epidata_t& this_data,
 }
 
 real_t print_test(real_t age, int node, real_t prob, real_t dprob) {
+    double format_tol = 1e-2; // if a number is smaller than this, use
+    // scientific notation to format it
+
     // print results:
+    std::cout << std::fixed << std::setprecision(0);
     std::cout << age << ", " << node << ", ";
+    std::cout << std::fixed;
+    if (dprob < format_tol)
+        std::cout << std::scientific;
+    std::cout << std::setprecision(7);
     std::cout << prob << ", " << dprob << ", ";
+    std::cout << std::fixed;
     std::cout << -log(dprob) << std::endl;
     return 1.0;
 }
@@ -117,6 +127,7 @@ int main(int argc, char* argv[]) {
     unit_test(params, all_times);
 
     // second unit test:
+    std::cout << std::fixed << std::setprecision(3);
     std::cout << loglikelihood_test(params, all_times);
     std::cout << std::endl;
 

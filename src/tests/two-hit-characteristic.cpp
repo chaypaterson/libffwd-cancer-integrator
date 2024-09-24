@@ -20,6 +20,9 @@
  * experimental method based on the method of characteristics.
  */
 
+using clonal_expansion::fast_forward::heun_q_step;
+using clonal_expansion::fast_forward::generating_function;
+
 int main() {
     clonal_expansion::Model two_hit(3);
     // System coefficients:

@@ -26,22 +26,22 @@ def map_onto_data(params, this_data):
         log_dprob = -math.log(dprob_safe)
 
         if prob < 0.0001:
-            prob_str = f"{prob:.6e}"
+            prob_str = f"{prob:.7e}"
         else:
-            prob_str = f"{prob:.6f}"
+            prob_str = f"{prob:.7f}"
 
         # Format dprob with 7 decimal places to capture full precision
         if dprob_safe < 0.0001:
-            dprob_str = f"{dprob_safe:.5e}"
+            dprob_str = f"{dprob_safe:.7e}"
         else:
             dprob_str = f"{dprob_safe:.7f}"
 
-        log_dprob_str = f"{log_dprob:.5f}"
+        log_dprob_str = f"{log_dprob:.7f}"
 
         # Print formatted output
         print(f"{age:.0f}, {node}, {prob_str}, "
-              f"{dprob_str.rstrip('0').rstrip('.')}, "
-              f"{log_dprob_str.rstrip('0')}")
+              f"{dprob_str}, "
+              f"{log_dprob_str}")
 
         total += log_dprob
 

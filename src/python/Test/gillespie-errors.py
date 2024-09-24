@@ -67,7 +67,7 @@ def compute_error(all_times_1, all_times_2, runs):
     dt = age_max / num_sample_points
 
     # Output errors over time
-    for age in np.arange(0, age_max + dt, dt):
+    for age in np.arange(0, age_max, dt):
         total_error = 0
         for tumour_type in [3, 4]:
             times_1 = (
@@ -92,7 +92,7 @@ def compute_error(all_times_1, all_times_2, runs):
             total_error += error
 
         total_error = math.sqrt(total_error / 2)
-        print(f"{age:.20f},{total_error:.20f},")
+        print(f"{age:.9f},{total_error:.20f},")
 
 
 if __name__ == "__main__":

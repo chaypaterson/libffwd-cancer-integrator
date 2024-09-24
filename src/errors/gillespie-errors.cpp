@@ -88,7 +88,6 @@ int main(int argc, char* argv[]) {
     size_t num_sample_points = 256;
     double dt = age_max / (double)num_sample_points;
 
-    std::cout.precision(20);
     for (double age = 0; age <= age_max; age += dt) {
         double toterr = 0;
         for (int type = 3; type < 5; ++type) {
@@ -103,7 +102,9 @@ int main(int argc, char* argv[]) {
         }
         toterr /= 2;
         toterr = std::sqrt(toterr);
+        std::cout.precision(9);
         std::cout << std::fixed << age << ",";
+        std::cout.precision(20);
         std::cout << std::fixed << toterr << "," << std::endl;
     }
 

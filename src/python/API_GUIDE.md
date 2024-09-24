@@ -16,9 +16,9 @@ or:
 
     pipenv shell
 
-Ensure pybind11 is available in your environment. Install it via pip if necessary:
+Ensure pybind11 and numpy are available in your environment. Install it via pip if necessary:
     
-    pip install pybind11
+    pip install pybind11 numpy
 
 Build and install the Python bindings:
     
