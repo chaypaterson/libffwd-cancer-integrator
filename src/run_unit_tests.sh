@@ -13,7 +13,7 @@ PYTHON_TEST_FILES=("python/Test/five-stage-characteristic.py" "python/Test/likel
     "python/Test/ts-loss-characteristic.py" "python/Test/two-hit-characteristic.py" \
     "python/Test/gillespie-sampler.py" "python/Test/two-hit-gillespie.py" \
     "python/Test/ts-loss-characteristic-errors.py" "python/Test/ts-loss-gillespie-poly.py" \
-    "python/Test/gillespie-errors.py" "python/Test/ts-loss-gillespie.py")
+    "python/Test/gillespie-errors.py" "python/Test/ts-loss-gillespie.py")  #"python/Test/ts-loss-gillespie.py"
 
 # Arguments for specific tests
 TEST_ARGS=("" "" "0.01 3" "1 10" "1 100" "1 10" "0.01" "123 10" "1 10" "1 10")
