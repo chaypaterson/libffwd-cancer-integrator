@@ -39,6 +39,28 @@ void gillespie_instance::gillespie_step(gsl_rng *rng) {
     m_time += Delta_t;
 }
 
+void gillespie_instance::tau_step(gsl_rng *rng, double tau) {
+    int delta_pop;
+    for (int vertex = 0; vertex < m_vertices; ++vertex) {
+        // birth:
+        double pborn = tau * m_parameters.m_birth[vertex];
+        delta_pop = gsl_ran_poisson(rng, pborn);
+        m_pops[vertex] += delta_pop;
+        // death:
+        double pdied = tau * m_parameters.m_death[vertex];
+        delta_pop = gsl_ran_poisson(rng, pdied);
+        m_pops[vertex] -= delta_pop;
+        // migration:
+        for (size_t out_vertex = 0; out_vertex < m_vertices; ++out_vertex) {
+            double pmove = tau * m_parameters.m_migr[vertex][out_vertex];
+            delta_pop = gsl_ran_poisson(rng, pmove);
+            m_pops[out_vertex] += delta_pop; // TODO ck stoichiometry
+        }
+    }
+
+    m_time += tau;
+}
+
 // a method to compute Gamma
 double gillespie_instance::get_gamma() {
     return m_gamma;

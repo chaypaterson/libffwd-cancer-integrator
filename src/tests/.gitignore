@@ -1,0 +1,4 @@
+.bin
+.libs
+results
+test_failures.txt
