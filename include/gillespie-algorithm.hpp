@@ -43,6 +43,8 @@ class gillespie_instance {
     void gillespie_step(gsl_rng *rng); // perform one step of the Gillespie
     // algorithm, updating the time and populations.
 
+    void tau_step(gsl_rng *rng, double tau); // perform one step of tau leaping
+
   private:
     // These are private methods that are only called from within
     // gillespie_step:

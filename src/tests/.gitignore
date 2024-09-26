@@ -1,4 +1,7 @@
+
 .libs
 .bin
 results
 *.txt
+results
+test_failures.txt

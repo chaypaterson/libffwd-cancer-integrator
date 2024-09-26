@@ -1,0 +1,10 @@
+pyffwd.cpp
+pyffwdsetup.py
+../../src/core/fast-forward.cpp
+../../src/core/gillespie-algorithm.cpp
+../../src/core/graph-model-spec.cpp
+pyffwd.egg-info/PKG-INFO
+pyffwd.egg-info/SOURCES.txt
+pyffwd.egg-info/dependency_links.txt
+pyffwd.egg-info/requires.txt
+pyffwd.egg-info/top_level.txt

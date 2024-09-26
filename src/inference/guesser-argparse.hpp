@@ -22,7 +22,7 @@ class GuesserConfig
 {
 private:
     // factory for string arguments:
-    std::string to_string(int argc, char* *argv, const char key[]);
+    std::string to_string(char* *argv, const char key[]);
 public:
     // FLAG AND ARGUMENT OPTIONS (paired options):
     // integer options:
@@ -30,14 +30,18 @@ public:
     size_t dataset_size = 10; // sample size
     size_t mesh_lines = 16; // resolution of the heatmap plot of the likelihood
     size_t num_child_threads = 0; // parallelisation in jackknife_and_save
+    unsigned int voxel_res = 16; // side resolution of 3d cube
     // float options:
     // the heatmap plot will run from best_guess/these to best_guess * these:
-    double mesh_x_range = 10.0f; 
-    double mesh_y_range = 10.0f;
+    double mesh_x_range = 100.0; 
+    double mesh_y_range = 100.0;
+
     // string options:
     // NB the defaults for all string options are empty (""), this is set in the
     // to_string factory below.
     std::string histogram_file; // load histogram from file
+    std::string estimate_file; // save (serialise) best guess to this file
+    std::string voxel_file; // save voxel sampled function to this file
 
     // SINGLE FLAG OPTIONS (boolean options):
     bool include_germline = false; // mixed germline/sporadic study or not (default not)
@@ -48,24 +52,28 @@ public:
     bool minimise_with_mixed = false;
     bool minimise_with_mixed_8 = false;
     bool minimise_with_mixed_16 = false;
+    bool skip_minimisation = false; // skip minimisation entirely
     bool level_sets       = false; // whether or not to draw with level sets
     bool draw_mesh        = false; // whether or not to draw 3d plots of the likelihood
 
     // The constructor:
     inline GuesserConfig(int argc, char* argv[]) :
-        histogram_file(to_string(argc, argv, "--load_histogram"))
+        histogram_file(to_string(argv, "--load_histogram")),
+        estimate_file(to_string(argv, "--save_estimate")),
+        voxel_file(to_string(argv, "--voxel_file"))
     {
         // for arguments that come in pairs: " --seed 5 " etc.
-        for (char* *cmdarg = argv; cmdarg < argv + argc - 1; ++cmdarg) {
+        for (char* *cmdarg = argv; *(cmdarg + 1); ++cmdarg) {
             set_pair(cmdarg, "--seed", seed);
             set_pair(cmdarg, "--sample_size", dataset_size);
             set_pair(cmdarg, "--child_threads", num_child_threads);
             set_pair(cmdarg, "--mesh_lines", mesh_lines);
             set_pair(cmdarg, "--mesh_x_range", mesh_x_range);
             set_pair(cmdarg, "--mesh_y_range", mesh_y_range);
+            set_pair(cmdarg, "--voxel_resolution", voxel_res);
         }
         // for arguments that are just isolated flags: "--annealing" etc.
-        for (char* *cmdarg = argv; cmdarg < argv + argc; ++cmdarg) {
+        for (char* *cmdarg = argv; *cmdarg; ++cmdarg) {
             set_bool(cmdarg, "--with_germline", include_germline);
             set_bool(cmdarg, "--resample", resample_after);
             set_bool(cmdarg, "--gradient", minimise_with_gradient);
@@ -73,18 +81,22 @@ public:
             set_bool(cmdarg, "--mixed_min", minimise_with_mixed);
             set_bool(cmdarg, "--mixed_8", minimise_with_mixed_8);
             set_bool(cmdarg, "--mixed_16", minimise_with_mixed_16);
+            set_bool(cmdarg, "--skip_minimisation", skip_minimisation);
             set_bool(cmdarg, "--draw_level_sets", level_sets);
             set_bool(cmdarg, "--draw_3d_meshes", draw_mesh);
         }
     }
 private:
     inline void set_pair(char* *cmdarg, const char key[], size_t &member);
+    inline void set_pair(char* *cmdarg, const char key[], unsigned &member);
     inline void set_pair(char* *cmdarg, const char key[], double &member);
     inline void set_bool(char* *cmdarg, const char key[], bool &member);
 };
 
-inline std::string GuesserConfig::to_string(int argc, char* *argv, const char key[]) {
-    for (char* *cmdarg = argv; cmdarg < argv + argc - 1; ++cmdarg) {
+// TODO argv is null-terminated, so we don't need to pass argc
+inline std::string GuesserConfig::to_string(char* *argv, const char key[]) {
+    for (char* *cmdarg = argv; *(cmdarg + 1); // while next is not null...
+         ++cmdarg) {
         if (!strcmp(*cmdarg, key)) {
             std::string outstring(cmdarg[1]);
             return outstring;
@@ -95,6 +107,10 @@ inline std::string GuesserConfig::to_string(int argc, char* *argv, const char ke
 }
 
 inline void GuesserConfig::set_pair(char* *cmdarg, const char key[], size_t &member) {
+    if (!strcmp(*cmdarg, key)) member = atoi(cmdarg[1]);
+}
+
+inline void GuesserConfig::set_pair(char* *cmdarg, const char key[], unsigned &member) {
     if (!strcmp(*cmdarg, key)) member = atoi(cmdarg[1]);
 }
 

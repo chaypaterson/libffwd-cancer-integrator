@@ -99,3 +99,20 @@ reruns with s2 pinned?
 Tue  2 Jul 2024 11:11:44 KST
 
 Late deviations in S-curves: examine Kaplan-Meier plots but check for polyclonality? i.e. look for a SECOND passage time with a different type.
+
+Wed 28 Aug 17:15:17 BST 2024
+
+Just finish the visualisations for the manuscript, stop trying to add and fix
+new shit.
+
+Next: sample likelihood function in 3d and print a voxel cube file. The format:
+Voxel\n
+resolution, rows
+resolution, cols
+resolution, layers
+rows * cols * layers * 3 (colour channels) * sizeof(float)
+(until end of file)
+
+Currently takes ~5min to sample a 16x16x16 cube, single threaded on atuin. May
+as well parallelise the sampling and run some batches on the CSF if the initial
+results are intriguing.

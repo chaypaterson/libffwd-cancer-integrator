@@ -15,7 +15,7 @@
 #include <fast-forward.hpp>
 #include <gillespie-algorithm.hpp>
 
-#include "likelihood-optimisation.hpp"
+#include "guesser-argparse.hpp"
 
 /* Max. likelihood program:
  *      Generates a simulated dataset with hidden parameter values
@@ -30,6 +30,9 @@
  * Contact:
  *      Chay Paterson (chay.paterson@manchester.ac.uk)
  *      Miaomiao Gao (miaomiao.gao@postgrad.manchester.ac.uk)
+ *
+ * TODO this file is way, way too long and needs to be broken into smaller
+ * units. Also, eigen dependencies are very spread out through this file.
  */
 
 using clonal_expansion::gillespie_ssa::times_to_final_vertices;
@@ -90,8 +93,10 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
 
         // -log binomial likelihood:
         real_t p = Sprob - Sprob2;
-        mlogl += -log(p) * curr_bin;
-        mlogl += -log(1 - p) * (nsurv - curr_bin);
+        if (p > 0 && p < 1) {
+            mlogl += -log(p) * curr_bin;
+            mlogl += -log(1 - p) * (nsurv - curr_bin);
+        }
         nsurv -= curr_bin;
 
         // weight for survival/chance of detection of cancer:
@@ -290,7 +295,8 @@ Model get_neighbour(Model& model, double w) {
                              new_fitness2, new_inipop);
 }
 
-/* Valid method_min methods have the signature:
+/* MINIMISATION METHODS (should be in their own compile unit/library)
+ * Valid method_min methods have the signature:
  *  Model method_min(std::function<real_t(Model &model)> objective,
  *                   Model  initial_guess);
  * The first argument is a closure to this object -- this allows the other
@@ -633,7 +639,15 @@ Model mixed_min_16(std::function<real_t(Model& model)> objective,
     return gradient_min(objective, better_guess);
 }
 
-// Methods to output data:
+Model skip_minimisation(std::function<real_t(Model& model)> objective,
+                        Model initial_guess) {
+    // don't bother minimising, just return the initial guess.
+    return initial_guess;
+}
+
+// end of minimisation methods
+
+// Methods to serialise/output data:
 
 void print_model(Model &model) {
     printf("  mu = %g\n", model.m_migr[0][1]);
@@ -1028,6 +1042,185 @@ void draw_3dsurface(std::function<real_t(Model &model)> objective,
     drawing.close();
 }
 
+// The bounding box has a centre, side dimensions, and resolutions.
+// The axes are mu, rloh, s1, and the colour will be given by s1 and the
+// likelihood.
+struct BoundingBox {
+    unsigned int resolution[3];
+    double centre[3];
+    double dims[3];
+    double s2;
+    size_t size;
+};
+
+// TODO: reference to float vector safer than raw pointer?
+void sample_voxel_cube(float* buffer,
+                       std::function<real_t(Model &model)> objective,
+                       struct BoundingBox bounding_box,
+                       real_t offset, real_t s2max,
+                       size_t first_sample, size_t last_sample) {
+    // gamma compression:
+    float compression = 10.0 / bounding_box.size;
+
+    for (size_t sample = first_sample; sample < last_sample; ++sample) {
+        // compute row, col, and lyr
+        size_t next;
+        size_t row = sample % bounding_box.resolution[0];
+        next = sample / bounding_box.resolution[0];
+        size_t col = next % bounding_box.resolution[1];
+        next = next / bounding_box.resolution[1];
+        size_t lyr = next % bounding_box.resolution[2];
+        next = next / bounding_box.resolution[2];
+
+        // set position in box
+        double offset_mu = row * 1.0 / bounding_box.resolution[0];
+        offset_mu -= 0.5;
+        real_t mu = bounding_box.centre[0]; 
+        mu *= exp(log(bounding_box.dims[0]) * offset_mu);
+
+        double offset_rloh = col * 1.0 / bounding_box.resolution[1];
+        offset_rloh -= 0.5;
+        real_t rloh = bounding_box.centre[1]; 
+        rloh *= exp(log(bounding_box.dims[1]) * offset_rloh);
+
+        double offset_s1 = lyr * 1.0 / bounding_box.resolution[2];
+        offset_s1 -= 0.5;
+        offset_s1 *= 2.0 * bounding_box.dims[2];
+        real_t s1 = bounding_box.centre[2];
+        s1 *= (1.0 + offset_s1);
+
+        // Marginalise/integrate over s2:
+        real_t slices = 16; // TODO I don't see a big difference between 8 and 64
+        real_t ds2 = s2max / slices;
+        float voxel[3] = {0, 0, 0};
+        for (real_t s2 = 0.0; s2 < s2max; s2 += ds2) {
+            // Associate a floating point colour with this s2 value:
+            float theta = (4 * M_PI / 3) * s2 / s2max;
+            // swatch 1:
+            /*float colour[3] = {0.66f -0.33f * cosf(theta),
+                               0.66f +0.17f * cosf(theta) -0.29f * sinf(theta),
+                               0.66f +0.17f * cosf(theta) +0.29f * sinf(theta)};
+                               */
+            // swatch 2:
+            float colour[3] = {0.5f -0.408f * cosf(theta),
+                               0.5f +0.204f * cosf(theta) -0.353f * sinf(theta),
+                               0.5f +0.204f * cosf(theta) +0.353f * sinf(theta)};
+            // swatch 3:
+            /*float colour[3] = {0.5f -0.392f * cosf(theta) +0.276f * sinf(theta),
+                               0.5f +0.087f * cosf(theta) -0.122f * sinf(theta), 
+                               0.5f +0.298f * cosf(theta) +0.398f * sinf(theta)};
+                               */
+
+            // get a normalised value for likelihood, 
+            // which is exp(-log(L)).
+            Model sample_point = instantiate_model(rloh, mu, s1, s2, 1e6);
+            float dloglike = offset - objective(sample_point);
+            // Apply gamma compression to squash the value into a visible range:
+            dloglike *= compression;
+            float y_value = exp(dloglike);
+
+            // Nice the output: set NaNs and negative values to zero
+            // Values are also invalid iff they would cause an overflow in exp:
+            // 127 * log(2) = 88
+
+            if (!std::isnormal(y_value) || y_value < 0 || dloglike > 88) {
+                y_value = 0.0f;
+            }
+            // increment integral and convert value to floating point colour:
+            for (int ch = 0; ch < 3; ++ch) {
+                voxel[ch] += y_value * colour[ch] * ds2 / s2max;
+                // \frac{1}{s2max} \int_{s2=0}^s2max ... ds2
+            }
+        }
+
+        // copy colour to buffer:
+        std::memcpy(buffer + 3 * sample, voxel, sizeof(voxel));
+    }
+}
+
+void render_voxel_cube(std::function<real_t(Model &model)> objective,
+                       struct BoundingBox bounding_box,
+                       std::string voxel_file,
+                       size_t num_child_threads) {
+    // Serialise the objective function to a voxel cube file
+    real_t s2max = 0.06; // WARNING values too high result in garbage
+    Model centre_of_box = instantiate_model(bounding_box.centre[1],
+                                            bounding_box.centre[0],
+                                            bounding_box.centre[2],
+                                            bounding_box.s2,
+                                            1e6);
+    // likelihood functions are only unique up to a scalar constant. We use this
+    // to wrap the likelihood function into a representable range by offsetting
+    // the log-likelihood by a constant before converting it to a probability
+    // with exp(- -loglikelihood): i.e. exp(offset - -loglikelihood)
+    // note the value of the objective in the centre, call this the offset:
+    real_t offset = objective(centre_of_box);
+    // and try to normalise the colours:
+    //real_t offset = +0.5 * bounding_box.size * log(bounding_box.size);
+    printf("size: %u\n", bounding_box.size);
+    printf("normalisation offset: %g\n", offset);
+
+    // get the total number of samples to take:
+    size_t volume_samples = 1;
+    for (int index = 0; index < 3; ++index) {
+        volume_samples *= bounding_box.resolution[index];
+    }
+    // create a buffer to store results:
+    float* buffer; // vectorised buffer for storing 3D stuff
+    size_t buffer_size = volume_samples * 3 * sizeof(float);
+    buffer = (float*)malloc(buffer_size);
+
+    // Vectorise the sampling so that we can easily parallelise
+    // multi thread: but divide up the work so 0 child threads recovers default
+    // behaviour. When num_child_threads == 0, we will skip the loop where we
+    // dispatch worker threads, and should run all the samples on the main
+    // thread. child_samples should work out to volume_samples, and remainder
+    // should work out to 0.
+    // Get some number of samples from each child thread, and the remainder from
+    // the parent thread:
+    size_t child_samples = volume_samples / (num_child_threads + 1);
+    size_t remainder     = volume_samples % (num_child_threads + 1);
+
+    std::vector<std::thread> child_threads(0);
+    for (size_t thrd = 0; thrd < num_child_threads; ++thrd) {
+        size_t start, end;
+        start = thrd * child_samples;
+        end = start + child_samples;
+
+        child_threads.push_back(std::thread(sample_voxel_cube,
+                                            buffer, objective, bounding_box,
+                                            offset, s2max, start, end));
+    }
+
+    // run the remaining threads in the parent thread:
+    sample_voxel_cube(buffer, objective, bounding_box, offset, s2max, 
+                      volume_samples - child_samples - remainder, 
+                      volume_samples);
+
+    // Wait for child threads to finish
+    for (auto& thread : child_threads) {
+        thread.join();
+    }
+
+    // write out results in buffer to file:
+    std::ofstream voxelfile;
+    voxelfile.open(voxel_file, std::ios::out|std::ios::binary);
+
+    // Write header:
+    const char* header = "Voxel\n";
+    voxelfile.write((char*)header, 6 * sizeof(char));
+
+    voxelfile.write((char*)(bounding_box.resolution), 3 * sizeof(unsigned));
+
+    // Write buffer:
+    voxelfile.write((char*)(buffer), buffer_size);
+
+    voxelfile.close();
+
+    free(buffer);
+    return;
+}
+
 struct Estimate {
     Model best_guess;
     Eigen::MatrixXd Hessian;
@@ -1035,8 +1228,6 @@ struct Estimate {
     Estimate(const Model& guess) : best_guess(guess) {}
     Estimate(const Estimate& est) : best_guess(est.best_guess), Hessian(est.Hessian) {}
 };
-
-// TODO serialise Estimate to a file so minima can be saved and loaded?
 
 void print_best_guess(Estimate estimate) {
     std::cout << "Best guesses:" << std::endl;
@@ -1170,7 +1361,6 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
     generate_histogram_germline(ground_truth, ground_truth_germline,
                        seed, dataset_size, end_nodes, max_age, reference_pop,
                        binwidth, incidence, incidence_germline);
-    // TODO timing and loadable histograms?
 
     // Get the main un-resampled estimate with simulated annealing:
     printf("Target likelihood:\n-log L = %g\n",
@@ -1308,6 +1498,11 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
     // Annealing now complete. Print guess:
     print_best_guess(estimate);
 
+    // Save the model to a file:
+    if (!options.estimate_file.empty()) {
+        clonal_expansion::save_model(estimate.best_guess, options.estimate_file);
+    }
+
     // Jack-knife resampling of incidence:
     if (options.resample_after) {
         jackknife_and_save(method_min, incidence, reference_pop, binwidth, end_nodes,
@@ -1359,6 +1554,37 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
             }
         }
     }
+
+    // TODO Draw 3d voxel cube:
+    if (!options.voxel_file.empty()) {
+        struct BoundingBox bbox = {
+            // For now, just assume the same resolution along each axis:
+            .resolution = {options.voxel_res, options.voxel_res,
+                          options.voxel_res},
+            // Ground truth is visible within this scope so we can use that to
+            // choose a centre for the cube:
+            .centre = {estimate.best_guess.m_migr[0][1],
+                       estimate.best_guess.m_migr[0][2],
+                       estimate.best_guess.m_birth[1]
+                     },
+            // TODO pass these in on command line
+            // Also, use logarithmic scales for mu and rloh and linear scales for
+            // s1 and s2.
+            .dims = {options.mesh_x_range, options.mesh_y_range, 1},
+            .s2 = ground_truth.m_birth[2],
+            .size = reference_pop
+        };
+
+        std::cout << "Rendering 3D voxel data..." << std::endl;
+
+        std::function<real_t(Model&)> objective = [&](Model& model) {
+            return loglikelihood_hist_both(model, binwidth,
+                                           reference_pop, incidence);
+        };
+
+        render_voxel_cube(objective, bbox, options.voxel_file, 
+                          options.num_child_threads);
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -1378,6 +1604,7 @@ int main(int argc, char* argv[]) {
                                            0.05,
                                            0.03,
                                            1e6);
+    // TODO load initial guess from a file:
 
     // the default minimisation method is annealing:
     typedef Model (*Minimiser_t)(std::function<real_t(Model&)>, Model);
@@ -1388,6 +1615,7 @@ int main(int argc, char* argv[]) {
     if (options.minimise_with_mixed)    method_min = mixed_min;
     if (options.minimise_with_mixed_8)  method_min = mixed_min_8;
     if (options.minimise_with_mixed_16) method_min = mixed_min_16;
+    if (options.skip_minimisation) method_min = skip_minimisation;
 
     // The inference harness itself:
     void (*guessing_harness)(Model &ground_truth, GuesserConfig options,
