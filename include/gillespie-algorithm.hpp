@@ -61,6 +61,13 @@ double first_passage_time(gsl_rng *rng, const Model &params,
 std::pair<double,int> first_passage_time(gsl_rng *rng, const Model &params,
         const std::vector<int> final_vertices);
 
+// First passage times using tau-leaping:
+double first_passage_time_tau(gsl_rng *rng, const Model &params, 
+                              const int final_vertex, double tau);
+
+std::pair<double, int> first_passage_time_tau(gsl_rng *rng, const Model &params, 
+                                              const std::vector<int> &final_vertices, double tau);
+
 void times_to_final_vertex(const Model &model, int seed,
                            int runs_per_thr, int final_vertex,
                            std::vector<double> &results);
@@ -76,6 +83,12 @@ double first_passage_time_poly(gsl_rng *rng, const Model &params,
 void times_to_final_vertices_poly(const Model &model, int seed,
                              int runs_per_thr, std::vector<int> final_vertices,
                              std::vector<double> &results);
+
+// First passage times using tau-leaping for multiple vertices:
+void times_to_final_vertices_tau(const Model &model, int seed,
+                                 int runs_per_thr, std::vector<int> final_vertices,
+                                 double tau,
+                                 std::vector<std::pair<double, int>> &results);
 
 void print_results(std::vector<double> &all_times);
 

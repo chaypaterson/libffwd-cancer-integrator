@@ -187,6 +187,55 @@ double first_passage_time_poly(gsl_rng *rng, const Model &params,
     return this_run.m_time;
 }
 
+double first_passage_time_tau(gsl_rng *rng, const Model &params, int final_vertex, double tau) {
+    // create an instance of a simulation state:
+    gillespie_instance this_run(params);
+
+    // guard against global extinction:
+    int total_pop = 0;
+    do {
+        total_pop = 0;
+        for (auto &vertex_pop : this_run.m_pops)
+            total_pop += vertex_pop;
+
+        this_run.tau_step(rng, tau);
+    } while ((this_run.m_pops[final_vertex] == 0) && (total_pop > 0));
+
+    if (total_pop <= 0)
+        return -1;
+
+    return this_run.m_time;
+}
+
+std::pair<double, int> first_passage_time_tau(gsl_rng *rng, const Model &params, const std::vector<int> &final_vertices, double tau) {
+    // create an instance of a simulation state:
+    gillespie_instance this_run(params);
+
+    // guard against global extinction:
+    int total_pop = 0;
+    int ending_type = 0;
+    bool repeat = true;
+    do {
+        total_pop = 0;
+        for (auto &vertex_pop : this_run.m_pops)
+            total_pop += vertex_pop;
+
+        this_run.tau_step(rng, tau);
+
+        for (auto &final_vertex : final_vertices) {
+            if (this_run.m_pops[final_vertex] > 0) {
+                repeat = false;
+                ending_type = final_vertex;
+            }
+        }
+    } while (repeat && (total_pop > 0));
+
+    if (total_pop <= 0)
+        return std::make_pair(-1, -1);
+
+    return std::make_pair(this_run.m_time, ending_type);
+}
+
 void times_to_final_vertex(const Model &model, int seed,
                            int runs_per_thr, int final_vertex,
                            std::vector<double> &results) {
@@ -249,6 +298,26 @@ void times_to_final_vertices_poly(const Model &model, int seed,
         if (result >= 0)
             results.push_back(result);
     }
+    gsl_rng_free(r);
+}
+
+void times_to_final_vertices_tau(const Model &model, int seed, int runs_per_thr, std::vector<int> final_vertices, double tau, std::vector<std::pair<double, int>> &results) {
+    const gsl_rng_type *T;
+    gsl_rng *r;
+
+    gsl_rng_env_setup();
+    T = gsl_rng_default;
+    r = gsl_rng_alloc(T);
+
+    // Seed RNG:
+    gsl_rng_set(r, seed);
+
+    for (int i = 0; i < runs_per_thr; ++i) {
+        std::pair<double, int> result = first_passage_time_tau(r, model, final_vertices, tau);
+        if (result.first >= 0)
+            results.push_back(result);
+    }
+
     gsl_rng_free(r);
 }
 
