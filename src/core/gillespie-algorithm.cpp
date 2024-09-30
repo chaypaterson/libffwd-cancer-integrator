@@ -81,8 +81,6 @@ void gillespie_instance::set_gamma() {
     }
 }
 
-
-
 // a method to accept a variable x < Gamma and return an event, which
 // consists of a change in the populations
 std::vector<int> gillespie_instance::x_to_event(double x) {
