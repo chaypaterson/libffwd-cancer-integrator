@@ -41,7 +41,7 @@ void gillespie_instance::gillespie_step(gsl_rng *rng) {
 
 void gillespie_instance::tau_step(gsl_rng *rng, double tau) {
     int delta_pop;
-    for (int vertex = 0; vertex < m_vertices; ++vertex) {
+    for (size_t vertex = 0; vertex < m_vertices; ++vertex) {
         // birth:
         double pborn = tau * m_parameters.m_birth[vertex];
         delta_pop = gsl_ran_poisson(rng, pborn * m_pops[vertex]);
@@ -187,27 +187,8 @@ double first_passage_time_poly(gsl_rng *rng, const Model &params,
     return this_run.m_time;
 }
 
-double first_passage_time_tau(gsl_rng *rng, const Model &params, int final_vertex, double tau) {
-    // create an instance of a simulation state:
-    gillespie_instance this_run(params);
-
-    // guard against global extinction:
-    int total_pop = 0;
-    do {
-        total_pop = 0;
-        for (auto &vertex_pop : this_run.m_pops)
-            total_pop += vertex_pop;
-
-        this_run.tau_step(rng, tau);
-    } while ((this_run.m_pops[final_vertex] == 0) && (total_pop > 0));
-
-    if (total_pop <= 0)
-        return -1;
-
-    return this_run.m_time;
-}
-
-std::pair<double, int> first_passage_time_tau(gsl_rng *rng, const Model &params, const std::vector<int> &final_vertices, double tau) {
+std::pair<double, int> first_passage_time_tau(gsl_rng *rng, const Model &params,
+                           const std::vector<int> &final_vertices, double tau) {
     // create an instance of a simulation state:
     gillespie_instance this_run(params);
 

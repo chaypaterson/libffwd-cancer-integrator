@@ -7,7 +7,7 @@ INCLUDE_DIR="../../include"
 GSL_DIR="/opt/homebrew/Cellar/gsl/2.8" # TODO no absolute paths please
 CPP_TEST_FILES=("five-stage-characteristic.cpp" "likelihood-unit-test.cpp" \
     "ts-loss-characteristic.cpp" "two-hit-characteristic.cpp" \
-    "gillespie-sampler.cpp" "two-hit-characteristic.cpp" \
+    "gillespie-sampler.cpp" "two-hit-gillespie.cpp" \
     "../errors/ts-loss-characteristic-errors.cpp" "ts-loss-gillespie-poly.cpp" \
      "../errors/gillespie-errors.cpp" "ts-loss-gillespie.cpp")
 PYTHON_TEST_FILES=("../python/Test/five-stage-characteristic.py" "../python/Test/likelihood-unit-test.py" \

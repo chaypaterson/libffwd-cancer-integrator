@@ -19,6 +19,9 @@
 //
 // compile me with g++ two-hit.cpp -lgsl -pthread
 
+using clonal_expansion::gillespie_ssa::times_to_final_vertex;
+using clonal_expansion::gillespie_ssa::print_kaplan_meier;
+
 int main() {
     int num_thr = std::thread::hardware_concurrency();
     int runs_per_thr = 1e7;

@@ -62,3 +62,5 @@ all_times_real_vector = pyffwd.RealVector(all_times)
 
 # Kaplan-Meier plot
 pyffwd.print_kaplan_meier(100, all_times_real_vector)
+
+print("\n")
