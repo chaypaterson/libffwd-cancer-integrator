@@ -23,7 +23,7 @@ tests:
 bin_testsdir = $(bindir)/tests
 bin_tests_PROGRAMS = likelihoodunittest gillespiesampler \
                         fivestage tslossffwd tslossgill \
-                        tslossgillpoly modeltest
+                        tslossgillpoly modeltest tslosstau
 likelihoodunittest_SOURCES = src/tests/likelihood-unit-test.cpp \
                              src/tests/max-likelihood.hpp
 likelihoodunittest_LDADD = libffwd.la
@@ -43,6 +43,9 @@ tslossgillpoly_LDADD = libgillespie.la
 tslossgillpoly_LDFLAGS = $(GSL_LIBS)
 modeltest_SOURCES = src/tests/modeltest.cpp
 modeltest_LDADD = libgmsce.la
+tslosstau_SOURCES = src/tests/ts-loss-tau.cpp
+tslosstau_LDADD = libgillespie.la libgmsce.la
+tslosstau_LDFLAGS = $(GSL_LIBS)
 
 bin_PROGRAMS = tslosserrs gilllosserrs guesser
 ## Error estimation:

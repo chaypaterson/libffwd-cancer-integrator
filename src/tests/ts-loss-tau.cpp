@@ -13,7 +13,7 @@ using clonal_expansion::gillespie_ssa::times_to_final_vertices_tau;
 using clonal_expansion::gillespie_ssa::print_kaplan_meier;
 
 int main(int argc, char* argv[]) {
-    int runs_per_thr = 1e7; // default values
+    int runs_per_thr = 10; // default values
     int seed = 1;
     double tau = 0.1; // default tau value for tau-leaping
     if (argc < 4) {
@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
 
     int num_thr = std::thread::hardware_concurrency() - 2;
     seed = atoi(argv[1]);
-    runs_per_thr = atoi(argv[2]) / num_thr;
+    runs_per_thr = 1 + atoi(argv[2]) / num_thr;
     tau = atof(argv[3]); // set the tau value from command line argument
 
     // System coefficients:

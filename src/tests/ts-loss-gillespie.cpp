@@ -16,7 +16,7 @@ using clonal_expansion::gillespie_ssa::times_to_final_vertices;
 using clonal_expansion::gillespie_ssa::print_kaplan_meier;
 
 int main(int argc, char* argv[]) {
-    int runs_per_thr = 1e7; // default values
+    int runs_per_thr = 10; // default values
     int seed = 1;
     if (argc < 3) {
         printf("Call this program with\n ./tsgillespie seed runs \n");

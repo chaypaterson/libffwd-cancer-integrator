@@ -93,7 +93,7 @@ host_triplet = @host@
 bin_tests_PROGRAMS = likelihoodunittest$(EXEEXT) \
 	gillespiesampler$(EXEEXT) fivestage$(EXEEXT) \
 	tslossffwd$(EXEEXT) tslossgill$(EXEEXT) \
-	tslossgillpoly$(EXEEXT) modeltest$(EXEEXT)
+	tslossgillpoly$(EXEEXT) modeltest$(EXEEXT) tslosstau$(EXEEXT)
 bin_PROGRAMS = tslosserrs$(EXEEXT) gilllosserrs$(EXEEXT) \
 	guesser$(EXEEXT)
 subdir = .
@@ -211,6 +211,12 @@ tslossgillpoly_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
 	$(AM_CXXFLAGS) $(CXXFLAGS) $(tslossgillpoly_LDFLAGS) \
 	$(LDFLAGS) -o $@
+am_tslosstau_OBJECTS = src/tests/ts-loss-tau.$(OBJEXT)
+tslosstau_OBJECTS = $(am_tslosstau_OBJECTS)
+tslosstau_DEPENDENCIES = libgillespie.la libgmsce.la
+tslosstau_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(tslosstau_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -238,7 +244,8 @@ am__depfiles_remade = src/core/$(DEPDIR)/fast-forward.Plo \
 	src/tests/$(DEPDIR)/modeltest.Po \
 	src/tests/$(DEPDIR)/ts-loss-characteristic.Po \
 	src/tests/$(DEPDIR)/ts-loss-gillespie-poly.Po \
-	src/tests/$(DEPDIR)/ts-loss-gillespie.Po
+	src/tests/$(DEPDIR)/ts-loss-gillespie.Po \
+	src/tests/$(DEPDIR)/ts-loss-tau.Po
 am__mv = mv -f
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -282,14 +289,14 @@ SOURCES = $(libffwd_la_SOURCES) $(libgillespie_la_SOURCES) \
 	$(guesser_SOURCES) $(likelihoodunittest_SOURCES) \
 	$(modeltest_SOURCES) $(tslosserrs_SOURCES) \
 	$(tslossffwd_SOURCES) $(tslossgill_SOURCES) \
-	$(tslossgillpoly_SOURCES)
+	$(tslossgillpoly_SOURCES) $(tslosstau_SOURCES)
 DIST_SOURCES = $(libffwd_la_SOURCES) $(libgillespie_la_SOURCES) \
 	$(libgmsce_la_SOURCES) $(fivestage_SOURCES) \
 	$(gillespiesampler_SOURCES) $(gilllosserrs_SOURCES) \
 	$(guesser_SOURCES) $(likelihoodunittest_SOURCES) \
 	$(modeltest_SOURCES) $(tslosserrs_SOURCES) \
 	$(tslossffwd_SOURCES) $(tslossgill_SOURCES) \
-	$(tslossgillpoly_SOURCES)
+	$(tslossgillpoly_SOURCES) $(tslosstau_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -500,6 +507,9 @@ tslossgillpoly_LDADD = libgillespie.la
 tslossgillpoly_LDFLAGS = $(GSL_LIBS)
 modeltest_SOURCES = src/tests/modeltest.cpp
 modeltest_LDADD = libgmsce.la
+tslosstau_SOURCES = src/tests/ts-loss-tau.cpp
+tslosstau_LDADD = libgillespie.la libgmsce.la
+tslosstau_LDFLAGS = $(GSL_LIBS)
 tslosserrs_SOURCES = src/errors/ts-loss-characteristic-errors.cpp
 tslosserrs_LDADD = libffwd.la
 gilllosserrs_SOURCES = src/errors/gillespie-errors.cpp
@@ -781,6 +791,12 @@ src/tests/ts-loss-gillespie-poly.$(OBJEXT): src/tests/$(am__dirstamp) \
 tslossgillpoly$(EXEEXT): $(tslossgillpoly_OBJECTS) $(tslossgillpoly_DEPENDENCIES) $(EXTRA_tslossgillpoly_DEPENDENCIES) 
 	@rm -f tslossgillpoly$(EXEEXT)
 	$(AM_V_CXXLD)$(tslossgillpoly_LINK) $(tslossgillpoly_OBJECTS) $(tslossgillpoly_LDADD) $(LIBS)
+src/tests/ts-loss-tau.$(OBJEXT): src/tests/$(am__dirstamp) \
+	src/tests/$(DEPDIR)/$(am__dirstamp)
+
+tslosstau$(EXEEXT): $(tslosstau_OBJECTS) $(tslosstau_DEPENDENCIES) $(EXTRA_tslosstau_DEPENDENCIES) 
+	@rm -f tslosstau$(EXEEXT)
+	$(AM_V_CXXLD)$(tslosstau_LINK) $(tslosstau_OBJECTS) $(tslosstau_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -806,6 +822,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/ts-loss-characteristic.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/ts-loss-gillespie-poly.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/ts-loss-gillespie.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@src/tests/$(DEPDIR)/ts-loss-tau.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -1195,6 +1212,7 @@ distclean: distclean-am
 	-rm -f src/tests/$(DEPDIR)/ts-loss-characteristic.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-gillespie-poly.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-gillespie.Po
+	-rm -f src/tests/$(DEPDIR)/ts-loss-tau.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-libtool distclean-tags
@@ -1255,6 +1273,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f src/tests/$(DEPDIR)/ts-loss-characteristic.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-gillespie-poly.Po
 	-rm -f src/tests/$(DEPDIR)/ts-loss-gillespie.Po
+	-rm -f src/tests/$(DEPDIR)/ts-loss-tau.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

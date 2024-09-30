@@ -44,16 +44,16 @@ void gillespie_instance::tau_step(gsl_rng *rng, double tau) {
     for (int vertex = 0; vertex < m_vertices; ++vertex) {
         // birth:
         double pborn = tau * m_parameters.m_birth[vertex];
-        delta_pop = gsl_ran_poisson(rng, pborn);
+        delta_pop = gsl_ran_poisson(rng, pborn * m_pops[vertex]);
         m_pops[vertex] += delta_pop;
         // death:
         double pdied = tau * m_parameters.m_death[vertex];
-        delta_pop = gsl_ran_poisson(rng, pdied);
+        delta_pop = gsl_ran_poisson(rng, pdied * m_pops[vertex]);
         m_pops[vertex] -= delta_pop;
         // migration:
         for (size_t out_vertex = 0; out_vertex < m_vertices; ++out_vertex) {
             double pmove = tau * m_parameters.m_migr[vertex][out_vertex];
-            delta_pop = gsl_ran_poisson(rng, pmove);
+            delta_pop = gsl_ran_poisson(rng, pmove * m_pops[vertex]);
             m_pops[out_vertex] += delta_pop; // TODO ck stoichiometry
         }
     }
@@ -146,7 +146,9 @@ std::pair<double,int> first_passage_time(gsl_rng *rng, const Model &params,
         total_pop = 0;
         for (auto& vertex_pop : this_run.m_pops)
             total_pop += vertex_pop;
+
         this_run.gillespie_step(rng);
+
         for (auto& final_vertex : final_vertices) {
             if (this_run.m_pops[final_vertex] > 0) {
                 repeat = false;
