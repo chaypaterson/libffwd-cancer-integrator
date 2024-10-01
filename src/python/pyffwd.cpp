@@ -172,6 +172,7 @@ PYBIND11_MODULE(pyffwd, m) {
             }),
              py::arg("model"))
         .def("gillespie_step", &gillespie_instance::gillespie_step)
+        .def("tau_step", &gillespie_instance::tau_step)
         .def_readwrite("m_time", &gillespie_instance::m_time)
         .def_readwrite("m_vertices", &gillespie_instance::m_vertices)
         .def_property("m_pops",
@@ -226,17 +227,26 @@ PYBIND11_MODULE(pyffwd, m) {
           "Compute the first passage time to reach a set of final vertices", 
           py::arg("rng"), py::arg("model"), py::arg("final_vertices"));
 
+    m.def("first_passage_time_tau", &gillespie_ssa::first_passage_time_tau, 
+          "Compute first passage time of final vertices with tau step",
+          py::arg("rng"), py::arg("model"), py::arg("final_vertices"), 
+          py::arg("tau"));
+
     m.def("times_to_final_vertices_poly", &gillespie_ssa::times_to_final_vertices_poly,
           "Compute times to reach any of the final vertices across multiple runs (poly)",
           py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"),
           py::arg("final_vertices"), py::arg("results"));
+
+    m.def("times_to_final_vertices_tau", &gillespie_ssa::times_to_final_vertices_tau,
+      "Compute times to reach any of the final vertices using tau ",
+      py::arg("model"), py::arg("seed"), py::arg("runs_per_thr"),
+      py::arg("final_vertices"), py::arg("tau"), py::arg("results"));
 
     // Bind print_results function
     m.def("print_results", [](const std::vector<double> &all_times) {
         auto& non_const_times = const_cast<std::vector<double>&>(all_times);
         clonal_expansion::gillespie_ssa::print_results(non_const_times);
     }, "Print results");
-
 
     // Binding Kaplan-Meier functions
     m.def("print_kaplan_meier",

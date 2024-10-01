@@ -4,17 +4,20 @@
 # TODO currently assumes we are running in src/, maybe change to src/tests?
 CORE_DIR="../core"
 INCLUDE_DIR="../../include"
-GSL_DIR="/opt/homebrew/Cellar/gsl/2.8" # TODO no absolute paths please
-CPP_TEST_FILES=("five-stage-characteristic.cpp" "likelihood-unit-test.cpp" \
+GSL_DIR="$(brew --prefix gsl)"
+CPP_TEST_FILES=("ts-loss-tau.cpp" "five-stage-characteristic.cpp" "likelihood-unit-test.cpp" \
     "ts-loss-characteristic.cpp" "two-hit-characteristic.cpp" \
     "gillespie-sampler.cpp" "two-hit-gillespie.cpp" \
     "../errors/ts-loss-characteristic-errors.cpp" "ts-loss-gillespie-poly.cpp" \
-     "../errors/gillespie-errors.cpp" "ts-loss-gillespie.cpp")
-PYTHON_TEST_FILES=("../python/Test/five-stage-characteristic.py" "../python/Test/likelihood-unit-test.py" \
-    "../python/Test/ts-loss-characteristic.py" "../python/Test/two-hit-characteristic.py" \
+    "../errors/gillespie-errors.cpp" "ts-loss-gillespie.cpp") 
+    #"ts-loss-tau.cpp" 
+PYTHON_TEST_FILES=("../python/Test/ts-loss-tau.py" "../python/Test/five-stage-characteristic.py" \
+    "../python/Test/likelihood-unit-test.py" "../python/Test/ts-loss-characteristic.py" \
+    "../python/Test/two-hit-characteristic.py" \
     "../python/Test/gillespie-sampler.py" "../python/Test/two-hit-gillespie.py" \
     "../python/Test/ts-loss-characteristic-errors.py" "../python/Test/ts-loss-gillespie-poly.py" \
-    "../python/Test/gillespie-errors.py" "../python/Test/ts-loss-gillespie.py")
+    "../python/Test/gillespie-errors.py" "../python/Test/ts-loss-gillespie.py") 
+    #"../python/Test/ts-loss-tau.py" 
 
 BINDIR=.bin
 LIBDIR=.libs
@@ -51,7 +54,7 @@ fi
 
 
 # Arguments for specific tests
-TEST_ARGS=("" "" "0.01 3" "1 10" "1 100" "1 10" "0.01" "123 10" "1 10" "1 10")
+TEST_ARGS=("1 100 0.1" "" "" "0.01 3" "1 10" "1 100" "1 10" "0.01" "123 10" "1 10" "1 10")
 
 # Function to compile and run a C++ test
 run_cpp_test() {
