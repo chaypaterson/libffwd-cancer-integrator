@@ -18,7 +18,7 @@ def print_kaplan_meier(time_max, mutant_times, study_population):
 
 if __name__ == "__main__":
       # default values
-    runs_per_thr = int(1e7)
+    runs_per_thr = 10
     seed = 1
 
     import sys

@@ -62,9 +62,6 @@ std::pair<double,int> first_passage_time(gsl_rng *rng, const Model &params,
         const std::vector<int> final_vertices);
 
 // First passage times using tau-leaping:
-double first_passage_time_tau(gsl_rng *rng, const Model &params, 
-                              const int final_vertex, double tau);
-
 std::pair<double, int> first_passage_time_tau(gsl_rng *rng, const Model &params, 
                                               const std::vector<int> &final_vertices, double tau);
 
