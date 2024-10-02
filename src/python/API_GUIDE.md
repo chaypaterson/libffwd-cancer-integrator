@@ -57,6 +57,89 @@ Grant execution permission to the script
 Run the unit tests
     ./run_unit_tests.sh
 
+Run on Jupyter
+--------------
+
+Change the directory to the python folder
+	os.chdir('/Users/user/cancer-integrator/src/python')
+
+Install pybind11 
+	!pip install pybind11
+
+Build the pyffwdsetup.py
+	!python pyffwdsetup.py build_ext --inplace
+
+Import the pyffwd
+	import pyffwd
+
+
+Example (five-stage-characteristic.py) get results in NumPy array
+-----------------------------------------------------------------
+
+import numpy as np
+import pyffwd 
+
+def main():
+    # Create model with 6 stages
+    parameters = pyffwd.Model.create_model(
+        6, 
+        birth_rates=[0, 0, 0.2, 0.27, 0.27, 0],
+        death_rates=[0, 0, 0, 0, 0, 0],
+        initial_pops=[1e8, 0, 0, 0, 0, 0]
+    )
+
+    # System coefficients
+    parameters.m_migr = [
+        {1: 2.86e-4},
+        {2: 1.06e-5},
+        {3: 9.00e-7},
+        {4: 1.36e-4},
+        {5: 4.56e-7}
+    ]
+
+    # Initialize qvalues
+    default_qvalues = [1, 1, 1, 1, 1, 1]
+    qvalues = [pyffwd.RealVector(default_qvalues) for _ in range(parameters.m_stages)]
+    
+    for vertex in range(parameters.m_stages):
+        qvalues[vertex][vertex] = 0
+
+    time = 0.0
+    tmax = 80.0
+    dt = 1.0
+
+    # Create a list to store the results
+    results = []
+
+    while time < tmax:
+        subdivision = 20
+        dt2 = dt / subdivision
+        for vertex in range(parameters.m_stages):
+            for _ in range(subdivision):
+                pyffwd.heun_q_step(qvalues[vertex], time, dt2, parameters)
+
+        time += dt
+
+        # Compute probabilities and append results to the list
+        row = [int(time)]  # Start with time as integer
+        for vertex in range(parameters.m_stages):
+            prob = pyffwd.generating_function(qvalues[vertex], parameters.m_initial_pops)
+            # Limit to 6 significant digits:
+            formatted_prob = 1.0 - prob
+            row.append(formatted_prob)
+
+        results.append(row)
+
+    # Convert the results to a NumPy array
+    results_array = np.array(results)
+    return results_array
+
+if __name__ == "__main__":
+    output_array = main()
+    print(output_array)
+
+
+
 Note
 ----
 
