@@ -8,17 +8,17 @@ def times_to_final_vertices_tau(model, seed, runs_per_thr,
     rng = pyffwd.GSL_RNG(seed)
     for _ in range(runs_per_thr):
         result = pyffwd.first_passage_time_tau(
-            rng, model, final_vertices,tau)
+            rng, model, final_vertices, tau)
         result_container.append(result)
 
-def print_kaplan_meier(time_max, mutant_times, study_population):
+def print_kaplan_meier(time_max, mutant_times, sample_size):
     pyffwd.print_kaplan_meier(time_max,
                               pyffwd.RealVector(mutant_times),
-                              study_population)
+                              sample_size)
 
 if __name__ == "__main__":
       # default values
-    runs_per_thr = 10
+    sample_size = 10
     seed = 1
     tau = 0.1
 
@@ -28,15 +28,15 @@ if __name__ == "__main__":
         sys.exit(1)
 
     seed = int(sys.argv[1])
-    total_runs = int(sys.argv[2])
+    sample_size = int(sys.argv[2])
     
-    num_thr = max(1, os.cpu_count() - 2)  
-    runs_per_thr = 1 + total_runs // num_thr
+    # TODO multithreading can break this test
     tau = float(sys.argv[3])
 
     # System coefficients:
     rloh = 5e-7
     mu = 5e-8
+    print(rloh, mu)
 
     # Define the model
     model = pyffwd.Model.create_model(
@@ -56,26 +56,8 @@ if __name__ == "__main__":
     final_vertices = pyffwd.IntVector([3, 4])
 
     all_times = []
-
-    times = [[] for _ in range(num_thr)]
-    threads = []
-
-    for i in range(num_thr):
-        thread = threading.Thread(
-            target= times_to_final_vertices_tau, 
-            args=(model, seed + i, runs_per_thr,
-                  final_vertices, 
-                  tau, 
-                  times[i])
-        )
-        threads.append(thread)
-        thread.start()
-
-    for thread in threads:
-        thread.join()
-
-    for thread_results in times:
-        all_times.extend(thread_results)
+    times_to_final_vertices_tau(model, seed, sample_size,
+                            final_vertices, tau, all_times)
 
     all_times.sort(key=lambda x: x[0])
 
@@ -95,5 +77,5 @@ if __name__ == "__main__":
 
         # Print the Kaplan-Meier
         print("age, p1, p2,", flush=True)
-        print_kaplan_meier(time_max, mutant_times, study_population)
+        print_kaplan_meier(time_max, mutant_times, sample_size)
         print()
