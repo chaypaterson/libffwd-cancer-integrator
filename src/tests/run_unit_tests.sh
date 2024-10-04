@@ -10,14 +10,12 @@ CPP_TEST_FILES=("ts-loss-tau.cpp" "five-stage-characteristic.cpp" "likelihood-un
     "gillespie-sampler.cpp" "two-hit-gillespie.cpp" \
     "../errors/ts-loss-characteristic-errors.cpp" "ts-loss-gillespie-poly.cpp" \
     "../errors/gillespie-errors.cpp" "ts-loss-gillespie.cpp") 
-    #"ts-loss-tau.cpp" 
 PYTHON_TEST_FILES=("../python/Test/ts-loss-tau.py" "../python/Test/five-stage-characteristic.py" \
     "../python/Test/likelihood-unit-test.py" "../python/Test/ts-loss-characteristic.py" \
     "../python/Test/two-hit-characteristic.py" \
     "../python/Test/gillespie-sampler.py" "../python/Test/two-hit-gillespie.py" \
     "../python/Test/ts-loss-characteristic-errors.py" "../python/Test/ts-loss-gillespie-poly.py" \
     "../python/Test/gillespie-errors.py" "../python/Test/ts-loss-gillespie.py") 
-    #"../python/Test/ts-loss-tau.py" 
 
 BINDIR=.bin
 LIBDIR=.libs

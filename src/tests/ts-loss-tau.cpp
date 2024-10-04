@@ -13,7 +13,7 @@ using clonal_expansion::gillespie_ssa::times_to_final_vertices_tau;
 using clonal_expansion::gillespie_ssa::print_kaplan_meier;
 
 int main(int argc, char* argv[]) {
-    int runs_per_thr = 10; // default values
+    int sample_size = 10; // default values
     int seed = 1;
     double tau = 0.1; // default tau value for tau-leaping
     if (argc < 4) {
@@ -21,14 +21,15 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    int num_thr = std::thread::hardware_concurrency() - 2;
+    // TODO multithreading can break this test!
     seed = atoi(argv[1]);
-    runs_per_thr = 1 + atoi(argv[2]) / num_thr;
+    sample_size = atoi(argv[2]);
     tau = atof(argv[3]); // set the tau value from command line argument
 
     // System coefficients:
     double rloh = 5e-7;
     double mu = 5e-8;
+    std::cout << rloh << " " << mu << std::endl;
 
     clonal_expansion::Model model(5);
     model.m_migr[0][1] = mu;
@@ -45,36 +46,8 @@ int main(int argc, char* argv[]) {
 
     // Run many simulations and store the results:
     std::vector<std::pair<double, int>> all_times;
-
-    {
-        std::vector<std::vector<std::pair<double, int>>> times(num_thr);
-        {
-            std::vector<std::thread> simulations(num_thr);
-
-            // Run some simulations:
-            for (int i = 0; i < num_thr; ++i) {
-                // Use a different seed for each simulation:
-                simulations.at(i) = std::thread(
-                    times_to_final_vertices_tau,
-                    model, seed + i, runs_per_thr,
-                    final_vertices,
-                    tau,
-                    std::ref(times[i])
-                );
-            }
-
-            for (int i = 0; i < num_thr; ++i) {
-                simulations.at(i).join();
-            }
-        }
-
-        // Flatten and store results:
-        for (const auto& time : times) {
-            for (const auto& t2 : time) {
-                all_times.push_back(t2);
-            }
-        }
-    }
+    times_to_final_vertices_tau(model, seed, sample_size, final_vertices, tau,
+                                all_times);
 
     std::sort(all_times.begin(), all_times.end());
     size_t study_population = all_times.size();
@@ -99,7 +72,7 @@ int main(int argc, char* argv[]) {
 
         // Kaplan-Meier plot:
         std::cout << "age, p1, p2," << std::endl;
-        print_kaplan_meier(time_max, mutant_times, study_population);
+        print_kaplan_meier(time_max, mutant_times, sample_size);
 
         std::cout << std::endl;
     }
