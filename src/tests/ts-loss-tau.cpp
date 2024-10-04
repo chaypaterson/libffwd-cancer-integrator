@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -29,7 +30,7 @@ int main(int argc, char* argv[]) {
     // System coefficients:
     double rloh = 5e-7;
     double mu = 5e-8;
-    std::cout << rloh << " " << mu << std::endl;
+    printf("%.4f %.4f %.4f\n", rloh, mu, tau);
 
     clonal_expansion::Model model(5);
     model.m_migr[0][1] = mu;
@@ -73,6 +74,13 @@ int main(int argc, char* argv[]) {
         // Kaplan-Meier plot:
         std::cout << "age, p1, p2," << std::endl;
         print_kaplan_meier(time_max, mutant_times, sample_size);
+
+        std::cout << std::endl;
+
+        // Print all times:
+        for (const auto& time : mutant_times) {
+            printf("%.8f\n", time);
+        }
 
         std::cout << std::endl;
     }

@@ -27,16 +27,15 @@ if __name__ == "__main__":
         print("Call this program with\n /ts_tau seed runs tau \n")
         sys.exit(1)
 
+    # TODO multithreading can break this test
     seed = int(sys.argv[1])
     sample_size = int(sys.argv[2])
-    
-    # TODO multithreading can break this test
     tau = float(sys.argv[3])
 
     # System coefficients:
     rloh = 5e-7
     mu = 5e-8
-    print(rloh, mu)
+    print("%.4f" % rloh, "%.4f" % mu, "%.4f" % tau)
 
     # Define the model
     model = pyffwd.Model.create_model(
@@ -78,4 +77,9 @@ if __name__ == "__main__":
         # Print the Kaplan-Meier
         print("age, p1, p2,", flush=True)
         print_kaplan_meier(time_max, mutant_times, sample_size)
+        print()
+
+        for time in mutant_times:
+            print("%.8f" % time)
+
         print()
