@@ -287,7 +287,7 @@ void times_to_final_vertices_tau(const Model &model, int seed, int runs_per_thr,
     gsl_rng *r;
 
     gsl_rng_env_setup();
-    T = gsl_rng_default;
+    T = gsl_rng_mt19937;
     r = gsl_rng_alloc(T);
 
     // Seed RNG:
