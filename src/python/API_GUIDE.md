@@ -61,7 +61,7 @@ Run on Jupyter
 --------------
 
 Change the directory to the python folder
-	os.chdir('/Users/user/cancer-integrator/src/python')
+	os.chdir('/path/to/cancer-integrator/src/python')
 
 Install pybind11 
 	!pip install pybind11
