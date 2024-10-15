@@ -63,7 +63,8 @@ digraph function_call_graph {
 
         get_estimate -> compute_hessian;
         get_estimate -> instantiate_model;
-        get_estimate -> loglikelihood_hist_both;
+        get_estimate -> loglikelihood_hist_both_4
+;
     }
 
     // Cluster for annealing_min
@@ -85,6 +86,9 @@ digraph function_call_graph {
     loglikelihood_hist_node -> logsurvival;
     jackknife_and_save      -> resample_incidence;
     resample_incidence      -> loglikelihood_hist_both_4;
-    get_estimate_germline   -> loglikelihood_hist_both_5
+    get_estimate_germline   -> loglikelihood_hist_both_5;
+    mixed_min               -> brute_force_min;
+    mixed_min_8             -> brute_force_min;
+    mixed_min_16            -> brute_force_min;
 }
 
