@@ -1,0 +1,18 @@
+histogram.h 
+	void generate_histogram(Model &ground_truth, size_t seed, size_t dataset_size,
+                        const std::vector<size_t> &end_nodes,
+                        real_t &max_age, size_t &reference_pop,
+                        real_t &binwidth, Histogram_t &incidence)
+	void save_histogram(real_t& binwidth, real_t&  max_age, size_t& reference_pop,
+                    const std::vector<size_t>& end_nodes,
+                    Histogram_t& incidence,
+                    std::string filename)
+	Epidata_t generate_dataset(Model& model, int seed, int runs)
+        std::vector<size_t> convert_to_histogram(const Epidata_t& all_times,
+        real_t binwidth,
+        size_t node)
+
+
+
+
+

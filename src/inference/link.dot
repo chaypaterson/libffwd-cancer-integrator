@@ -1,0 +1,90 @@
+digraph function_call_graph {
+    // Main function
+    main -> guess_parameters;
+    main -> guess_parameters_germline;
+    main -> skip_minimisation;
+    main -> mixed_min_16;
+    main -> mixed_min_8;
+    main -> mixed_min;
+    main -> gradient_min;
+    main -> brute_force_min;
+    main -> annealing_min;
+    main -> instantiate_model;
+
+    // Cluster for guess_parameters
+    subgraph cluster_guess_parameters {
+        label = "Guess Parameters";
+        color = lightblue;
+        style = filled;
+
+        guess_parameters -> generate_histogram;
+        guess_parameters -> get_estimate;
+        guess_parameters -> print_best_guess;
+        guess_parameters -> render_voxel_cube;
+        guess_parameters -> draw_3dsurface;
+        guess_parameters -> draw_level_sets;
+        guess_parameters -> jackknife_and_save;
+        guess_parameters -> load_histogram;
+        guess_parameters -> print_model;
+        guess_parameters -> loglikelihood_hist_both_4;
+    }
+
+    // Cluster for guess_parameters_germline
+    subgraph cluster_guess_parameters_germline {
+        label = "Guess Parameters Germliner";
+        color = lightyellow;
+        style = filled;
+
+        guess_parameters_germline -> generate_histogram_germline;
+        guess_parameters_germline -> get_estimate_germline;
+        guess_parameters_germline -> print_best_guess;
+        guess_parameters_germline -> draw_level_sets;
+        guess_parameters_germline -> print_model;
+        guess_parameters_germline -> compute_hessian;
+        guess_parameters_germline -> loglikelihood_hist_both_5;
+    }
+
+    // Cluster for generate_histogram
+    subgraph cluster_generate_histogram {
+        label = "Histogram Generation";
+        color = lightgreen;
+        style = filled;
+
+        generate_histogram -> save_histogram;
+        generate_histogram -> generate_dataset;
+        generate_histogram -> convert_to_histogram;
+    }
+
+    // Cluster for get_estimate
+    subgraph cluster_get_estimate {
+        label = "Estimation Cluster";
+        color = lightpink;
+        style = filled;
+
+        get_estimate -> compute_hessian;
+        get_estimate -> instantiate_model;
+        get_estimate -> loglikelihood_hist_both;
+    }
+
+    // Cluster for annealing_min
+    subgraph cluster_minimization {
+        label = "Minimization Methods";
+        color = lightgray;
+        style = filled;
+
+        annealing_min -> get_neighbour;
+        annealing_min -> logcauchyv;
+        annealing_min -> instantiate_model;
+        annealing_min -> uniform;
+        annealing_min -> shifted_model;
+    }
+
+    // individual connections
+    loglikelihood_hist_both_4 -> loglikelihood_hist_node;
+    loglikelihood_hist_both_5 -> loglikelihood_hist_node;
+    loglikelihood_hist_node -> logsurvival;
+    jackknife_and_save      -> resample_incidence;
+    resample_incidence      -> loglikelihood_hist_both_4;
+    get_estimate_germline   -> loglikelihood_hist_both_5
+}
+
