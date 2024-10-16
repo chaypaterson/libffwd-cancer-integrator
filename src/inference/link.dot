@@ -1,15 +1,24 @@
 digraph function_call_graph {
     // Main function
-    main -> guess_parameters;
-    main -> guess_parameters_germline;
-    main -> skip_minimisation;
-    main -> mixed_min_16;
-    main -> mixed_min_8;
-    main -> mixed_min;
-    main -> gradient_min;
-    main -> brute_force_min;
-    main -> annealing_min;
+    guessing_harness [shape=cds]; // function pointers should have a pointy shape
+    config_options [label="GuesserConfig()", shape=box]; // objects should have a box shape
+    main -> config_options;
     main -> instantiate_model;
+    main -> guessing_harness;
+    // guessing_harness is a function pointer which may take these values:
+    guessing_harness -> guess_parameters [dir=none];
+    guessing_harness -> guess_parameters_germline [dir=none];
+
+    // Main does not call these but does mention them:
+    method_min [shape=cds];
+    //main -> method_min [dir=none];
+    method_min -> skip_minimisation [dir=none];
+    method_min -> mixed_min_16 [dir=none];
+    method_min -> mixed_min_8 [dir=none];
+    method_min -> mixed_min [dir=none];
+    method_min -> gradient_min [dir=none];
+    method_min -> brute_force_min [dir=none];
+    method_min -> annealing_min [dir=none];
 
     // Cluster for guess_parameters
     subgraph cluster_guess_parameters {
@@ -61,10 +70,13 @@ digraph function_call_graph {
         color = lightpink;
         style = filled;
 
-        get_estimate -> compute_hessian;
         get_estimate -> instantiate_model;
-        get_estimate -> loglikelihood_hist_both_4
-;
+        get_estimate -> compute_hessian;
+        get_estimate -> loglikelihood_hist_both_4;
+        get_estimate -> method_min;
+
+        estimate_object [label="Estimate()", shape=box];
+        get_estimate -> estimate_object;
     }
 
     // Cluster for annealing_min
