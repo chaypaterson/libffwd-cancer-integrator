@@ -3,7 +3,7 @@ import re
 #match C++ function definitions
 func_def_pattern = re.compile(r'^(?!.*\breturn\b)[\w\s*&]+ ([a-zA-Z_][\w]*)\(')
 # match function calls
-func_call_pattern = re.compile(r'\b(?:return\s+)?([a-zA-Z_][\w]*)\s*\(')
+func_call_pattern = re.compile(r'\b(?:return\s+)?([a-zA-Z_][\w]*)(?=\s*\()')
 #match lines with only whitespace and a closing brace
 closing_brace_pattern = re.compile(r'^}$')
 
