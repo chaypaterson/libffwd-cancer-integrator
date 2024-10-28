@@ -1,21 +1,31 @@
 import re
 
-#match C++ function definitions
+# Regex to match C++ function definitions
 func_def_pattern = re.compile(r'^(?!.*\breturn\b)[\w\s*&]+ ([a-zA-Z_][\w]*)\(')
-# match function calls
+# Regex to match function calls
 func_call_pattern = re.compile(r'\b(?:return\s+)?([a-zA-Z_][\w]*)(?=\s*\()')
-#match lines with only whitespace and a closing brace
-closing_brace_pattern = re.compile(r'^}$')
 
 def parse_cpp_file(filename):
     with open(filename, 'r') as file:
         lines = file.readlines()
 
+    defined_functions = set()  # Set to store func_def_pattern
+    call_graph = []  # List to store call relationships
     parent_function = None
     inside_function = False
-    result = []
 
+    # Collect all function definitions
     for line in lines:
+        line = line.strip()
+        func_def_match = func_def_pattern.match(line)
+        if func_def_match:
+            function_name = func_def_match.group(1)
+            defined_functions.add(function_name)
+
+    # Build the call graph using only known functions
+    for line in lines:
+        line = line.strip()
+
         # Look for function definitions
         if not inside_function:
             func_def_match = func_def_pattern.match(line)
@@ -24,21 +34,21 @@ def parse_cpp_file(filename):
                 inside_function = True
                 continue
         
-        #inside function body, look for function calls
+        # look for function calls
         if inside_function:
+            # Check for function calls, excluding array accesses and undefined functions
             func_calls = func_call_pattern.findall(line)
             for func in func_calls:
-                # Exclude the current function name to avoid recursion
-                if parent_function != func:
-                    # Add to result as parent -> child relationship
-                    result.append(f"{parent_function} -> {func}")
+                if func in defined_functions and func != parent_function:
+                    # Add to call graph as parent -> child relationship
+                    call_graph.append(f"{parent_function} -> {func}")
 
-            # If we encounter a closing brace
-            if closing_brace_pattern.match(line):
+            # Check for closing brace
+            if re.match(r'^\s*}$', line):
                 inside_function = False
                 parent_function = None
 
-    return result
+    return call_graph
 
 # Main program
 if __name__ == "__main__":
