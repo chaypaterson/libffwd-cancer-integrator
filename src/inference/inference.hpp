@@ -1,3 +1,6 @@
+#ifndef INFERENCE
+#define INFERENCE
+
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -10,15 +13,18 @@
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 
-#ifndef INFERENCE
-#define INFERENCE
+#include <graph-model-spec.hpp>
+#include <fast-forward.hpp>
+#include <gillespie-algorithm.hpp>
 
-typedef double real_t;
+#include "guesser-argparse.hpp"
+
+using clonal_expansion::real_t;
+using clonal_expansion::Model;
+using clonal_expansion::GuesserConfig;
+
 typedef std::vector<std::pair<double, int>> Epidata_t;
 typedef std::map<size_t, std::vector<size_t>> Histogram_t;
-class Model;
-class GuesserConfig;
-
 
 // Structures
 struct Estimate {
@@ -28,13 +34,12 @@ struct Estimate {
 };
 
 struct BoundingBox {
-    std::array<int, 3> resolution;
-    std::array<real_t, 3> centre;
-    std::array<real_t, 2> dims;
+    unsigned int resolution[3];
+    real_t centre[3];
+    real_t dims[3];
     real_t s2;
     size_t size;
 };
-
 
 real_t logsurvival(Model& params, int node);
 
@@ -197,10 +202,4 @@ void generate_histogram(Model &ground_truth, size_t seed, size_t dataset_size,
 void guess_parameters(Model &ground_truth, GuesserConfig options,
                       Model (*method_min)(std::function<real_t(Model&)>, Model));
 
-int main(int argc, char* argv[]);
-
 #endif
-
-
-
-

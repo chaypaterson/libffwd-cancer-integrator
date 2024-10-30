@@ -16,6 +16,7 @@
 #include <gillespie-algorithm.hpp>
 
 #include "guesser-argparse.hpp"
+#include "inference.hpp"
 
 /* Max. likelihood program:
  *      Generates a simulated dataset with hidden parameter values
@@ -815,7 +816,7 @@ void jackknife_and_save(Model (*method_min)(std::function<real_t(Model&)>, Model
                         Histogram_t &incidence,
                         size_t reference_pop, real_t binwidth,
                         std::vector<size_t> end_nodes, Model &initial_guess,
-                        size_t n_child_threads = 0) {
+                        size_t n_child_threads /*= 0 (default)*/) {
     // spawn child threads to carry out resampling
     // how many resamples should we generate on each child thread?
     // in total we need reference_pop many, but simply running
@@ -885,8 +886,8 @@ real_t save_data_compute_maximum(Epidata_t &all_times) {
 
 void draw_level_sets(std::function<real_t(Model &model)> objective,
                      Model point, int x_axis, int y_axis,
-                     real_t x_range=10.0f, real_t y_range=10.0f,
-                     size_t lines=16) {
+                     real_t x_range/*=10.0f*/, real_t y_range/*=10.0f*/,
+                     size_t lines/*=16*/) {
     using Eigen::all;
     // Use this function to draw realistic non-ellipsoidal likelihood intervals.
     // We choose two axes, and want to know about the projection of a surface
@@ -996,8 +997,8 @@ void draw_level_sets(std::function<real_t(Model &model)> objective,
 
 void draw_3dsurface(std::function<real_t(Model &model)> objective,
                     Model origin, int x_axis, int y_axis,
-                    real_t x_range=10.0f, real_t y_range=10.0f,
-                    size_t lines=16) {
+                    real_t x_range/*=10.0f*/, real_t y_range/*=10.0f*/,
+                    size_t lines/*=16*/) {
     /* This function samples the objective function in a neighbourhood around
      * the origin point. It then outputs a CSV of the form
      * x, y, z,
@@ -1045,6 +1046,7 @@ void draw_3dsurface(std::function<real_t(Model &model)> objective,
 // The bounding box has a centre, side dimensions, and resolutions.
 // The axes are mu, rloh, s1, and the colour will be given by s1 and the
 // likelihood.
+/* TODO move to header
 struct BoundingBox {
     unsigned int resolution[3];
     double centre[3];
@@ -1052,6 +1054,7 @@ struct BoundingBox {
     double s2;
     size_t size;
 };
+*/
 
 // TODO: reference to float vector safer than raw pointer?
 void sample_voxel_cube(float* buffer,
@@ -1221,6 +1224,7 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
     return;
 }
 
+/* TODO move to header
 struct Estimate {
     Model best_guess;
     Eigen::MatrixXd Hessian;
@@ -1228,6 +1232,7 @@ struct Estimate {
     Estimate(const Model& guess) : best_guess(guess) {}
     Estimate(const Estimate& est) : best_guess(est.best_guess), Hessian(est.Hessian) {}
 };
+*/
 
 void print_best_guess(Estimate estimate) {
     std::cout << "Best guesses:" << std::endl;
