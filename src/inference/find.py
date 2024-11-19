@@ -1,85 +1,70 @@
 import re
+from exclude_functions import get_excluded_functions  # Import the exclusion list
 
-# Regex to match C++ function definitions
+# Match C++ function definitions
 func_def_pattern = re.compile(r'^(?!.*\breturn\b)[\w\s*&]+ ([a-zA-Z_][\w]*)\(')
+# Match function calls
+func_call_pattern = re.compile(r'\b(?:return\s+)?([a-zA-Z_][\w]*)\s*\(')
+# Match lines with only whitespace and a closing brace
+closing_brace_pattern = re.compile(r'^}$')
+# Match single-line comments
+single_line_comment_pattern = re.compile(r'^\s*//')
+# Match multi-line comments (start)
+multi_line_comment_start_pattern = re.compile(r'/\*')
+# Match multi-line comments (end)
+multi_line_comment_end_pattern = re.compile(r'\*/')
 
-# Regex to match function calls
-func_call_pattern = re.compile(r'\b(?:return\s+)?([a-zA-Z_][\w]*)(?=\s*\()')
-
-# Regex to match function pointer use
-func_ptr_assign_pattern = re.compile(r'([a-zA-Z_][\w]*)\s*=\s*([a-zA-Z_][\w]*);')
-
-# Regex to match function pointer definitions
-func_pointer_def_pattern = re.compile(r'([a-zA-Z_][\w]*)\s*\(\*([a-zA-Z_][\w]*)\)\s*\(.*\);')
-
-def parse_cpp_file(filename):
+def parse_cpp_file(filename, excluded_functions):
     with open(filename, 'r') as file:
         lines = file.readlines()
 
-    defined_functions = set()
-    defined_func_pointers = set()
-    call_graph = []
     parent_function = None
     inside_function = False
+    inside_multi_line_comment = False
+    result = []
 
-    # Collect all function definitions and function pointer definitions
     for line in lines:
-        line = line.strip()
-
-        # Check for function definitions
-        func_def_match = func_def_pattern.match(line)
-        if func_def_match:
-            function_name = func_def_match.group(1)
-            defined_functions.add(function_name)
-
-        # Check for function pointer definitions
-        func_ptr_def_match = func_pointer_def_pattern.match(line)
-        if func_ptr_def_match:
-            pointer_name = func_ptr_def_match.group(2)
-            defined_func_pointers.add(pointer_name)
-
-    # Build the call graph using functions and function pointers
-    for line in lines:
-        line = line.strip()
-
-        # Look for function definitions
+        # Ignore lines that are comments or are inside a comment block
+        if single_line_comment_pattern.match(line):
+            continue
+        if inside_multi_line_comment:
+            if multi_line_comment_end_pattern.search(line):
+                inside_multi_line_comment = False
+            continue
+        if multi_line_comment_start_pattern.search(line):
+            inside_multi_line_comment = True
+            continue
+        
+        # Look for function definitions (not inside a comment)
         if not inside_function:
             func_def_match = func_def_pattern.match(line)
             if func_def_match:
                 parent_function = func_def_match.group(1)
                 inside_function = True
                 continue
-
+        
+        # Inside function body, look for function calls
         if inside_function:
-            # Check for function calls
             func_calls = func_call_pattern.findall(line)
             for func in func_calls:
-                if func in defined_functions and func != parent_function:
-                    call_graph.append(f"{parent_function} -> {func}")
+                # Exclude functions from known libraries and the parent function
+                if func not in excluded_functions and parent_function != func:
+                    result.append(f"{parent_function} -> {func}")
 
-            # Check for function pointer
-            func_ptr_assign_match = func_ptr_assign_pattern.search(line)
-            if func_ptr_assign_match:
-                pointer_name = func_ptr_assign_match.group(1)
-                assigned_function = func_ptr_assign_match.group(2)
-                if assigned_function in defined_functions:
-                    call_graph.append(f"{parent_function} -> *{pointer_name} ({assigned_function})")
-
-            # Check for function pointer usage
-            for pointer_name in defined_func_pointers:
-                if pointer_name in line:
-                    call_graph.append(f"{parent_function} -> *{pointer_name}")
-
-            if re.match(r'^\s*}$', line):
+            # If we encounter a closing brace, end the current function
+            if closing_brace_pattern.match(line):
                 inside_function = False
                 parent_function = None
 
-    return call_graph
+    return result
 
 # Main program
 if __name__ == "__main__":
+    # Get the set of excluded functions from standard libraries
+    excluded_functions = get_excluded_functions()
+
     filename = 'likelihood-optimisation.cpp'
-    call_graph = parse_cpp_file(filename)
+    call_graph = parse_cpp_file(filename, excluded_functions)
     
     # Print the result
     for call in call_graph:
