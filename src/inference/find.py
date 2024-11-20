@@ -1,30 +1,32 @@
 import re
-from exclude_functions import get_excluded_functions  # Import the exclusion list
 
-# Match C++ function definitions
+# function definitions
 func_def_pattern = re.compile(r'^(?!.*\breturn\b)[\w\s*&]+ ([a-zA-Z_][\w]*)\(')
 # Match function calls
-func_call_pattern = re.compile(r'\b(?:return\s+)?([a-zA-Z_][\w]*)\s*\(')
-# Match lines with only whitespace and a closing brace
+func_call_pattern = re.compile(r'\b(?:return\s+)?([a-zA-Z_][\w]*)(?=\s*\()')
+# only whitespace and a closing brace
 closing_brace_pattern = re.compile(r'^}$')
-# Match single-line comments
+# single-line comments
 single_line_comment_pattern = re.compile(r'^\s*//')
-# Match multi-line comments (start)
+# multi-line comments (start)
 multi_line_comment_start_pattern = re.compile(r'/\*')
-# Match multi-line comments (end)
+# multi-line comments (end)
 multi_line_comment_end_pattern = re.compile(r'\*/')
+#pointer declarations and assignments
+func_pointer_pattern = re.compile(r'\b([a-zA-Z_][\w]*)\s*=\s*([a-zA-Z_][\w]*)\s*;')
 
-def parse_cpp_file(filename, excluded_functions):
+def parse_cpp_file(filename):
     with open(filename, 'r') as file:
         lines = file.readlines()
 
+    defined_functions = set()
     parent_function = None
     inside_function = False
     inside_multi_line_comment = False
     result = []
 
     for line in lines:
-        # Ignore lines that are comments or are inside a comment block
+        # Ignore lines that are comments
         if single_line_comment_pattern.match(line):
             continue
         if inside_multi_line_comment:
@@ -34,37 +36,45 @@ def parse_cpp_file(filename, excluded_functions):
         if multi_line_comment_start_pattern.search(line):
             inside_multi_line_comment = True
             continue
-        
-        # Look for function definitions (not inside a comment)
+
+        # Look for function definitions
         if not inside_function:
             func_def_match = func_def_pattern.match(line)
             if func_def_match:
-                parent_function = func_def_match.group(1)
+                func_name = func_def_match.group(1)
+                defined_functions.add(func_name)
+                parent_function = func_name
                 inside_function = True
                 continue
-        
-        # Inside function body, look for function calls
+
+        # Inside function body
         if inside_function:
+            # Look for function calls
             func_calls = func_call_pattern.findall(line)
             for func in func_calls:
-                # Exclude functions from known libraries and the parent function
-                if func not in excluded_functions and parent_function != func:
+                # Exclude self-calls and undefined function calls
+                if parent_function != func and func in defined_functions:
                     result.append(f"{parent_function} -> {func}")
 
-            # If we encounter a closing brace, end the current function
+            # function pointer assignments
+            func_pointer_match = func_pointer_pattern.search(line)
+            if func_pointer_match:
+                pointer_name = func_pointer_match.group(1)
+                assigned_function = func_pointer_match.group(2)
+                result.append(f"{parent_function} -> *{pointer_name} ({assigned_function})")
+
+            # closing brace
             if closing_brace_pattern.match(line):
                 inside_function = False
                 parent_function = None
 
     return result
 
+
 # Main program
 if __name__ == "__main__":
-    # Get the set of excluded functions from standard libraries
-    excluded_functions = get_excluded_functions()
-
     filename = 'likelihood-optimisation.cpp'
-    call_graph = parse_cpp_file(filename, excluded_functions)
+    call_graph = parse_cpp_file(filename)
     
     # Print the result
     for call in call_graph:
