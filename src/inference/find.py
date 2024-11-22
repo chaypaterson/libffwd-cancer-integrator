@@ -1,25 +1,27 @@
 import re
 
-# function definitions
+# Function definitions
 func_def_pattern = re.compile(r'^(?!.*\breturn\b)[\w\s*&]+ ([a-zA-Z_][\w]*)\(')
 # Match function calls
 func_call_pattern = re.compile(r'\b(?:return\s+)?([a-zA-Z_][\w]*)(?=\s*\()')
-# only whitespace and a closing brace
+# Only whitespace and a closing brace
 closing_brace_pattern = re.compile(r'^}$')
-# single-line comments
+# Single-line comments
 single_line_comment_pattern = re.compile(r'^\s*//')
-# multi-line comments (start)
+# Multi-line comments (start)
 multi_line_comment_start_pattern = re.compile(r'/\*')
-# multi-line comments (end)
+# Multi-line comments (end)
 multi_line_comment_end_pattern = re.compile(r'\*/')
-#pointer declarations and assignments
-func_pointer_pattern = re.compile(r'\b([a-zA-Z_][\w]*)\s*=\s*([a-zA-Z_][\w]*)\s*;')
+# Pointer declarations and assignments
+func_pointer_decl_pattern = re.compile(r'\b(?:[\w\s*&]+)\(\*([a-zA-Z_][\w]*)\)\s*\(')
+func_pointer_assign_pattern = re.compile(r'\b([a-zA-Z_][\w]*)\s*=\s*([a-zA-Z_][\w]*)\s*;')
 
 def parse_cpp_file(filename):
     with open(filename, 'r') as file:
         lines = file.readlines()
 
     defined_functions = set()
+    function_pointers = {}
     parent_function = None
     inside_function = False
     inside_multi_line_comment = False
@@ -37,7 +39,14 @@ def parse_cpp_file(filename):
             inside_multi_line_comment = True
             continue
 
-        # Look for function definitions
+        # function pointer declarations
+        func_pointer_decl_match = func_pointer_decl_pattern.search(line)
+        if func_pointer_decl_match:
+            pointer_name = func_pointer_decl_match.group(1)
+            function_pointers[pointer_name] = None
+            continue
+
+        # function definitions
         if not inside_function:
             func_def_match = func_def_pattern.match(line)
             if func_def_match:
@@ -56,26 +65,27 @@ def parse_cpp_file(filename):
                 if parent_function != func and func in defined_functions:
                     result.append(f"{parent_function} -> {func}")
 
-            # function pointer assignments
-            func_pointer_match = func_pointer_pattern.search(line)
-            if func_pointer_match:
-                pointer_name = func_pointer_match.group(1)
-                assigned_function = func_pointer_match.group(2)
-                result.append(f"{parent_function} -> *{pointer_name} ({assigned_function})")
+            # Function pointer assignments
+            func_pointer_assign_match = func_pointer_assign_pattern.search(line)
+            if func_pointer_assign_match:
+                pointer_name = func_pointer_assign_match.group(1)
+                assigned_function = func_pointer_assign_match.group(2)
+                if pointer_name in function_pointers:
+                    function_pointers[pointer_name] = assigned_function
+                    result.append(f"{parent_function} -> *{pointer_name} ({assigned_function})")
 
-            # closing brace
+            # Closing brace
             if closing_brace_pattern.match(line):
                 inside_function = False
                 parent_function = None
 
     return result
 
-
 # Main program
 if __name__ == "__main__":
     filename = 'likelihood-optimisation.cpp'
     call_graph = parse_cpp_file(filename)
-    
+
     # Print the result
     for call in call_graph:
         print(call)
