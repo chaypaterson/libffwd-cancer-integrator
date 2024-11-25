@@ -1,9 +1,13 @@
 import re
 
 # Function definitions
-func_def_pattern = re.compile(r'^(?!.*\breturn\b)[\w\s*&]+ ([a-zA-Z_][\w]*)\(')
+func_def_pattern = re.compile(
+    r'^(?!.*\breturn\b)[\w\s*&:<>]+ ([a-zA-Z_][\w]*)\('
+)
 # Match function calls
-func_call_pattern = re.compile(r'\b(?:return\s+)?([a-zA-Z_][\w]*)(?=\s*\()')
+func_call_pattern = re.compile(
+    r'\b(?:return\s+)?([a-zA-Z_][\w]*)(?=\s*\()'
+)
 # Only whitespace and a closing brace
 closing_brace_pattern = re.compile(r'^}$')
 # Single-line comments
@@ -13,8 +17,22 @@ multi_line_comment_start_pattern = re.compile(r'/\*')
 # Multi-line comments (end)
 multi_line_comment_end_pattern = re.compile(r'\*/')
 # Pointer declarations and assignments
-func_pointer_decl_pattern = re.compile(r'\b(?:[\w\s*&]+)\(\*([a-zA-Z_][\w]*)\)\s*\(')
-func_pointer_assign_pattern = re.compile(r'\b([a-zA-Z_][\w]*)\s*=\s*([a-zA-Z_][\w]*)\s*;')
+func_pointer_decl_pattern = re.compile(
+    r'\b(?:[\w\s*&]+)\(\*([a-zA-Z_][\w]*)\)\s*\('
+)
+funcp_assign_pattern = re.compile(
+    r'\b([a-zA-Z_][\w]*)\s*=\s*([a-zA-Z_][\w]*)\s*;'
+)
+# Object instantiations
+object_pattern = re.compile(
+    r'\b([a-zA-Z_][\w]*)\s+([a-zA-Z_][\w]*)\s*\(([^)]*)\);'
+)
+
+# Exclude object patterns
+exclude_object_pattern = re.compile(
+    r'\breturn\s+([a-zA-Z_][\w]*)\s*\(([^)]*)\)|'
+    r'([a-zA-Z_][\w]*)\s*=\s*([a-zA-Z_][\w]*)\s*\(([^)]*)\)'
+)
 
 def parse_cpp_file(filename):
     with open(filename, 'r') as file:
@@ -39,14 +57,14 @@ def parse_cpp_file(filename):
             inside_multi_line_comment = True
             continue
 
-        # function pointer declarations
+        #check function pointer declarations
         func_pointer_decl_match = func_pointer_decl_pattern.search(line)
         if func_pointer_decl_match:
             pointer_name = func_pointer_decl_match.group(1)
             function_pointers[pointer_name] = None
             continue
 
-        # function definitions
+        # check function definitions
         if not inside_function:
             func_def_match = func_def_pattern.match(line)
             if func_def_match:
@@ -58,21 +76,35 @@ def parse_cpp_file(filename):
 
         # Inside function body
         if inside_function:
-            # Look for function calls
+            # check function calls
             func_calls = func_call_pattern.findall(line)
             for func in func_calls:
-                # Exclude self-calls and undefined function calls
+                # Exclude undefined function calls
                 if parent_function != func and func in defined_functions:
                     result.append(f"{parent_function} -> {func}")
 
-            # Function pointer assignments
-            func_pointer_assign_match = func_pointer_assign_pattern.search(line)
-            if func_pointer_assign_match:
-                pointer_name = func_pointer_assign_match.group(1)
-                assigned_function = func_pointer_assign_match.group(2)
+            # check Function pointer assignments
+            funcp_assign_match = funcp_assign_pattern.search(line)
+            if funcp_assign_match:
+                pointer_name = funcp_assign_match.group(1)
+                assigned_function = funcp_assign_match.group(2)
                 if pointer_name in function_pointers:
                     function_pointers[pointer_name] = assigned_function
-                    result.append(f"{parent_function} -> *{pointer_name} ({assigned_function})")
+                    result.append(
+                        f"{parent_function} -> *{pointer_name} ({assigned_function})"
+                    )
+
+            # check Object instantiations
+            object_match = object_pattern.search(line)
+            if object_match:
+                # Exclude patterns
+                if not exclude_object_pattern.search(line):
+                    object_type = object_match.group(1)
+                    object_name = object_match.group(2)
+                    constructor_args = object_match.group(3)
+                    result.append(
+                        f"{parent_function} -> {object_type} {object_name} ({constructor_args})"
+                    )
 
             # Closing brace
             if closing_brace_pattern.match(line):
