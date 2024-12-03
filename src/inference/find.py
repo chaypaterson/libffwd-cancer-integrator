@@ -1,8 +1,12 @@
 import re
+from exclude_functions import get_excluded_functions
+
+# Get the set of excluded functions
+excluded_functions = get_excluded_functions()
 
 # Function definitions
 func_def_pattern = re.compile(
-    r'^(?!.*\breturn\b)[\w\s*&:<>]+ ([a-zA-Z_][\w]*)\('
+    r'^(?!.*\breturn\b)[\w\s*&]+ ([a-zA-Z_][\w]*)\('
 )
 # Match function calls
 func_call_pattern = re.compile(
@@ -34,6 +38,11 @@ exclude_object_pattern = re.compile(
     r'([a-zA-Z_][\w]*)\s*=\s*([a-zA-Z_][\w]*)\s*\(([^)]*)\)'
 )
 
+# Exclude all function calls matching this pattern
+exclude_func_call_pattern = re.compile(
+    r'\b([a-zA-Z_]\w*)\b(?:\s*\([^)]*\))?'
+)
+
 def parse_cpp_file(filename):
     with open(filename, 'r') as file:
         lines = file.readlines()
@@ -57,18 +66,21 @@ def parse_cpp_file(filename):
             inside_multi_line_comment = True
             continue
 
-        #check function pointer declarations
+        # Check function pointer declarations
         func_pointer_decl_match = func_pointer_decl_pattern.search(line)
         if func_pointer_decl_match:
             pointer_name = func_pointer_decl_match.group(1)
             function_pointers[pointer_name] = None
             continue
 
-        # check function definitions
+        # Check function definitions
         if not inside_function:
             func_def_match = func_def_pattern.match(line)
             if func_def_match:
                 func_name = func_def_match.group(1)
+                # Skip functions that are in the excluded set
+                if func_name in excluded_functions:
+                    continue
                 defined_functions.add(func_name)
                 parent_function = func_name
                 inside_function = True
@@ -76,14 +88,15 @@ def parse_cpp_file(filename):
 
         # Inside function body
         if inside_function:
-            # check function calls
+            # Check function calls
             func_calls = func_call_pattern.findall(line)
             for func in func_calls:
                 # Exclude undefined function calls
-                if parent_function != func and func in defined_functions:
-                    result.append(f"{parent_function} -> {func}")
+                if func not in excluded_functions:
+                        result.append(f"{parent_function} -> {func}")
+                    
 
-            # check Function pointer assignments
+            # Check function pointer assignments
             funcp_assign_match = funcp_assign_pattern.search(line)
             if funcp_assign_match:
                 pointer_name = funcp_assign_match.group(1)
@@ -94,7 +107,7 @@ def parse_cpp_file(filename):
                         f"{parent_function} -> *{pointer_name} ({assigned_function})"
                     )
 
-            # check Object instantiations
+            # Check object instantiations
             object_match = object_pattern.search(line)
             if object_match:
                 # Exclude patterns
@@ -103,7 +116,8 @@ def parse_cpp_file(filename):
                     object_name = object_match.group(2)
                     constructor_args = object_match.group(3)
                     result.append(
-                        f"{parent_function} -> {object_type} {object_name} ({constructor_args})"
+                        f"{parent_function} -> {object_type} {object_name} "
+                        f"({constructor_args})"
                     )
 
             # Closing brace
@@ -118,6 +132,9 @@ if __name__ == "__main__":
     filename = 'likelihood-optimisation.cpp'
     call_graph = parse_cpp_file(filename)
 
-    # Print the result
-    for call in call_graph:
-        print(call)
+    if call_graph is None:
+        print("Error: No call graph was generated.")
+    else:
+        # Print the result
+        for call in call_graph:
+            print(call)
