@@ -116,7 +116,7 @@ def parse_cpp_file(filename):
                     object_name = object_match.group(2)
                     constructor_args = object_match.group(3)
                     result.append(
-                        f"{parent_function} -> {object_type} {object_name} "
+                        f"{parent_function} -> []{object_type} {object_name} "
                         f"({constructor_args})"
                     )
 

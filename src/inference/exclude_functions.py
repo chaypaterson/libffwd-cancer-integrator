@@ -184,13 +184,13 @@ excluded_functions_by_lib = {
         "stold", "to_string", "to_wstring", "insert_range", "append_range", 
         "replace_with_range", "resize", "resize_and_overwrite", "find_first_of", 
         "find_first_not_of", "find_last_of", "find_last_not_of", 
-        "starts_with", "ends_with", "contains", "erase_if", "memcpy"
+        "starts_with", "ends_with", "contains", "erase_if", "memcpy",
         "memcpy_s", "std::memcpy"
     },
 
     "thread": {
         "std::thread", "std::mutex", "std::lock_guard", "std::unique_lock", 
-        "std::async", "std::this_thread::sleep_for", "std::this_thread::sleep_until"
+        "std::async", "std::this_thread::sleep_for", "std::this_thread::sleep_until",
         "join", "thread"
     }
 
@@ -198,8 +198,7 @@ excluded_functions_by_lib = {
 
 # Function to return all excluded functions as a set
 def get_excluded_functions():
-    excluded = set(excluded_keywords)  # Add the general keywords first
-    # Add the functions from the libraries
+    excluded = set(excluded_keywords)
     for lib_functions in excluded_functions_by_lib.values():
         excluded.update(lib_functions)
     return excluded
