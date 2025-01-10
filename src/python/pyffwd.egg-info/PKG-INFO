@@ -1,4 +1,3 @@
 Metadata-Version: 2.1
 Name: pyffwd
 Version: 1.0
-Requires-Dist: pybind11

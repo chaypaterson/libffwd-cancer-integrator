@@ -1,5 +1,5 @@
-cancer integrator
-=================
+libffwd (cancer integrator)
+===========================
 
 Simulates survival curves in generalised multi-stage clonal expansion models of
 Moolgavkar-Vernon-Knudsen type. This project allows us to
