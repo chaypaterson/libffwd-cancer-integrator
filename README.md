@@ -23,9 +23,11 @@ $$\Gamma = \sum_{events} rate(event)$$
 
 $$x = Unif(0,\Gamma)$$
 
-    choose event from $x$ so that
+choose event from $x$ so that
 
 $$Pr(event) = rate(event) / \Gamma$$
+
+and then
 
 $$t += Exp(0, 1/\Gamma)$$
 
@@ -44,6 +46,7 @@ the time complexity of random sampling will be $T = O(\epsilon^{-2})$.
   * The Kolmogorov forward equation is of the form
 
 $$\frac{\partial\Psi}{\partial t} = \vec{X} \cdot \nabla_{\vec{q}} \Psi + Y(\vec{q}) \Psi$$
+
 with $X_j(q)$ determined by the reaction rates and stoichiometry. (The absorption
 term $Y(q)$ due to immigration is not currently implemented.)
 
