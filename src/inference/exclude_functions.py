@@ -15,7 +15,7 @@ excluded_keywords = {
     "struct", "switch", "synchronized", "template", "this", "thread_local", "throw", 
     "true", "try", "typedef", "typeid", "typename", "union", "unsigned", "using", 
     "virtual", "void", "volatile", "wchar_t", "while", "xor", "xor_eq", "type", "real_t",
-    "objective"
+    "objective", "Delta"
 }
 
 # Dictionary of excluded functions based on library
