@@ -92,7 +92,7 @@ real_t loglikelihood_hist_node(Model& params, size_t node, real_t binwidth,
         real_t Sprob2 = PsiAll2 / PsiExcept2;
 
         // -log binomial likelihood:
-        real_t p = Sprob - Sprob2;
+        real_t p = (Sprob - Sprob2) / Sprob; // thanks Luo Xiang Ge!
         if (p > 0 && p < 1) {
             mlogl += -log(p) * curr_bin;
             mlogl += -log(1 - p) * (nsurv - curr_bin);
