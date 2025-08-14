@@ -116,3 +116,9 @@ rows * cols * layers * 3 (colour channels) * sizeof(float)
 Currently takes ~5min to sample a 16x16x16 cube, single threaded on atuin. May
 as well parallelise the sampling and run some batches on the CSF if the initial
 results are intriguing.
+
+Thu 14 Aug 17:58:01 BST 2025
+
+Corrected discrete hazard (Ge)
+
+Germline again?
