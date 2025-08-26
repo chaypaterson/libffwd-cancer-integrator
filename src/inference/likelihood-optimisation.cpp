@@ -236,7 +236,8 @@ Model instantiate_model_germline(real_t rloh, real_t mu, real_t fitness1,
     params.m_migr[2][4] = 0.5 * mu;
     // birth and death rates:
     params.m_birth = {0, fitness1, fitness2, 0, 0};
-    // TODO maybe fitness1 should be 0 for this model? discuss w colleagues
+    // TODO maybe fitness1 should be 0 for this model? discuss w Miriam and
+    // David
     params.m_death = {0, 0, 0, 0, 0};
     params.m_initial_pops = {0, initialpop, 0, 0, 0};
 
@@ -1345,7 +1346,10 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
     // mutation:
     ground_truth_germline.m_initial_pops[1] = ground_truth.m_initial_pops[0];
     ground_truth_germline.m_initial_pops[0] = 0;
-    // fitnesses 1 and 2 = 0.05, 0.03, // should these be zero?  consider
+    // fitnesses 1 and 2 = 0.05, 0.03, // these are set to zero: discuss with
+    // Miriam and David
+    ground_truth_germline.m_birth[1] = 0;
+    ground_truth_germline.m_birth[2] = 0;
 
     size_t seed = options.seed;
     size_t dataset_size = options.dataset_size;
