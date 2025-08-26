@@ -14,7 +14,7 @@ AC_CHECK_LIB([gsl], [gsl_rng_alloc], [
     ], [
     AC_MSG_ERROR([gsl_rng_alloc not found: is GSL installed?])
     ],
-    [])
+    [-lgslcblas])
 
 ## Check for GSL headers:
 AC_CHECK_HEADERS([gsl/gsl_rng.h gsl/gsl_randist.h], [], [
