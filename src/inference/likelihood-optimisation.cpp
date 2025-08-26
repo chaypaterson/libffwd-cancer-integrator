@@ -1354,29 +1354,45 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
     print_model(ground_truth_germline);
 
     std::vector<size_t> end_nodes = {3,4};
-    Histogram_t incidence, incidence_germline;
+    Histogram_t incidence_sporadic, incidence_germline;
     real_t binwidth, max_age;
     size_t reference_pop;
 
-    generate_histogram_germline(ground_truth, ground_truth_germline,
-                       seed, dataset_size, end_nodes, max_age, reference_pop,
-                       binwidth, incidence, incidence_germline);
+    // TODO loadable histograms for germline studies
+    if (!options.histogram_file.empty() &&
+        !options.germline_histogram_file.empty()) {
+        load_histogram(binwidth, max_age, reference_pop, end_nodes,
+                       incidence_sporadic, options.histogram_file);
+        load_histogram(binwidth, max_age, reference_pop, end_nodes,
+                       incidence_germline, options.germline_histogram_file);
+    } else {
+        generate_histogram_germline(ground_truth, ground_truth_germline,
+                           seed, dataset_size, end_nodes, max_age, reference_pop,
+                           binwidth, incidence_sporadic, incidence_germline);
+    }
 
     // Get the main un-resampled estimate with simulated annealing:
     printf("Target likelihood:\n-log L = %g\n",
            loglikelihood_hist_both(ground_truth, binwidth, reference_pop,
-                                   incidence, incidence_germline));
+                                   incidence_sporadic, incidence_germline));
 
     Estimate estimate = get_estimate_germline(binwidth, reference_pop,
-                        incidence, incidence_germline, method_min);
+                        incidence_sporadic, incidence_germline, method_min);
 
     // Annealing now complete. Print guess:
     print_best_guess(estimate);
+
+    // Save the model to a file:
+    if (!options.estimate_file.empty()) {
+        clonal_expansion::save_model(estimate.best_guess, options.estimate_file);
+    }
 
     if (options.resample_after) {
         std::cout << "resampling not yet supported for germline studies";
         std::cout << std::endl;
     }
+
+    // LIKELIHOOD FUNCTION VISUALISATION (optional)
 
     // Draw level sets:
     if (options.level_sets) {
@@ -1384,7 +1400,7 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
         std::cout << "Tracing level sets..." << std::endl;
         std::function<real_t(Model&)> objective = [&](Model& model) {
             return loglikelihood_hist_both(model, binwidth,
-                                           reference_pop, incidence,
+                                           reference_pop, incidence_sporadic,
                                            incidence_germline);
         };
         // choose a starting point from the best guess and local hessian:
@@ -1396,6 +1412,35 @@ void guess_parameters_germline(Model &ground_truth, GuesserConfig options,
                 draw_level_sets(objective, start_point, x_axis, y_axis);
             }
         }
+    }
+
+    // Draw 3d voxel cube for likelihood function:
+    if (!options.voxel_file.empty()) {
+        struct BoundingBox bbox = {
+            // For now, just assume the same resolution along each axis:
+            .resolution = {options.voxel_res, options.voxel_res,
+                          options.voxel_res},
+            .centre = {estimate.best_guess.m_migr[0][1],
+                       estimate.best_guess.m_migr[0][2],
+                       estimate.best_guess.m_birth[1]
+                     },
+            // TODO pass these in on command line
+            // Also, use logarithmic scales for mu and rloh and linear scales for
+            // s1 and s2.
+            .dims = {options.mesh_x_range, options.mesh_y_range, 1},
+            .s2 = ground_truth.m_birth[2],
+            .size = reference_pop
+        };
+
+        std::cout << "Rendering 3D voxel data..." << std::endl;
+
+        std::function<real_t(Model&)> objective = [&](Model& model) {
+            return loglikelihood_hist_both(model, binwidth, reference_pop, 
+                                           incidence_sporadic, incidence_germline);
+        };
+
+        render_voxel_cube(objective, bbox, options.voxel_file, 
+                          options.num_child_threads);
     }
 }
 
@@ -1477,7 +1522,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
     real_t binwidth, max_age;
     size_t reference_pop;
 
-    // TODO loadable histograms?
+    // loadable histograms:
     if (!options.histogram_file.empty()) {
         std::cout << options.histogram_file << std::endl;
         load_histogram(binwidth, max_age, reference_pop, end_nodes, incidence,
@@ -1508,6 +1553,8 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         jackknife_and_save(method_min, incidence, reference_pop, binwidth, end_nodes,
                            estimate.best_guess, options.num_child_threads);
     }
+
+    // LIKELIHOOD FUNCTION VISUALISATION (optional)
 
     // Draw level sets:
     if (options.level_sets) {
@@ -1555,14 +1602,12 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
         }
     }
 
-    // TODO Draw 3d voxel cube:
+    // Draw 3d voxel cube:
     if (!options.voxel_file.empty()) {
         struct BoundingBox bbox = {
             // For now, just assume the same resolution along each axis:
             .resolution = {options.voxel_res, options.voxel_res,
                           options.voxel_res},
-            // Ground truth is visible within this scope so we can use that to
-            // choose a centre for the cube:
             .centre = {estimate.best_guess.m_migr[0][1],
                        estimate.best_guess.m_migr[0][2],
                        estimate.best_guess.m_birth[1]
@@ -1571,7 +1616,7 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
             // Also, use logarithmic scales for mu and rloh and linear scales for
             // s1 and s2.
             .dims = {options.mesh_x_range, options.mesh_y_range, 1},
-            .s2 = ground_truth.m_birth[2],
+            .s2 = ground_truth.m_birth[2], // TODO why ground_truth?
             .size = reference_pop
         };
 

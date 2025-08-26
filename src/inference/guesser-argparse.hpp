@@ -40,6 +40,7 @@ public:
     // NB the defaults for all string options are empty (""), this is set in the
     // to_string factory below.
     std::string histogram_file; // load histogram from file
+    std::string germline_histogram_file; // load histogram from file
     std::string estimate_file; // save (serialise) best guess to this file
     std::string voxel_file; // save voxel sampled function to this file
 
@@ -59,6 +60,7 @@ public:
     // The constructor:
     inline GuesserConfig(int argc, char* argv[]) :
         histogram_file(to_string(argv, "--load_histogram")),
+        germline_histogram_file(to_string(argv, "--load_histogram_germline")),
         estimate_file(to_string(argv, "--save_estimate")),
         voxel_file(to_string(argv, "--voxel_file"))
     {

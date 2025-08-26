@@ -1,4 +1,4 @@
-CC = g++
+CC = g++ -arch arm64
 BUILDDIR = bin
 LIBDIR = libs
 CORE = src/core

@@ -133,7 +133,7 @@ From a tarball:
 
 Mac users will also need to pass flags for their installation of GSL. e.g.
 
-	../configure [...] CPPFLAGS="-I/opt/homebrew/include" LDLIBS="-L/opt/homebrew/lib"
+    ../configure --with-eigen=/Users/user/Code/eigen CPPFLAGS=-I/opt/homebrew/include LDFLAGS=-L/opt/homebrew/lib --prefix=/Users/user/.local
 
 Without a tarball:
 
@@ -158,6 +158,11 @@ Python API:
 -----------
 
 See src/python/API_GUIDE.md.
+
+R API:
+------
+
+(To do)
 
 Sources: 
 --------
