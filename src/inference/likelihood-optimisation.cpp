@@ -1061,7 +1061,7 @@ void sample_voxel_cube(float* buffer,
                        real_t offset, real_t s2max,
                        size_t first_sample, size_t last_sample) {
     // gamma compression:
-    float compression = 10.0 / bounding_box.size;
+    float compression = 10.0 / bounding_box.size; // FIXME ad hoc
 
     for (size_t sample = first_sample; sample < last_sample; ++sample) {
         // compute row, col, and lyr
@@ -1120,17 +1120,17 @@ void sample_voxel_cube(float* buffer,
             dloglike *= compression;
             float y_value = exp(dloglike);
 
-            // Nice the output: set NaNs and negative values to zero
+            // Nice the output: set NaN values to zero
             // Values are also invalid iff they would cause an overflow in exp:
-            // 127 * log(2) = 88
+            // 127 * log(2) = 88 (exponent should not go out of range)
 
-            if (!std::isnormal(y_value) || y_value < 0 || dloglike > 88) {
+            if (!std::isnormal(y_value) || dloglike > 88) {
                 y_value = 0.0f;
             }
             // increment integral and convert value to floating point colour:
             for (int ch = 0; ch < 3; ++ch) {
                 voxel[ch] += y_value * colour[ch] * ds2 / s2max;
-                // \frac{1}{s2max} \int_{s2=0}^s2max ... ds2
+                // = \frac{1}{s2max} \int_{s2=0}^s2max ... ds2
             }
         }
 
@@ -1144,7 +1144,7 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
                        std::string voxel_file,
                        size_t num_child_threads) {
     // Serialise the objective function to a voxel cube file
-    real_t s2max = 0.06; // WARNING values too high result in garbage
+    real_t s2max = 0.20; // WARNING values too high result in garbage
     Model centre_of_box = instantiate_model(bounding_box.centre[1],
                                             bounding_box.centre[0],
                                             bounding_box.centre[2],
@@ -1159,7 +1159,7 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
     // and try to normalise the colours:
     //real_t offset = +0.5 * bounding_box.size * log(bounding_box.size);
     printf("size: %u\n", bounding_box.size);
-    printf("normalisation offset: %g\n", offset);
+    printf("normalisation offset (= L(centre)): %g\n", offset);
 
     // get the total number of samples to take:
     size_t volume_samples = 1;
@@ -1207,7 +1207,7 @@ void render_voxel_cube(std::function<real_t(Model &model)> objective,
     std::ofstream voxelfile;
     voxelfile.open(voxel_file, std::ios::out|std::ios::binary);
 
-    // Write header:
+    // Write header for voxel cube file:
     const char* header = "Voxel\n";
     voxelfile.write((char*)header, 6 * sizeof(char));
 
@@ -1612,15 +1612,16 @@ void guess_parameters(Model &ground_truth, GuesserConfig options,
             // For now, just assume the same resolution along each axis:
             .resolution = {options.voxel_res, options.voxel_res,
                           options.voxel_res},
-            .centre = {estimate.best_guess.m_migr[0][1],
-                       estimate.best_guess.m_migr[0][2],
-                       estimate.best_guess.m_birth[1]
+            // use ground_truth as the centre of the box:
+            .centre = {ground_truth.m_migr[0][1],
+                       ground_truth.m_migr[0][2],
+                       ground_truth.m_birth[1]
                      },
-            // TODO pass these in on command line
+            // TODO pass ground truth/initial guess in on command line?
             // Also, use logarithmic scales for mu and rloh and linear scales for
-            // s1 and s2.
+            // s1 and s2. DONE
             .dims = {options.mesh_x_range, options.mesh_y_range, 1},
-            .s2 = ground_truth.m_birth[2], // TODO why ground_truth?
+            .s2 = ground_truth.m_birth[2],
             .size = reference_pop
         };
 
