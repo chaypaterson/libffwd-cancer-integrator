@@ -19,10 +19,11 @@
 
 /* Max. likelihood program:
  *      Generates a simulated dataset with hidden parameter values
- *      Writes out the fake data to a file
- *      Guesses some parameters
+ *      Writes out the simulated data to a file
+ *      Guesses the underlying parameters
  *      Evaluates a likelihood on these parameters
- *      Optimises this likelihood with simulated annealing
+ *      Maximises this likelihood
+ *
  * Compiles with
  * g++ likelihood-optimisation.cpp ../libs/libgillespie.so ../libs/libflying.so
  *      -lgsl -lm -o guesser
@@ -38,11 +39,13 @@
 using clonal_expansion::gillespie_ssa::times_to_final_vertices;
 using clonal_expansion::fast_forward::generating_function;
 using clonal_expansion::fast_forward::heun_q_step;
-using clonal_expansion::real_t;
+using clonal_expansion::real_t; // alias for double
 using clonal_expansion::Model;
 using clonal_expansion::GuesserConfig;
 
-typedef std::vector<std::pair<double, int>> Epidata_t;
+// TODO should go in a header:
+
+typedef std::vector<std::pair<double, int>> Epidata_t; // double = age, int = type.
 typedef std::map<size_t, std::vector<size_t>> Histogram_t;
 
 // Statistical functions:
@@ -1097,20 +1100,11 @@ void sample_voxel_cube(float* buffer,
         for (real_t s2 = 0.0; s2 < s2max; s2 += ds2) {
             // Associate a floating point colour with this s2 value:
             float theta = (4 * M_PI / 3) * s2 / s2max;
-            // swatch 1:
-            /*float colour[3] = {0.66f -0.33f * cosf(theta),
-                               0.66f +0.17f * cosf(theta) -0.29f * sinf(theta),
-                               0.66f +0.17f * cosf(theta) +0.29f * sinf(theta)};
-                               */
-            // swatch 2:
+
+            // swatch 2 (an isoluminant high-contrast palette):
             float colour[3] = {0.5f -0.408f * cosf(theta),
                                0.5f +0.204f * cosf(theta) -0.353f * sinf(theta),
                                0.5f +0.204f * cosf(theta) +0.353f * sinf(theta)};
-            // swatch 3:
-            /*float colour[3] = {0.5f -0.392f * cosf(theta) +0.276f * sinf(theta),
-                               0.5f +0.087f * cosf(theta) -0.122f * sinf(theta), 
-                               0.5f +0.298f * cosf(theta) +0.398f * sinf(theta)};
-                               */
 
             // get a normalised value for likelihood, 
             // which is exp(-log(L)).
@@ -1290,6 +1284,20 @@ Estimate get_estimate_germline(real_t binwidth, size_t reference_pop,
     return estimate;
 }
 
+real_t FreedmanDraconis_binwidth(Epidata_t all_times) {
+    // Compute a histogram binwidth with the Freedman-Draconis rule
+    std::sort(all_times.begin(), all_times.end(),
+              [](auto l, auto r) {
+                  return l.first < r.first;
+              });
+    real_t IQR;
+    unsigned Q1 = 0.25 * all_times.size();
+    unsigned Q3 = 0.75 * all_times.size();
+    IQR = all_times[Q3].first - all_times[Q1].first;
+
+    return 2 * IQR / pow(all_times.size(), 0.333);
+}
+
 void generate_histogram_germline(Model &ground_truth,
                         Model &ground_truth_germline,
                         size_t seed, size_t dataset_size,
@@ -1298,6 +1306,8 @@ void generate_histogram_germline(Model &ground_truth,
                         real_t &binwidth,
                         Histogram_t &incidence,
                         Histogram_t &incidence_germline) {
+    // Simulate a clinical study in which half of the cases have germline
+    // alterations to the tumour suppressor gene
     Epidata_t all_times =
         generate_dataset(ground_truth, seed, dataset_size / 2);
     // to include germline mutations:
@@ -1312,17 +1322,20 @@ void generate_histogram_germline(Model &ground_truth,
     max_age = save_data_compute_maximum(all_times);
 
     // Convert age data to histogram:
-    reference_pop = all_times.size(); /* NB: with germline this is 1/2
-    the previous value */
-    binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
-    std::cout << "max age = " << max_age;
-    std::cout << "\n bin width = " << binwidth << std::endl;
+    // Freedman-Draconis with separate bin widths for germline and sporadic
+    binwidth = FreedmanDraconis_binwidth(all_times);
+    std::cout << "max age (sporadic cases) = " << max_age;
+    std::cout << "\n bin width (sporadic cases) = " << binwidth << std::endl;
+
+    real_t binwidth_germline = FreedmanDraconis_binwidth(all_times_germline);
+    std::cout << "max age (germline cases) = " << max_age;
+    std::cout << "\n bin width (germline cases) = " << binwidth_germline << std::endl;
 
     for (auto &end_node : end_nodes) {
         incidence[end_node] = convert_to_histogram(all_times, binwidth,
                               end_node);
         incidence_germline[end_node] = convert_to_histogram(
-                                           all_times_germline, binwidth,
+                                           all_times_germline, binwidth_germline,
                                            end_node);
     }
 
@@ -1495,8 +1508,8 @@ void generate_histogram(Model &ground_truth, size_t seed, size_t dataset_size,
 
     // Convert age data to histogram:
     reference_pop = all_times.size();
-    binwidth = max_age / (2 * pow(reference_pop, 0.4)); // years
-    //real_t binwidth = 10.0;
+    // use Freedman-Draconis for binwidth:
+    binwidth = FreedmanDraconis_binwidth(all_times);
     std::cout << "max age = " << max_age;
     std::cout << "\n bin width = " << binwidth << std::endl;
 
