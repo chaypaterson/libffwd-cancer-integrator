@@ -1,4 +1,4 @@
-AC_INIT([cancer-integrator],[0.8],[chay.paterson@manchester.ac.uk])
+AC_INIT([cancer-integrator],[0.9],[chay.paterson@manchester.ac.uk])
 #AM_INIT_AUTOMAKE([foreign subdir-objects])
 
 ## Set the language to C++:
